@@ -1,7 +1,7 @@
-MapPy
+SpFeas
 -----
 
-**MapPy** is a Python library for image processing and remote sensing.
+**SpFeas** is a Python library for
 
 See AUTHORS.txt for contributors and HISTORY.txt or the [MapPy wiki](https://github.com/jgrss/mappy/wiki) for the log.
 
@@ -16,69 +16,14 @@ MapPy has only been tested on Python 2.7.
 Usage examples
 -----
 
-Load the MapPy object:
+Create spatial variables:
 
-    >>> import mappy as mp
-    >>> i_info = mp.rinfo('image')
+    > sp_spfeas 
 
-or load sub-classes:
+Sample land cover data:
 
-    >>> from mappy.classifiers import classification
-    >>> cl = classification()
+    > sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
 
-Call the same functions through Python:
-
-    >>> from mappy.features import veg_indices
-    >>> 
-    >>> veg_indices('/some_image.tif', '/some_image_indice.tif', 'NDVI', 'Landsat')
-
-or via command line:
-
-    > veg_indices.py -i /some_image.tif -o /some_image_indice.tif --index ndvi --sensor Landsat
-
-Image handling:
-
-    >>> import mappy as mp
-    >>>
-    >>> # Load an image and get information.
-    >>> i_info = mp.rinfo('/your/image.tif')
-    >>> print(i_info.bands)
-    >>> print(i_info.shape)
-    >>>
-    >>> # Open an image as an array.
-    >>> my_array = i_info.mparray()
-    >>>
-    >>> # Open specific bands, starting indexes, and row/column dimensions.
-    >>> my_array = i_info.mparray(bands2open=[2, 3, 4], i=1000, j=2000, rows=500, cols=500)
-    >>> my_array[0]     # 1st index = band 2
-    >>>
-    >>> # Open all bands and index by map coordinates.
-    >>> my_array = i_info.mparray(bands2open=-1, y=1200000, x=4230000, rows=500, cols=500)
-    >>>
-    >>> # Open image bands as arrays with dictionary mappings.
-    >>> my_band_dict = i_info.mparray(bands2open={'red': 2, 'green': 3, 'nir': 4})
-    >>> my_band_dict['red']
-    >>>
-    >>> # Compute the NDVI.
-    >>> ndvi = i_info.mparray(compute_index='ndvi', sensor='Landsat')
-    >>>
-    >>> # Writing to file
-    >>>
-    >>> # Copy an image info object and modify it.
-    >>> o_info = i_info.copy()
-    >>> o_info.update_info(bands=3, storage='float32')
-    >>>
-    >>> # Create the raster object
-    >>> out_raster = mp.create_raster('/output_image.tif', o_info)
-    >>>
-    >>> # Write an array block to band 1
-    >>> array2write = <some 2d array data>
-    >>> out_raster.write_array(array2write, i=0, j=0, band=1)
-    >>> out_raster.close()
-
-Land cover sampling:
-
-    > sample_raster.py -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
 
 Image classification:
 
@@ -121,27 +66,6 @@ Image classification:
     >>>
     >>> # Train a C5 classification model
     >>> cl.construct_r_model(classifier_info={'classifier': 'C5', 'trials': 10})
-
-Order, download, and composite Landsat imagery:
-
-    > sift_landsat_metadata.py -o /download_links.txt --path_rows "{225: [77, 79, 81]}" --start 2005/06/03 --end 2007/01/20
-    > download_landsat.py -t /download_links.txt -o /Landsat/downloads -u username
-    > composite_landsat.py -i /LE72250772000003-SC20151019142328.tar.gz -od /comp_dir --fmask
-
-Raster calculator:
-
-    >>> from mappy.utilities import raster_calc
-    >>>
-    >>> raster_calc('/output.tif', equation='A * B', A='/imageA.tif', B='/imageB.tif')
-
-Zonal statistics:
-
-    # Get land cover class totals
-    > zonal_stats.py -i /land_cover_image.tif -z /vector_zones.shp -o /output_table.csv -c 1 -t 
-
-If installed from source (see below), all tools are available from the command line and begin with **mp_**.
-
-    > mp_download_landsat -h
 
 See ``/notebooks`` for more detailed examples.
 
