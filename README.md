@@ -5,69 +5,7 @@ SpFeas
 
 See AUTHORS.txt for contributors and HISTORY.txt or the [MapPy wiki](https://github.com/jgrss/mappy/wiki) for the log.
 
-MapPy provides an interface for image processing through
-NumPy, GDAL, OpenCV, SciPy, and others. It is intended as a 
-user friendly interface to file handling (GDAL), computer
-vision (OpenCV), image processing (NumPy), and machine learning
-(Scikit-learn). 
-
-MapPy has only been tested on Python 2.7. 
-
-Usage examples
------
-
-Create spatial variables:
-
-    > sp_spfeas 
-
-Sample land cover data:
-
-    > sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
-
-
-Image classification:
-
-    >>> #########################################
-    >>> # With Scikit-learn or OpenCV classifiers
-    >>> #########################################
-    >>>
-    >>> from mappy.classifiers import classification
-    >>>
-    >>> cl = classification()
-    >>>
-    >>> # Check available models
-    >>> print(cl.model_options())
-    >>>
-    >>> # Load training samples
-    >>> cl.split_samples('/samples.txt')
-    >>>
-    >>> # Train a Random Forest classification model
-    >>> cl.construct_model(classifier_info={'classifier': 'RF', 'n_estimators': 500},
-    >>>                    perc_samp_each=.7)
-    >>>
-    >>> # Test model accuracy on withheld samples
-    >>> cl.test_accuracy()
-    >>> print(cl.emat.accuracy)
-    >>> print(cl.emat.e_matrix)
-    >>>
-    >>> # Make predictions on an image
-    >>> cl.predict('/image_variables.tif', '/image_labels.tif')
-    >>>
-    >>> ####################
-    >>> # With R classifiers
-    >>> ####################
-    >>>
-    >>> from mappy.classifiers import classification_r
-    >>>
-    >>> cl = classification_r()
-    >>>
-    >>> # Load training samples
-    >>> cl.split_samples('/samples.txt')
-    >>>
-    >>> # Train a C5 classification model
-    >>> cl.construct_r_model(classifier_info={'classifier': 'C5', 'trials': 10})
-
-See ``/notebooks`` for more detailed examples.
+SpFeas has only been tested on Python 2.7. 
 
 Installation
 ------------
@@ -128,33 +66,62 @@ Installation
 
     > pip install -r ../mappy/requirements.txt
 
-Modules & highlights
---------------------
-- ``raster_tools``
-  - Image handling
-- ``vector_tools``
-  - Vector handling
-- ``/calibrate``
-  - Radiometric calibration (support for Landsat, ASTER, CBERS, WorldView2)
-  - Image to image normalization, Landsat cross-track adjustments (using MODIS)
-- ``/classifiers``
-  - Supervised classification (Random Forests, C5, SVM, QDA)
-  - Thematic map post-classification processes 
-- ``/features``
-  - Band transformations, Tasseled Cap, PCA, contextual image statistics
-- ``/sample``
-  - Land cover sampling, map accuracy, point sampling, object accuracy
-- ``/tables``
-  - Shapefile table joins
-- ``/utilities``
-  - Compositing, geo-referencing, image masking, raster calculator, zonal statistics
-- ``/utilities/landsat``
-  - Compositing, scene download, scene search, tarball extraction
-- ``/utilities/modis``
-  - Compositing, scene download
+Usage examples
+-----
+
+Create spatial variables:
+
+> sp_spfeas 
+
+Sample land cover data:
+
+> sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
+
+
+Image classification in Python:
+
+>>> #########################################
+>>> # With Scikit-learn or OpenCV classifiers
+>>> #########################################
+>>>
+>>> from spfeas.classifiers import classification
+>>>
+>>> cl = classification()
+>>>
+>>> # Check available models
+>>> print(cl.model_options())
+>>>
+>>> # Load training samples
+>>> cl.split_samples('/samples.txt')
+>>>
+>>> # Train a Random Forest classification model
+>>> cl.construct_model(classifier_info={'classifier': 'RF', 'n_estimators': 500},
+>>>                    perc_samp_each=.7)
+>>>
+>>> # Test model accuracy on withheld samples
+>>> cl.test_accuracy()
+>>> print(cl.emat.accuracy)
+>>> print(cl.emat.e_matrix)
+>>>
+>>> # Make predictions on an image
+>>> cl.predict('/image_variables.tif', '/image_labels.tif')
+>>>
+>>> ####################
+>>> # With R classifiers
+>>> ####################
+>>>
+>>> from spfeas.classifiers import classification_r
+>>>
+>>> cl = classification_r()
+>>>
+>>> # Load training samples
+>>> cl.split_samples('/samples.txt')
+>>>
+>>> # Train a C5 classification model
+>>> cl.construct_r_model(classifier_info={'classifier': 'C5', 'trials': 10})
 
 Development
 -----------
-For questions or bugs, contact Jordan Graesser (jordan.graesser@mail.mcgill.ca).
+For questions or bugs, contact Jordan Graesser (jordan.graesser@bu.edu).
 
 

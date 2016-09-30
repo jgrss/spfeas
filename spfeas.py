@@ -5,6 +5,7 @@
 Date Created: 9/29/2016
 """
 
+import os
 import sys
 import argparse
 import time
@@ -18,8 +19,91 @@ except ImportError:
     raise ImportError('Colorama must be installed')
 
 
+class SPParameters(object):
+
+    def __init__(self, input_image, output_dir):
+
+        self.input_image = input_image
+        self.output_dir = output_dir
+        
+    def set_defaults(self, **kwargs):
+        
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+
+        # Set the features dictionary.
+        self.features_dict = dict(mean=1, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
+                                  lbpm=4, gabor=2 * 9, surf=4, seg=1, fourier=2, sfs=5, ndvi=1,
+                                  objects=1, dmp=1, xy=2, lac=1)
+
+        # Set the output bands based on the trigger.
+        self.out_bands_dict = {'mean': len(self.scales) * self.features_dict['mean'],
+                               'pantex': len(self.scales) * self.features_dict['pantex'],
+                               'ctr': len(self.scales) * self.features_dict['ctr'],
+                               'lsr': len(self.scales) * self.features_dict['lsr'],
+                               'hough': len(self.scales) * self.features_dict['hough'],
+                               'hog': len(self.scales) * self.features_dict['hog'],
+                               'lbp': len(self.scales) * self.features_dict['lbp'],
+                               'lbpm': len(self.scales) * self.features_dict['lbpm'],
+                               'gabor': len(self.scales) * self.features_dict['gabor'],
+                               'surf': len(self.scales) * self.features_dict['surf'],
+                               'seg': len(self.scales) * self.features_dict['seg'],
+                               'fourier': len(self.scales) * self.features_dict['fourier'],
+                               'sfs': len(self.scales) * self.features_dict['sfs'],
+                               'ndvi': len(self.scales) * self.features_dict['ndvi'],
+                               'objects': len(self.scales) * self.features_dict['objects'],
+                               'dmp': len(self.scales) * self.features_dict['dmp'],
+                               'xy': len(self.scales) * self.features_dict['xy'],
+                               'lac': len(self.scales) * self.features_dict['lac']}
+
+        # Update the feature dictionary for feature neighbors.
+        if self.neighbors:
+
+            for key, val in self.features_dict.iteritems():
+                self.features_dict[key] *= 5
+
+        self.d_name, self.f_name = os.path.split(self.input_image)
+        self.f_base, __ = os.path.splitext(self.f_name)
+
+        self.f_ext = '.tif'
+
+        # The status dictionary file.
+        self.status_dict_txt = '{}/{}_status.txt'.format(self.output_dir, self.f_base)
+
+        # The log file.
+        self.log_txt = '{}/{}_log.txt'.format(self.output_dir, self.f_base)
+
+        if isinstance(self.rgb2gray, str):
+            self.rgb2write = self.rgb2gray
+        else:
+            self.rgb2write = ','.join([str(bpos) for bpos in self.band_positions])
+
+        if self.neighbors:
+            self.write_neighbors = 'DID'
+        else:
+            self.write_neighbors = 'Did NOT'
+
+        if self.equalize:
+            self.write_equalize = 'DID'
+        else:
+            self.write_equalize = 'Did NOT'
+
+        if self.equalize_adapt:
+            self.write_equalize_adapt = 'DID'
+        else:
+            self.write_equalize_adapt = 'Did NOT'
+
+    def run(self):
+        spprocess.run(self)
+        
+
 def spatial_features(input_image, output_dir, **kwargs):
-    spprocess.run(input_image, output_dir, **kwargs)
+    
+    spp = SPParameters(input_image, output_dir)
+    
+    spp.set_defaults(**kwargs)
+    
+    spp.run()
 
 
 def _examples():
