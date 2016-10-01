@@ -33,7 +33,7 @@ Sample land cover data:
 
 Image classification:
 
-    > sp_classify
+    > sp_classify -i /value_image.tif -o /output_image.tif -s /land_cover_samples.txt
 
 
 Development

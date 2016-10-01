@@ -153,6 +153,7 @@ def _options():
 
 
 def main():
+
     colorama.init()
 
     parser = argparse.ArgumentParser(description=Fore.GREEN + Style.BRIGHT + 'Contextual image features'

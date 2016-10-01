@@ -10,11 +10,8 @@ import subprocess
 
 import sputilities
 import spsplit
-print '3'
 import spreshape
-print '4'
 import raster_tools
-print '5'
 from veg_indices import VegIndicesEquations
 
 # Pickle

@@ -502,7 +502,6 @@ class Samples(object):
             Example:
                 Sample by percentage = {1:.9, 2:.9, 3:.5}
                 Sample by integer = {1:300, 2:300, 3:150}
-        header (Optional[bool]): Whether the samples contain a header. Default is True.
         norm_struct (Optional[bool]): Whether the structure of the data is normals Default is True. In MapPy's
             case, normal is (X,Y,Var1,Var2,Var3,Var4,...,VarN,Labels), whereas the alternative (i.e., False) is
             (Labels,Var1,Var2,Var3,Var4,...,VarN)
@@ -539,7 +538,7 @@ class Samples(object):
         self.time_stamp = time.asctime(time.localtime(time.time()))
 
     def split_samples(self, file_name, perc_samp=.9, perc_samp_each=0, scale_data=False, class_subs={},
-                      header=True, norm_struct=True, labs_type='int', recode_dict={}, classes2remove=[],
+                      norm_struct=True, labs_type='int', recode_dict={}, classes2remove=[],
                       sample_weight=None, ignore_feas=[], use_xy=False, stratified=False, spacing=1000.,
                       x_label='X', y_label='Y', response_label='response'):
 
