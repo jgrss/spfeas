@@ -5,7 +5,7 @@ import platform
 import subprocess
 import copy
 
-from spfeas import raster_tools
+import raster_tools
 
 import numpy as np
 import numexpr as ne

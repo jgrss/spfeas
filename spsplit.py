@@ -9,34 +9,34 @@ import subprocess
 from joblib import Parallel, delayed
 
 from spfunctions import *
-from spfeas.paths import get_mappy_path
+from paths import get_mappy_path
 
 MAPPY_PATH = get_mappy_path()
 
 try:
-    import _stats
+    from sphelpers import _stats
 except:
 
-    os.chdir('{}/features/helpers'.format(MAPPY_PATH))
+    os.chdir('{}/sphelpers'.format(MAPPY_PATH))
 
     com = 'python setup_stats.py build_ext --inplace'
     subprocess.call(com, shell=True)
 
-    import _stats
+    from sphelpers import _stats
 
 try:
-    import _chunk
+    from sphelpers import _chunk
 except:
 
-    os.chdir('{}/features/helpers'.format(MAPPY_PATH))
+    os.chdir('{}/sphelpers'.format(MAPPY_PATH))
 
     com = 'python setup_chunk.py build_ext --inplace'
     subprocess.call(com, shell=True)
 
-    import _chunk
+    from sphelpers import _chunk
 
 try:
-    from .gabor_filter_bank import prep_gabor
+    from sphelpers.gabor_filter_bank import prep_gabor
 except:
     print('\n!!!\nWarning: skimage.filter.gabor_kernel did not load\n \
     Cannot compute Gabor features\n Upgrade to latest scikits-image')

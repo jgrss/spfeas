@@ -18,9 +18,9 @@ import fnmatch
 from collections import OrderedDict
 
 # MapPy
-from spfeas import raster_tools
+import raster_tools
 # from mappy.utilities import composite
-from spfeas.helpers.other.progress_iter import _iteration_parameters
+from helpers.other.progress_iter import _iteration_parameters
 
 # Numpy    
 try:

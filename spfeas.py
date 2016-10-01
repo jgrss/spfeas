@@ -10,7 +10,7 @@ import sys
 import argparse
 import time
 
-from sphelpers import spprocess
+import spprocess
 
 try:
     import colorama

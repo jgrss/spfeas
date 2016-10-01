@@ -11,7 +11,7 @@ import logging
 from copy import copy
 from six import string_types
 
-from spfeas import raster_tools
+import raster_tools
 
 try:
     import numpy as np

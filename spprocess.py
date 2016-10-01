@@ -8,9 +8,14 @@ import psutil
 import itertools
 import subprocess
 
-from spfeas import raster_tools
-from spfeas.features.veg_indices import VegIndicesEquations
-from . import sputilities, spsplit, spreshape
+import sputilities
+import spsplit
+print '3'
+import spreshape
+print '4'
+import raster_tools
+print '5'
+from veg_indices import VegIndicesEquations
 
 # Pickle
 try:
@@ -657,7 +662,7 @@ def run(parameter_object):
 
         if platform.system() == 'Windows':
             win_feas_list_o.close()
-        
+
         # Stack the features
         if parameter_object.stack:
             out_vrt = sputilities.stack_features(parameter_object, new_feas_list)

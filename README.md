@@ -1,77 +1,30 @@
 SpFeas
 -----
 
-**SpFeas** is a Python library for
-
-See AUTHORS.txt for contributors and HISTORY.txt or the [MapPy wiki](https://github.com/jgrss/mappy/wiki) for the log.
+**SpFeas** is a Python library for processing spatial (contextual) image features and image classification.
 
 SpFeas has only been tested on Python 2.7. 
 
 Installation
 ------------
 #### Dependencies
-- [GDAL](http://www.gdal.org)
-- [OpenCV](http://opencv.org)
-- [HDF 4 & 5](https://www.hdfgroup.org)
-- [libspatialindex](https://libspatialindex.github.io)
+- [GDAL](http://www.gdal.org) binaries
 - Python third-party libraries (see /notebooks/01_installation.pynb)
+##### Optional
+- [libspatialindex](https://libspatialindex.github.io) and RTree
 
-#### There are multiple installation options
+#### Installation instructions
 
-**Install stable release with pip (recommended)**
+1) Either download the INSTALLATION.pdf under **/files** or open INSTALLATION.ipynb under **/notebooks**.
 
-1) Update setuptools:
-
-    > pip install -U setuptools
-
-2) [Acquire the latest MapPy tarball](https://github.com/jgrss/mappy/releases)
-
-3) To install:
-
-    > pip install MapPy-<version>.tar.gz
-    > e.g., pip install MapPy-0.4.9.tar.gz
-
-4) To update:
-
-    > pip install -U MapPy-<new version>.tar.gz
-
-5) To uninstall:
-
-    > pip uninstall mappy
-
-**PIP install from GitHub**
-
-    > pip install https://github.com/jgrss/mappy/archive/mappy-<version>.tar.gz
-
-**Use the latest MapPy on GitHub**
-
-1) Navigate to location where you want to save MapPy (change */scripts/Python* as desired):
-
-    > cd /scripts/Python
-
-2) Clone the GitHub MapPy repository:
-
-    > git clone https://github.com/jgrss/mappy.git
-
-3) Add /scripts/Python/mappy to the PYTHONPATH
-
-4) To update:
-
-    > cd /scripts/Python/mappy
-    > git pull
-
-**Dependencies**
-
-    See ``/notebooks/01_installation.ipynb`` for dependencies. Or, install with pip:
-
-    > pip install -r ../mappy/requirements.txt
+2) Follow the instructions to download SpFeas.
 
 Usage examples
 -----
 
 Create spatial variables:
 
-> sp_spfeas 
+> sp_spfeas -i /your_image.tif -o /your_output_directory  
 
 Sample land cover data:
 

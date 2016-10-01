@@ -15,11 +15,11 @@ import inspect
 import atexit
 from joblib import Parallel, delayed
 
-from .helpers.utilities import random_float, overwrite_file
-from .helpers.other.progress_iter import _iteration_parameters
-from .vector_tools import get_xy_offsets
-from .helpers.utilities import check_and_create_dir
-from .helpers.errors import LenError, RinfoError
+from helpers.errors import LenError, RinfoError
+from helpers.utilities import random_float, overwrite_file
+from helpers.utilities import check_and_create_dir
+from helpers.other.progress_iter import _iteration_parameters
+from vector_tools import get_xy_offsets
 from vector_tools import vinfo, intersects_boundary
 
 # GDAL

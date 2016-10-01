@@ -23,10 +23,10 @@ from collections import OrderedDict
 # import xml.etree.ElementTree as ET
 
 # MapPy
-from spfeas import raster_tools
-from spfeas import vector_tools
-from spfeas.sample import error_matrix
-from spfeas.paths import gdal_path
+import raster_tools
+import vector_tools
+import error_matrix
+from paths import gdal_path
 # from mappy.helpers.other.progress_iter import _iteration_parameters
 from spfeas.paths import get_mappy_path
 
@@ -34,7 +34,7 @@ MAPPY_PATH = get_mappy_path()
 
 # helpers
 try:
-    from spfeas.helpers.stats import _lin_interp
+    from sphelpers.stats import _lin_interp
 except:
 
     os.chdir('{}/helpers/stats'.format(MAPPY_PATH))
@@ -42,10 +42,10 @@ except:
     com = 'python setup_lin_interp.py build_ext --inplace'
     subprocess.call(com, shell=True)
 
-    from spfeas.helpers.stats import _lin_interp
+    from sphelpers.stats import _lin_interp
 
 try:
-    from spfeas.helpers.stats import _rolling_stats
+    from sphelpers.stats import _rolling_stats
 except:
 
     os.chdir('{}/helpers/stats'.format(MAPPY_PATH))
@@ -53,7 +53,7 @@ except:
     com = 'python setup_rolling_stats.py build_ext --inplace'
     subprocess.call(com, shell=True)
 
-    from spfeas.helpers.stats import _rolling_stats
+    from sphelpers.stats import _rolling_stats
 
 # Pickle
 try:
