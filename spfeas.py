@@ -202,6 +202,7 @@ def main():
     parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs', default=-1, type=int)
     parser.add_argument('--sect-size', dest='section_size', help='The section size', default=8000, type=int)
     parser.add_argument('--chunk-size', dest='chunk_size', help='The section chunk size', default=512, type=int)
+    parser.add_argument('--gdal-cache', dest='gdal_cache', help='The GDAL cache size (MB)', default=256, type=int)
     parser.add_argument('--reset', dest='reset', help='Whether to reset section memory', action='store_true')
     parser.add_argument('--options', dest='options', help='Whether to show trigger options', action='store_true')
 
@@ -225,7 +226,8 @@ def main():
                      visualize=args.visualize, convert_stk=args.convert, do_pca=args.pca, rgb2gray=args.rgb2gray,
                      stack_feas=args.stack, stack_only=args.stack_only, band_red=args.band_red, band_nir=args.band_nir,
                      neighbors=args.neighbors, n_jobs=args.n_jobs, reset_sects=args.reset, image_max=args.image_max,
-                     lac_r=args.lac_r, section_size=args.section_size, chunk_size=args.chunk_size)
+                     lac_r=args.lac_r, section_size=args.section_size, chunk_size=args.chunk_size,
+                     gdal_cache=args.gdal_cache)
 
     print('\nEnd data & time -- (%s)\nTotal processing time -- (%.2gs)\n'
           % (time.asctime(time.localtime(time.time())), (time.time() - start_time)))

@@ -4,12 +4,15 @@ colorama==0.3.7
 GDAL==2.1.0
 joblib==0.10.0
 matplotlib==1.5.1
+numexpr==2.6.1
 numpy==1.11.1
 opencv-python=3.1.0
 pandas==0.18.1
+psutil==4.3.0
 PySAL==1.11.2
 scikit-image==0.12.3
 scikit-learn==0.17.1
 scipy==0.18.0
+six==1.10.0
 tables==3.2.4.dev0
 xmltodict==0.10.2

@@ -149,8 +149,8 @@ except:
 # Rtree
 try:
     import rtree
-except ImportError:
-    raise ImportError('Rtree must be installed')
+except:
+    print('Rtree must be installed to use spatial indexing')
 
 # from numba import jit as numba_jit
 # from parakeet import jit as para_jit
