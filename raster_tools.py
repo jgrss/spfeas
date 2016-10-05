@@ -11,16 +11,14 @@ import copy
 import fnmatch
 import time
 import argparse
-import subprocess
 import inspect
 import atexit
 from joblib import Parallel, delayed
 
-from mappy.helpers.utilities import random_float, overwrite_file
-from mappy.helpers.other.progress_iter import _iteration_parameters
-from mappy.vector_tools import vinfo, get_xy_offsets
-from mappy.helpers.utilities import check_and_create_dir
-from mappy.helpers.errors import LenError, RinfoError
+from spfeas.helpers.utilities import random_float, overwrite_file, check_and_create_dir
+from spfeas.helpers.other.progress_iter import _iteration_parameters
+from spfeas.vector_tools import vinfo, get_xy_offsets
+from spfeas.helpers.errors import LenError, RinfoError
 from vector_tools import vinfo, intersects_boundary
 
 # GDAL
@@ -2115,7 +2113,7 @@ class BlockFunc(object):
 
         if not isinstance(self.out_info, rinfo):
             if not isinstance(self.out_info, GetMinExtent):
-                raise RinfoError('The output image object is not a MapPy instance.')
+                raise RinfoError('The output image object is not a SpFeas instance.')
 
         if not isinstance(self.image_infos, list):
             raise TypeError('The image infos must be given as a list.')

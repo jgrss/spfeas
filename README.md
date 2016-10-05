@@ -18,7 +18,7 @@ Usage examples
 
 Create spatial variables:
 
-    > sp_spfeas -i /your_image.tif -o /your_output_directory  
+    > spfeas -i /your_image.tif -o /your_output_directory  
 
 Sample land cover data:
 

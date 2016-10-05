@@ -24,9 +24,21 @@ Windows:
 
 """
 
+# import os
+# import sys
+# import platform
 import setuptools
-from distutils.core import setup
+from distutils.core import setup#, Extension
+# from distutils.sysconfig import get_python_inc
+from Cython.Build import cythonize
 
+try:
+    from Cython.distutils import build_ext
+except ImportError:
+    from distutils.command import build_ext
+
+
+# incdir = os.path.join(get_python_inc(plat_specific=1), 'Numerical')
 
 __version__ = '0.0.1'
 
@@ -98,8 +110,11 @@ def setup_package():
                     package_data=get_package_data(),
                     zip_safe=False,
                     download_url=git_url,
+                    ext_modules=cythonize(get_pyx_list()),
+                    setup_requires=['setuptools_cython', 'cython >= 0.24.1'],
                     install_requires=required_packages,
-                    entry_points=get_console_dict())
+                    cmdclass={'build_ext': build_ext},
+                    entry_points=get_console_dict())    #dependency_links=required_packages_other,
 
     setup(**metadata)
 

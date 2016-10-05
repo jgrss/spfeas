@@ -1,12 +1,31 @@
 #!/bin/bash
 
+# Homebrew
 brew tap osgeo/osgeo4mac
 brew tap homebrew/science
 brew tap homebrew/versions
-brew install gcc python hdf4 hdf5 spatialindex
+#brew install gcc python hdf4 hdf5 spatialindex
+brew install python hdf4 hdf5 spatialindex
 brew linkapps python
-sudo -H pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL retrying Rtree scikit-image scikit-learn scipy six tables xmltodict
-brew install gdal2 --with-hdf4 --with-hdf5
-echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
-brew link --force gdal2
+
+# Python pip
+if which pip >/devnull; then
+  echo 'pip is installed'
+else
+  sudo -H easy_install pip
+fi
+
+pip install --upgrade setuptools
+
+# Python libraries
+sudo -H pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict
+
+#brew install gdal2 --with-hdf4 --with-hdf5
+#echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
+#brew link --force gdal2
+
+# SpFeas
 pip install SpFeas-0.0.1.tar.gz
+
+echo
+echo 'The installation has finished!'
