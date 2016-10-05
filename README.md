@@ -7,13 +7,6 @@ SpFeas has only been tested on Python 2.7.
 
 Installation
 ------------
-#### Dependencies
-- [GDAL](http://www.gdal.org) binaries
-- Python third-party libraries (see /notebooks/01_installation.pynb)
-
-##### Optional
-- [libspatialindex](https://libspatialindex.github.io) and RTree
-
 #### Installation instructions
 
 1) Either download the INSTALLATION.pdf under **/files** or open INSTALLATION.ipynb under **/notebooks**.
