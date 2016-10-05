@@ -8,5 +8,5 @@ import numpy as np
 
 file2build = '_chunk'
 
-setup(name=file2build, ext_modules=[Extension(file2build, ['%s.pyx' % file2build])], \
+setup(name=file2build, ext_modules=[Extension(file2build, ['%s.pyx' % file2build])],
       cmdclass={'build_ext': build_ext}, include_dirs=[np.get_include()])

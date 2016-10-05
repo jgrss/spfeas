@@ -621,29 +621,45 @@ def run(parameter_object):
                             out_img_resamp = out_img_resamp.replace('blk{:d}'.format(parameter_object.block),
                                                                     'blk{:d}'.format(int(parameter_object.sfs_resample)))
 
-                            if 'img' in parameter_object.f_ext.lower():
-
-                                sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
-                                --config GDAL_CACHEMAX {:d} -co COMPRESS=YES \
-                                -of HFA -tr {:f} {:f} -r average {} {}'.format(parameter_object.gdal_cache,
-                                                                               parameter_object.sfs_resample,
-                                                                               parameter_object.sfs_resample,
-                                                                               out_img, out_img_resamp)
-
-                            else:
-
-                                sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
-                                --config GDAL_CACHEMAX {:d} -co COMPRESS=DEFLATE \
-                                -co TILED=YES -co BIGTIFF=YES -tr {:f} {:f} \
-                                -r average {} {}'.format(parameter_object.gdal_cache,
-                                                         parameter_object.sfs_resample,
-                                                         parameter_object.sfs_resample,
-                                                         out_img, out_img_resamp)
-
                             print '\nResampling SFS to {:.1f}m x {:.1f}m cell size ...\n'.format(parameter_object.sfs_resample,
                                                                                                  parameter_object.sfs_resample)
 
-                            subprocess.call(sfs_resamp_com, shell=True)
+                            if 'img' in parameter_object.f_ext.lower():
+
+                                raster_tools.warp(out_img, out_img_resamp,
+                                                  cell_size=parameter_object.sfs_resample,
+                                                  resampleAlg='average',
+                                                  warpMemoryLimit=256,
+                                                  format='HFA',
+                                                  multithread=True,
+                                                  creationOptions=['COMPRESS=YES'])
+
+                                # sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
+                                # --config GDAL_CACHEMAX {:d} -co COMPRESS=YES \
+                                # -of HFA -tr {:f} {:f} -r average {} {}'.format(parameter_object.gdal_cache,
+                                #                                                parameter_object.sfs_resample,
+                                #                                                parameter_object.sfs_resample,
+                                #                                                out_img, out_img_resamp)
+
+                            else:
+
+                                raster_tools.warp(out_img, out_img_resamp,
+                                                  cell_size=parameter_object.sfs_resample,
+                                                  resampleAlg='average',
+                                                  warpMemoryLimit=256,
+                                                  format='HFA',
+                                                  multithread=True,
+                                                  creationOptions=['COMPRESS=DEFLATE', 'BIGTIFF=YES', 'TILED=YES'])
+
+                                # sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
+                                #                                 --config GDAL_CACHEMAX {:d} -co COMPRESS=DEFLATE \
+                                #                                 -co TILED=YES -co BIGTIFF=YES -tr {:f} {:f} \
+                                #                                 -r average {} {}'.format(parameter_object.gdal_cache,
+                                #                                                          parameter_object.sfs_resample,
+                                #                                                          parameter_object.sfs_resample,
+                                #                                                          out_img, out_img_resamp)
+
+                            # subprocess.call(sfs_resamp_com, shell=True)
 
                             out_img_new = out_img_resamp.replace('_resamp', '')
 
@@ -677,10 +693,14 @@ def run(parameter_object):
                                                                         parameter_object.block,
                                                                         '-'.join(scales_str))
 
-            com = 'gdal_translate --config GDAL_CACHEMAX {:d} \
-            -of GTiff -co TILED=YES -co COMPRESS=LZW {} {}'.format(parameter_object.gdal_cache, out_vrt, out_gtiff)
+            raster_tools.translate(out_vrt, out_gtiff,
+                                   format='GTiff',
+                                   creationOptions=['TILED=YES', 'COMPRESS=LZW'])
 
-            subprocess.call(com, shell=True)
+            # com = 'gdal_translate --config GDAL_CACHEMAX {:d} \
+            # -of GTiff -co TILED=YES -co COMPRESS=LZW {} {}'.format(parameter_object.gdal_cache, out_vrt, out_gtiff)
+
+            # subprocess.call(com, shell=True)
 
         # Run PCA on features.
         # if parameter_object.pca:

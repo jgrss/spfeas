@@ -2,7 +2,7 @@
 
 """
 @author: Jordan Graesser
-Date Created: 9/29/2016
+Date Created: 9/24/2011
 """
 
 import os
@@ -11,15 +11,16 @@ import copy
 import fnmatch
 import time
 import argparse
+import subprocess
 import inspect
 import atexit
 from joblib import Parallel, delayed
 
-from helpers.errors import LenError, RinfoError
-from helpers.utilities import random_float, overwrite_file
-from helpers.utilities import check_and_create_dir
-from helpers.other.progress_iter import _iteration_parameters
-from vector_tools import get_xy_offsets
+from mappy.helpers.utilities import random_float, overwrite_file
+from mappy.helpers.other.progress_iter import _iteration_parameters
+from mappy.vector_tools import vinfo, get_xy_offsets
+from mappy.helpers.utilities import check_and_create_dir
+from mappy.helpers.errors import LenError, RinfoError
 from vector_tools import vinfo, intersects_boundary
 
 # GDAL
@@ -88,18 +89,19 @@ except ImportError:
 # BeautifulSoup4
 try:
     from bs4 import BeautifulSoup
-except ImportError:
+except:
     raise ImportError('BeautifulSoup4 must be installed')
 
 # xmltodict
 try:
     import xmltodict
-except ImportError:
+except:
     raise ImportError('xmltodict must be installed')
 
 
 DRIVER_DICT = {'.tif': 'GTiff',
                '.img': 'HFA',
+               '.hdf': 'HDF4',
                '.hdf4': 'HDF4',
                '.hdf5': 'HDF5',
                '.vrt': 'VRT',
@@ -144,6 +146,11 @@ STORAGE_DICT_NUMPY = {'byte': np.uint8,
                       'uint64': np.uint64,
                       'float32': np.float32,
                       'float64': np.float64}
+
+RESAMPLE_DICT = {'average': gdal.GRA_Average,
+                 'bilinear': gdal.GRA_Bilinear,
+                 'nearest': gdal.GRA_NearestNeighbour,
+                 'cubic': gdal.GRA_Cubic}
 
 
 def get_sensor_dict():
@@ -395,6 +402,8 @@ class FileManager(DataChecks, RegisterDriver):
 
     def get_image_info(self, open2read, hdf_band, check_corrupted):
 
+        self.hdf_file = False
+
         if not os.path.isfile(self.file_name):
             raise IOError('\n{} does not exist.\n'.format(self.file_name))
 
@@ -421,16 +430,21 @@ class FileManager(DataChecks, RegisterDriver):
 
         if self.file_name.lower().endswith('.hdf'):
 
+            self.hdf_file = True
+
             if self.datasource is None:
                 print '\n{} appears to be empty.\n'.format(self.file_name)
                 return
 
-            self.hdf_layers = self.datasource.GetSubDatasets()
+            # self.hdf_layers = self.datasource.GetSubDatasets()
+            self.hdf_layers = self.datasource.GetMetadata('SUBDATASETS')
+            self.hdf_name_list = [self.hdf_layers[k] for k in self.hdf_layers.keys() if '_NAME' in k]
 
-            if self.open2read:
-                self.datasource = gdal.Open(self.datasource.GetSubDatasets()[hdf_band - 1][0], GA_ReadOnly)
-            else:
-                self.datasource = gdal.Open(self.datasource.GetSubDatasets()[hdf_band - 1][0], GA_Update)
+            self.hdf_datasources = [gdal.Open(hdf_name, GA_ReadOnly) for hdf_name in self.hdf_name_list]
+
+            self.datasource = self.hdf_datasources[hdf_band-1]
+
+            # self.datasource = gdal.Open(self.datasource.GetSubDatasets()[hdf_band - 1][0], GA_ReadOnly)
 
         if self.datasource is None:
             raise OSError('\n{} appears to be empty.\n'.format(self.file_name))
@@ -1314,19 +1328,38 @@ class rinfo(FileManager, LandsatParser, SentinelParser):
 
             for band_name, band_position in bands2open.iteritems():
 
-                self.array[band_name] = self.datasource.GetRasterBand(band_position).ReadAsArray(self.j,
-                                                                                                 self.i,
-                                                                                                 self.ccols,
-                                                                                                 self.rrows).astype(self.d_type)
+                if self.hdf_file:
+
+                    self.array[band_name] = self.hdf_datasources[band_position-1].ReadAsArray(self.j,
+                                                                                              self.i,
+                                                                                              self.ccols,
+                                                                                              self.rrows).astype(self.d_type)
+
+                else:
+
+                    self.array[band_name] = self.datasource.GetRasterBand(band_position).ReadAsArray(self.j,
+                                                                                                     self.i,
+                                                                                                     self.ccols,
+                                                                                                     self.rrows).astype(self.d_type)
 
         # Open the image as an array.
         else:
 
-            self.array = np.asarray([self.datasource.GetRasterBand(band).ReadAsArray(self.j,
-                                                                                     self.i,
-                                                                                     self.ccols,
-                                                                                     self.rrows)
-                                     for band in bands2open], dtype=self.d_type)
+            if self.hdf_file:
+
+                self.array = np.asarray([self.hdf_datasources[band-1].ReadAsArray(self.j,
+                                                                                  self.i,
+                                                                                  self.ccols,
+                                                                                  self.rrows)
+                                         for band in bands2open], dtype=self.d_type)
+
+            else:
+
+                self.array = np.asarray([self.datasource.GetRasterBand(band).ReadAsArray(self.j,
+                                                                                         self.i,
+                                                                                         self.ccols,
+                                                                                         self.rrows)
+                                         for band in bands2open], dtype=self.d_type)
 
             self.array = self._reshape(self.array, bands2open)
 
@@ -1337,6 +1370,62 @@ class rinfo(FileManager, LandsatParser, SentinelParser):
         """
 
         self.array = self.array.reshape(self.ccols, self.rrows).T
+
+    def warp(self, output_image, epsg, resample='nearest', cell_size=0, **kwargs):
+
+        """
+        Warp transforms a dataset
+
+        Args:
+            output_image (str): The output image.
+            epsg (int): The output EPSG projection code.
+            resample (Optional[str]): The resampling method. Default is 'nearest'.N
+            cell_size (Optional[float]): The output cell size. Default is 0.
+            kwargs:
+                format='GTiff', outputBounds=None, outputBoundsSRS=None, targetAlignedPixels=False,
+                 width=0, height=0, srcAlpha=False, dstAlpha=False, warpOptions=None,
+                 errorThreshold=None, warpMemoryLimit=None,
+                 creationOptions=None, outputType=0, workingType=0,
+                 resampleAlg=resample_dict[resample], srcNodata=None, dstNodata=None,
+                 multithread=False, tps=False, rpc=False, geoloc=False,
+                 polynomialOrder=None, transformerOptions=None, cutlineDSName=None,
+                 cutlineLayer=None, cutlineWhere=None, cutlineSQL=None,
+                 cutlineBlend=None, cropToCutline=False, copyMetadata=True,
+                 metadataConflictValue=None, setColorInterpretation=False,
+                 callback=None, callback_data=None
+
+        Returns:
+            None, writes to `output_image'.
+        """
+
+        warp_options = gdal.WarpOptions(srcSRS=None, dstSRS='EPSG:{:d}'.format(epsg),
+                                        xRes=cell_size, yRes=cell_size, resampleAlg=RESAMPLE_DICT[resample],
+                                        **kwargs)
+
+        out_ds = gdal.Warp(output_image, self.file_name, options=warp_options)
+
+        out_ds = None
+
+    def translate(self, output_image, cell_size=0, **kwargs):
+
+        """
+        Args:
+            output_image (str): The output image.
+            cell_size (Optional[float]): The output cell size. Default is 0.
+            kwargs:
+                format='GTiff', outputType=0, bandList=None, maskBand=None, width=0, height=0,
+                widthPct=0.0, heightPct=0.0, xRes=0.0, yRes=0.0, creationOptions=None, srcWin=None,
+                projWin=None, projWinSRS=None, strict=False, unscale=False, scaleParams=None,
+                exponents=None, outputBounds=None, metadataOptions=None, outputSRS=None, GCPs=None,
+                noData=None, rgbExpand=None, stats=False, rat=True, resampleAlg=None,
+                callback=None, callback_data=None
+        """
+
+        translate_options = gdal.TranslateOptions(xRes=cell_size, yRes=cell_size, **kwargs)
+
+        out_ds = gdal.Translate(output_image, self.file_name, options=translate_options)
+
+        out_ds = None
 
     def _reshape2predictions(self, n_bands):
 
@@ -1375,13 +1464,15 @@ class rinfo(FileManager, LandsatParser, SentinelParser):
             if len(bands2open) == 0:
                 raise ValueError('\nA band list must be declared.\n')
 
-            if max(bands2open) > self.bands:
-                raise ValueError('\nThe requested band position cannot be greater than the image bands.\n')
+            if not self.hdf_file:
+                if max(bands2open) > self.bands:
+                    raise ValueError('\nThe requested band position cannot be greater than the image bands.\n')
 
         elif isinstance(bands2open, int):
 
-            if bands2open > self.bands:
-                raise ValueError('\nThe requested band position cannot be greater than the image bands.\n')
+            if not self.hdf_file:
+                if bands2open > self.bands:
+                    raise ValueError('\nThe requested band position cannot be greater than the image bands.\n')
 
             if bands2open == -1:
                 bands2open = range(1, self.bands+1)
@@ -2391,6 +2482,66 @@ def mparray(image2open=None, i_info=None, bands2open=1, i=0, j=0,
         else:
 
             return _mparray_parallel(image2open, i_info, bands2open, i, j, rows, cols, n_jobs, d_type, predictions)
+
+
+def warp(input_image, output_image, epsg, resample='nearest', cell_size=0, **kwargs):
+
+    """
+    Warp transforms a dataset
+
+    Args:
+        input_image (str): The image to warp.
+        output_image (str): The output image.
+        epsg (int): The output EPSG projection code.
+        resample (Optional[str]): The resampling method. Default is 'nearest'.N
+        cell_size (Optional[float]): The output cell size. Default is 0.
+        kwargs:
+            format=None, outputBounds=None, outputBoundsSRS=None, targetAlignedPixels=False,
+             width=0, height=0, srcAlpha=False, dstAlpha=False, warpOptions=None,
+             errorThreshold=None, warpMemoryLimit=None,
+             creationOptions=None, outputType=0, workingType=0,
+             resampleAlg=resample_dict[resample], srcNodata=None, dstNodata=None,
+             multithread=False, tps=False, rpc=False, geoloc=False,
+             polynomialOrder=None, transformerOptions=None, cutlineDSName=None,
+             cutlineLayer=None, cutlineWhere=None, cutlineSQL=None,
+             cutlineBlend=None, cropToCutline=False, copyMetadata=True,
+             metadataConflictValue=None, setColorInterpretation=False,
+             callback=None, callback_data=None
+
+    Returns:
+        None, writes to `output_image'.
+    """
+
+    warp_options = gdal.WarpOptions(srcSRS=None, dstSRS='EPSG:{:d}'.format(epsg),
+                                    xRes=cell_size, yRes=cell_size, resampleAlg=RESAMPLE_DICT[resample],
+                                    **kwargs)
+
+    out_ds = gdal.Warp(output_image, input_image, options=warp_options)
+
+    out_ds = None
+
+
+def translate(input_image, output_image, cell_size=0, **kwargs):
+
+    """
+    Args:
+        input_image (str): The image to translate.
+        output_image (str): The output image.
+        cell_size (Optional[float]): The output cell size. Default is 0.
+        kwargs:
+            format='GTiff', outputType=0, bandList=None, maskBand=None, width=0, height=0,
+            widthPct=0.0, heightPct=0.0, xRes=0.0, yRes=0.0, creationOptions=None, srcWin=None,
+            projWin=None, projWinSRS=None, strict=False, unscale=False, scaleParams=None,
+            exponents=None, outputBounds=None, metadataOptions=None, outputSRS=None, GCPs=None,
+            noData=None, rgbExpand=None, stats=False, rat=True, resampleAlg=None,
+            callback=None, callback_data=None
+    """
+
+    translate_options = gdal.TranslateOptions(xRes=cell_size, yRes=cell_size, **kwargs)
+
+    out_ds = gdal.Translate(output_image, input_image, options=translate_options)
+
+    out_ds = None
 
 
 class create_raster(CreateDriver, FileManager):

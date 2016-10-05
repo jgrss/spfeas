@@ -66,6 +66,30 @@ def main():
     parser.add_argument('--y-label', dest='y_label', help='The y column label', default='Y')
     parser.add_argument('--response-label', dest='response_label', help='The response column label', default='response')
 
+    parser.add_argument('--input-model', dest='input_model', help='A model to load', default=None)
+    parser.add_argument('--output-model', dest='output_model', help='A model to save', default=None)
+    parser.add_argument('--classifier-info', dest='classifier_info', help='The classification parameters',
+                        default="{'classifier': 'RF'}")
+    parser.add_argument('--class-weight', dest='class_weight', help='Individual class weights', default=None,
+                        choices=['percent', 'inverse'])
+    parser.add_argument('--cal-proba', dest='calibrate_proba', help='Whether to calibrate posterior probabilities',
+                        action='store_true')
+    parser.add_argument('--be-quiet', dest='be_quiet', help='Whether to be quiet', action='store_true')
+    parser.add_argument('--jobs', dest='n_jobs', help='The number of parallel jobs', default=-1, type=int)
+    parser.add_argument('--band-check', dest='band_check', help='The band to check for no data', default=-1, type=int)
+    parser.add_argument('--mask-background', dest='mask_background',
+                        help='An image to use as a background mask, applied post-classification', default=None)
+    parser.add_argument('--background-band', dest='background_band',
+                        help='The band from --mask-background to use for null background value', default=2, type=int)
+    parser.add_argument('--background-value', dest='background_value',
+                        help='The background value in --mask-background', default=0, type=int)
+    parser.add_argument('--min-observations', dest='minimum_observations',
+                        help='A minimum number of observations in --mask-background to be recoded to 0',
+                        default=0, type=int)
+    parser.add_argument('--observation-band', dest='observation_band',
+                        help='The band position in --mask-background of the --min-observations counts',
+                        default=0, type=int)
+
     args = parser.parse_args()
 
     if args.examples:
@@ -84,16 +108,17 @@ def main():
               ignore_feas=args.ignore_feas, use_xy=args.use_xy, stratified=args.stratified,
               spacing=args.spacing, x_label=args.x_label, y_label=args.y_label, response_label=args.response_label)
 
-    clo.construct(input_model=None, output_model=None, classifier_info=None,
-                  class_weight=None, var_imp=True, rank_method=None, top_feas=.5,
-                  get_probs=False, input_image=None, in_shapefile=None, out_stats=None,
-                  stats_from_image=False, calibrate_proba=False, be_quiet=False, n_jobs=-1)
-    
-    clo.predict(args.input_image, args.output_image, additional_layers=[], scale_data=False,
-                band_check=-1, ignore_feas=[], use_xy=False, in_stats=None,
-                in_model=None, mask_background=None, background_band=2,
-                background_value=0, minimum_observations=0, observation_band=0,
-                row_block_size=1024, col_block_size=1024, n_jobs=-1, gdal_cache=256)
+    clo.construct(input_model=args.input_model, output_model=args.output_model,
+                  classifier_info=ast.literal_eval(args.classifier_info),
+                  class_weight=args.class_weight, calibrate_proba=args.calibrate_proba,
+                  be_quiet=args.be_quiet, n_jobs=args.n_jobs)
+
+    clo.predict(args.input_image, args.output_image, scale_data=args.scale_data,
+                band_check=args.band_check, ignore_feas=args.ignore_feas, use_xy=args.use_xy,
+                in_model=args.input_model, mask_background=args.mask_background,
+                background_band=args.background_band, background_value=args.background_value,
+                minimum_observations=args.minimum_observations, observation_band=args.observation_band,
+                row_block_size=1024, col_block_size=1024, n_jobs=args.n_jobs, gdal_cache=256)
 
     print('\nEnd data & time -- (%s)\nTotal processing time -- (%.2gs)\n'
           % (time.asctime(time.localtime(time.time())), (time.time() - start_time)))
