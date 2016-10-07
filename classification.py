@@ -28,7 +28,7 @@ import vector_tools
 import error_matrix
 from paths import gdal_path
 # from mappy.helpers.other.progress_iter import _iteration_parameters
-from spfeas.paths import get_mappy_path
+from paths import get_mappy_path
 
 MAPPY_PATH = get_mappy_path()
 
