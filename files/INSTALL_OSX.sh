@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Install Homebrew
+if which brew >/devnull; then
+  brew update
+  brew upgrade
+else
+  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+fi
+
 # Update the .profile
 if [ ! -f ~/.profile ]; then
   touch ~/.profile
