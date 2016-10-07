@@ -76,12 +76,12 @@ def get_pyx_list():
 
 def get_console_dict():
 
-    return {'console_scripts': ['spfeas_raster_tools=mappy.raster_tools:main',
-                                'spfeas_vector_tools=mappy.vector_tools:main',
-                                'spfeas_classification=mappy.classifiers.classification:main',
+    return {'console_scripts': ['spfeas_raster_tools=spfeas.raster_tools:main',
+                                'spfeas_vector_tools=spfeas.vector_tools:main',
+                                'spfeas_classification=spfeas.classifiers.classification:main',
                                 'spfeas=spfeas.spfeas:main',
-                                'spfeas_veg_indices=mappy.features.veg_indices:main',
-                                'spfeas_sample_raster=mappy.sample.sample_raster:main']}
+                                'spfeas_veg_indices=spfeas.features.veg_indices:main',
+                                'spfeas_sample_raster=spfeas.sample.sample_raster:main']}
 
 
 def setup_package():

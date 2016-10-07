@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Update the .profile
+if [ ! -f ~/.profile ]; then
+  touch ~/.profile
+fi
+
+echo 'export CFLAGS=-I/usr/local/lib/python2.7/site-packages/numpy/core/include/' >>~/.profile
+source ~/.profile
+
 # Homebrew
 brew tap osgeo/osgeo4mac
 brew tap homebrew/science
