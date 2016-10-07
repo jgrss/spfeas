@@ -78,10 +78,10 @@ def get_console_dict():
 
     return {'console_scripts': ['spfeas_raster_tools=spfeas.raster_tools:main',
                                 'spfeas_vector_tools=spfeas.vector_tools:main',
-                                'spfeas_classification=spfeas.classifiers.classification:main',
+                                'spfeas_classify=spfeas.classify:main',
                                 'spfeas=spfeas.spfeas:main',
-                                'spfeas_veg_indices=spfeas.features.veg_indices:main',
-                                'spfeas_sample_raster=spfeas.sample.sample_raster:main']}
+                                'spfeas_veg_indices=spfeas.veg_indices:main',
+                                'spfeas_sample_raster=spfeas.sample_raster:main']}
 
 
 def setup_package():
