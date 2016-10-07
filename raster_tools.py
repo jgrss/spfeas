@@ -15,11 +15,10 @@ import inspect
 import atexit
 from joblib import Parallel, delayed
 
-from spfeas.helpers.utilities import random_float, overwrite_file, check_and_create_dir
-from spfeas.helpers.other.progress_iter import _iteration_parameters
-from spfeas.vector_tools import vinfo, get_xy_offsets
-from spfeas.helpers.errors import LenError, RinfoError
-from vector_tools import vinfo, intersects_boundary
+from helpers.utilities import random_float, overwrite_file, check_and_create_dir
+from helpers.other.progress_iter import _iteration_parameters
+from helpers.errors import LenError, RinfoError
+from vector_tools import vinfo, get_xy_offsets, intersects_boundary
 
 # GDAL
 try:
