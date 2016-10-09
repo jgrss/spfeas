@@ -13,7 +13,7 @@ Installation
 
 2) Follow the instructions to install SpFeas.
 
-3) Test the installation (the following line should print /usr/local/bin/spfeas) 
+3) Test the installation (the following line should print **/usr/local/bin/spfeas**) 
 
     > which spfeas
 
@@ -39,6 +39,6 @@ Image classification:
 
 Development
 -----------
-For questions or bugs, contact Jordan Graesser (jordan.graesser@bu.edu).
+For questions or bugs, contact Jordan Graesser (graesser@bu.edu).
 
 
