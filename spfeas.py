@@ -219,7 +219,7 @@ def main():
 
     start_time = time.time()
 
-    spatial_features(args.input, args.output, band_positions=args.band_positions, block_size=args.block,
+    spatial_features(args.input, args.output, band_positions=args.band_positions, block=args.block,
                      scales=args.scales, triggers=args.triggers, threshold=args.hline_threshold,
                      min_len=args.hline_min, line_gap=args.hline_gap, weighted=args.weight,
                      sfs_thresh=args.sfs_threshold, resamp_sfs=args.sfs_resample, n_angles=args.sfs_angles,

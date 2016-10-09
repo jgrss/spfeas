@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import time
 import platform
 import copy
 import psutil
 import itertools
-import subprocess
 
 import sputilities
 import spsplit
@@ -33,7 +33,7 @@ def run(parameter_object):
 
     """
     Args:
-        input_image, output_dir, band_positions=[1], rgb2gray=None, block_size=2, scales=[8], triggers=['mean'],
+        input_image, output_dir, band_positions=[1], rgb2gray=None, block=2, scales=[8], triggers=['mean'],
         threshold=20, min_len=10, line_gap=2, weighted=False, sfs_thresh=80, resamp_sfs=0., n_angles=8,
         equalize=False, equalize_adapt=False, smooth=0, visualize=False, convert_stk=False, gdal_cache=256,
         do_pca=False, stack_feas=True, stack_only=False, band_red=3, band_nir=4, neighbors=False, n_jobs=-1,
@@ -73,7 +73,7 @@ def run(parameter_object):
     {} perform histogram equalization
     {} perform adaptive histogram equalization
     """.format(time.asctime(time.localtime(time.time())), parameter_object.input_image, parameter_object.output_dir,
-               parameter_object.rgb2write, parameter_object.smooth, parameter_object.block_size,
+               parameter_object.rgb2write, parameter_object.smooth, parameter_object.block,
                ','.join([str(bpos) for bpos in parameter_object.scales]), ','.join(parameter_object.triggers),
                parameter_object.sfs_thresh, parameter_object.n_angles, parameter_object.band_red,
                parameter_object.band_nir, parameter_object.write_neighbors, parameter_object.write_equalize,
@@ -243,7 +243,7 @@ def run(parameter_object):
                         # only create a new feature if the file does not exist
                         if feature_status == -999:
 
-                            sputilities.create_band(i_info, out_img, 1)
+                            sputilities.create_band(i_info, out_img, parameter_object, 1)
 
                             # set the status as created
                             status_dict[out_img_base] = 0
@@ -259,19 +259,19 @@ def run(parameter_object):
                 #   the image (only used as a counter).
                 n_row_sects = len([i_sect for i_sect in xrange(0, i_info.rows,
                                                                sect_row_size - (parameter_object.scales[-1] -
-                                                                                parameter_object.block_size))])
+                                                                                parameter_object.block))])
 
                 n_col_sects = len([j_sect for j_sect in xrange(0, i_info.cols,
                                                                sect_col_size - (parameter_object.scales[-1] -
-                                                                                parameter_object.block_size))])
+                                                                                parameter_object.block))])
 
                 n_sects = len([j_sect for (i_sect, j_sect) in
                                itertools.product(xrange(0, i_info.rows,
                                                         sect_row_size - (parameter_object.scales[-1] -
-                                                                         parameter_object.block_size)),
+                                                                         parameter_object.block)),
                                                  xrange(0, i_info.cols,
                                                         sect_col_size - (parameter_object.scales[-1] -
-                                                                         parameter_object.block_size)))])
+                                                                         parameter_object.block)))])
 
                 # Here we loop through the
                 #   image by sections.
@@ -280,7 +280,7 @@ def run(parameter_object):
                 i_sect_blk_ctr = 1
 
                 for i_sect in xrange(0, i_info.rows, sect_row_size -
-                        (parameter_object.scales[-1] - parameter_object.block_size)):
+                        (parameter_object.scales[-1] - parameter_object.block)):
 
                     numRws = raster_tools.n_rows_cols(i_sect, sect_row_size, i_info.rows)
 
@@ -288,7 +288,7 @@ def run(parameter_object):
                     j_sect_blk_ctr = 1
 
                     for j_sect in xrange(0, i_info.cols, sect_col_size -
-                            (parameter_object.scales[-1] - parameter_object.block_size)):
+                            (parameter_object.scales[-1] - parameter_object.block)):
 
                         print '\nSection {:d} of {:d} ...'.format(n_sect, n_sects)
 
@@ -309,7 +309,7 @@ def run(parameter_object):
                                 if trigger_orig_seg:
                                     in_trig_name = 'seg'
                                 else:
-                                    in_trig_name = copy(trigger)
+                                    in_trig_name = copy.copy(trigger)
 
                                 out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir, band_p, scale,
                                                                                     feature, parameter_object)
@@ -362,9 +362,9 @@ def run(parameter_object):
                         # (top, bottom), (left, right)
 
                         # pad left and top
-                        if parameter_object.scales[-1] != parameter_object.block_size:
+                        if parameter_object.scales[-1] != parameter_object.block:
 
-                            pad_len = (parameter_object.scales[-1] / 2) - (parameter_object.block_size / 2)
+                            pad_len = (parameter_object.scales[-1] / 2) - (parameter_object.block / 2)
 
                             if (i_sect_blk_ctr == 1) and (j_sect_blk_ctr == 1):
 
@@ -610,66 +610,68 @@ def run(parameter_object):
                         # SFS radiates from a center pixel, so is
                         #   more useful when computed with a
                         #   smaller block size.
-                        if parameter_object.sfs_resample > 0:
+                        if hasattr(parameter_object, 'sfs_resample'):
 
-                            out_img_d_name, out_img_f_name = os.path.split(out_img)
+                            if parameter_object.sfs_resample > 0:
 
-                            out_img_resamp = '{}/{}_resamp{}'.format(out_img_d_name, out_img_base,
-                                                                     parameter_object.f_ext)
+                                out_img_d_name, out_img_f_name = os.path.split(out_img)
 
-                            # Replace the block size.
-                            out_img_resamp = out_img_resamp.replace('blk{:d}'.format(parameter_object.block),
-                                                                    'blk{:d}'.format(int(parameter_object.sfs_resample)))
+                                out_img_resamp = '{}/{}_resamp{}'.format(out_img_d_name, out_img_base,
+                                                                         parameter_object.f_ext)
 
-                            print '\nResampling SFS to {:.1f}m x {:.1f}m cell size ...\n'.format(parameter_object.sfs_resample,
-                                                                                                 parameter_object.sfs_resample)
+                                # Replace the block size.
+                                out_img_resamp = out_img_resamp.replace('blk{:d}'.format(parameter_object.block),
+                                                                        'blk{:d}'.format(int(parameter_object.sfs_resample)))
 
-                            if 'img' in parameter_object.f_ext.lower():
+                                print '\nResampling SFS to {:.1f}m x {:.1f}m cell size ...\n'.format(parameter_object.sfs_resample,
+                                                                                                     parameter_object.sfs_resample)
 
-                                raster_tools.warp(out_img, out_img_resamp,
-                                                  cell_size=parameter_object.sfs_resample,
-                                                  resampleAlg='average',
-                                                  warpMemoryLimit=256,
-                                                  format='HFA',
-                                                  multithread=True,
-                                                  creationOptions=['COMPRESS=YES'])
+                                if 'img' in parameter_object.f_ext.lower():
 
-                                # sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
-                                # --config GDAL_CACHEMAX {:d} -co COMPRESS=YES \
-                                # -of HFA -tr {:f} {:f} -r average {} {}'.format(parameter_object.gdal_cache,
-                                #                                                parameter_object.sfs_resample,
-                                #                                                parameter_object.sfs_resample,
-                                #                                                out_img, out_img_resamp)
+                                    raster_tools.warp(out_img, out_img_resamp,
+                                                      cell_size=parameter_object.sfs_resample,
+                                                      resampleAlg='average',
+                                                      warpMemoryLimit=256,
+                                                      format='HFA',
+                                                      multithread=True,
+                                                      creationOptions=['COMPRESS=YES'])
 
-                            else:
+                                    # sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
+                                    # --config GDAL_CACHEMAX {:d} -co COMPRESS=YES \
+                                    # -of HFA -tr {:f} {:f} -r average {} {}'.format(parameter_object.gdal_cache,
+                                    #                                                parameter_object.sfs_resample,
+                                    #                                                parameter_object.sfs_resample,
+                                    #                                                out_img, out_img_resamp)
 
-                                raster_tools.warp(out_img, out_img_resamp,
-                                                  cell_size=parameter_object.sfs_resample,
-                                                  resampleAlg='average',
-                                                  warpMemoryLimit=256,
-                                                  format='HFA',
-                                                  multithread=True,
-                                                  creationOptions=['COMPRESS=DEFLATE', 'BIGTIFF=YES', 'TILED=YES'])
+                                else:
 
-                                # sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
-                                #                                 --config GDAL_CACHEMAX {:d} -co COMPRESS=DEFLATE \
-                                #                                 -co TILED=YES -co BIGTIFF=YES -tr {:f} {:f} \
-                                #                                 -r average {} {}'.format(parameter_object.gdal_cache,
-                                #                                                          parameter_object.sfs_resample,
-                                #                                                          parameter_object.sfs_resample,
-                                #                                                          out_img, out_img_resamp)
+                                    raster_tools.warp(out_img, out_img_resamp,
+                                                      cell_size=parameter_object.sfs_resample,
+                                                      resampleAlg='average',
+                                                      warpMemoryLimit=256,
+                                                      format='HFA',
+                                                      multithread=True,
+                                                      creationOptions=['COMPRESS=DEFLATE', 'BIGTIFF=YES', 'TILED=YES'])
 
-                            # subprocess.call(sfs_resamp_com, shell=True)
+                                    # sfs_resamp_com = 'gdalwarp -multi -wo NUM_THREADS=ALL_CPUS \
+                                    #                                 --config GDAL_CACHEMAX {:d} -co COMPRESS=DEFLATE \
+                                    #                                 -co TILED=YES -co BIGTIFF=YES -tr {:f} {:f} \
+                                    #                                 -r average {} {}'.format(parameter_object.gdal_cache,
+                                    #                                                          parameter_object.sfs_resample,
+                                    #                                                          parameter_object.sfs_resample,
+                                    #                                                          out_img, out_img_resamp)
 
-                            out_img_new = out_img_resamp.replace('_resamp', '')
+                                # subprocess.call(sfs_resamp_com, shell=True)
 
-                            # Replace the block size.
-                            out_img_new = out_img_new.replace('blk{:d}'.format(int(parameter_object.sfs_resample)),
-                                                              'blk{:d}'.format(parameter_object.block))
+                                out_img_new = out_img_resamp.replace('_resamp', '')
 
-                            os.remove(out_img)
+                                # Replace the block size.
+                                out_img_new = out_img_new.replace('blk{:d}'.format(int(parameter_object.sfs_resample)),
+                                                                  'blk{:d}'.format(parameter_object.block))
 
-                            os.rename(out_img_resamp, out_img_new)
+                                os.remove(out_img)
+
+                                os.rename(out_img_resamp, out_img_new)
 
                         obds += 1
 
@@ -677,30 +679,33 @@ def run(parameter_object):
             win_feas_list_o.close()
 
         # Stack the features
-        if parameter_object.stack:
-            out_vrt = sputilities.stack_features(parameter_object, new_feas_list)
+        if hasattr(parameter_object, 'stack'):
+            if parameter_object.stack:
+                out_vrt = sputilities.stack_features(parameter_object, new_feas_list)
 
         # Optional conversion to GeoTiff.
-        if parameter_object.convert:
+        if hasattr(parameter_object, 'convert'):
+                
+            if parameter_object.convert:
 
-            scales_str = [str(sc) for sc in parameter_object.scales]
-            band_pos_str = [str(bp) for bp in parameter_object.band_positions]
+                scales_str = [str(sc) for sc in parameter_object.scales]
+                band_pos_str = [str(bp) for bp in parameter_object.band_positions]
 
-            out_gtiff = '{}/{}.{}.stk.bd{}.block{}.scales{}.tif'.format(parameter_object.output_dir,
-                                                                        parameter_object.f_base,
-                                                                        '-'.join(parameter_object.triggers),
-                                                                        '-'.join(band_pos_str),
-                                                                        parameter_object.block,
-                                                                        '-'.join(scales_str))
+                out_gtiff = '{}/{}.{}.stk.bd{}.block{}.scales{}.tif'.format(parameter_object.output_dir,
+                                                                            parameter_object.f_base,
+                                                                            '-'.join(parameter_object.triggers),
+                                                                            '-'.join(band_pos_str),
+                                                                            parameter_object.block,
+                                                                            '-'.join(scales_str))
 
-            raster_tools.translate(out_vrt, out_gtiff,
-                                   format='GTiff',
-                                   creationOptions=['TILED=YES', 'COMPRESS=LZW'])
+                raster_tools.translate(out_vrt, out_gtiff,
+                                       format='GTiff',
+                                       creationOptions=['TILED=YES', 'COMPRESS=LZW'])
 
-            # com = 'gdal_translate --config GDAL_CACHEMAX {:d} \
-            # -of GTiff -co TILED=YES -co COMPRESS=LZW {} {}'.format(parameter_object.gdal_cache, out_vrt, out_gtiff)
+                # com = 'gdal_translate --config GDAL_CACHEMAX {:d} \
+                # -of GTiff -co TILED=YES -co COMPRESS=LZW {} {}'.format(parameter_object.gdal_cache, out_vrt, out_gtiff)
 
-            # subprocess.call(com, shell=True)
+                # subprocess.call(com, shell=True)
 
         # Run PCA on features.
         # if parameter_object.pca:

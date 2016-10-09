@@ -24,9 +24,17 @@ Installation
 Usage examples
 -----
 
+Print help for spatial variable calculations:
+
+    > spfeas -h
+
+Print examples of spatial variable calculations:
+
+    > spfeas -e
+
 Create spatial variables:
 
-    > spfeas -i /your_image.tif -o /your_output_directory  
+    > spfeas -i /your_image.tif -o /your_output_directory
 
 Sample land cover data:
 
@@ -35,6 +43,10 @@ Sample land cover data:
 Image classification:
 
     > sp_classify -i /value_image.tif -o /output_image.tif -s /land_cover_samples.txt
+
+Test classification accuracy:
+
+    > sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif --accuracy
 
 
 Development

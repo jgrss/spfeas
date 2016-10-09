@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import platform
 import subprocess
 import copy
@@ -287,7 +288,7 @@ def create_band(meta_info, out_img, parameter_object, out_bands, blocks=True):
     i_info = meta_info.copy()
 
     if blocks:
-        i_info = get_adj_info(meta_info, i_info, parameter_object.block)
+        i_info = get_adj_info(meta_info, i_info, parameter_object)
 
     i_info.bands = out_bands
     i_info.storage = 'float32'
