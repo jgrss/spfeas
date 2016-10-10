@@ -685,7 +685,7 @@ def run(parameter_object):
 
         # Optional conversion to GeoTiff.
         if hasattr(parameter_object, 'convert'):
-                
+
             if parameter_object.convert:
 
                 scales_str = [str(sc) for sc in parameter_object.scales]

@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# Install Homebrew
+# Ensure the working directory is /Downloads
+the_cwd=${PWD##*/}
+
+if [ '$the_cwd' != 'Downloads' ]; then
+  cd ~/Downloads/
+fi
+
+# Upgrade or install Homebrew
 if which brew >/devnull; then
   brew update
   brew upgrade
