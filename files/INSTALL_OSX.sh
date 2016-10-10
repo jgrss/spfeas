@@ -7,6 +7,9 @@ if [ '$the_cwd' != 'Downloads' ]; then
   cd ~/Downloads/
 fi
 
+# When public?
+# curl -sL https://github.com/jgrss/spfeas/archive/SpFeas-0.0.1.tar.gz | tar xz
+
 # Upgrade or install Homebrew
 if which brew >/devnull; then
   brew update
