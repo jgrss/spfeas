@@ -11,11 +11,17 @@ Installation
 
 1) Open INSTALLATION.ipynb under [**/notebooks**.](https://github.com/jgrss/spfeas/tree/master/notebooks)
 
-2) Follow the instructions to install SpFeas.
+2) Follow the instructions to install SpFeas for your system.
 
-3) Test the installation (the following line should print **/usr/local/bin/spfeas**) 
+3) Test the installation 
 
-    > which spfeas
+    * The following line should print **/usr/local/bin/spfeas** on OSX.) 
+
+        > which spfeas
+
+    * The following line should print **C:\??\spfeas** on Windows.) 
+
+        > where spfeas
 
 4) To uninstall SpFeas, type the following line in the terminal
 

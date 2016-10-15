@@ -54,4 +54,9 @@ brew link --force gdal2
 pip install SpFeas-0.0.1.tar.gz
 
 echo
-echo 'The installation has finished!'
+
+if which spfeas >/devnull; then
+  echo 'The installation has finished!'
+else
+  echo 'SpFeas failed to install.'
+fi
