@@ -13,9 +13,13 @@ Installation
 
 2) Follow the instructions to install SpFeas for your system.
 
-3) Test the installation on OSX (the following line should print /usr/local/bin/spfeas):
+3) Test the installation
 
-    > which spfeas
+    * On OSX, the following line should print /usr/local/bin/spfeas:
+
+    ```
+    which spfeas
+    ```
 
 4) Test the installation on Windows (the following line should print C:\??\spfeas):
 
