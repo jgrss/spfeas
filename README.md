@@ -13,17 +13,15 @@ Installation
 
 2) Follow the instructions to install SpFeas for your system.
 
-3) Test the installation
+3) Test the installation on OSX (the following line should print /usr/local/bin/spfeas):
 
-    On OSX, the following line should print /usr/local/bin/spfeas:
-        
-        > which spfeas
+    > which spfeas
 
-    On Windows, the following line should print C:\??\spfeas:
-        
-        > where spfeas
+4) Test the installation on Windows (the following line should print C:\??\spfeas):
 
-4) To uninstall SpFeas, type the following line in the terminal
+    > where spfeas
+
+5) To uninstall SpFeas, type the following line in the terminal
 
     > pip uninstall spfeas
 
