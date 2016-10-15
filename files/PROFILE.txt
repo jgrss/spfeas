@@ -1,1 +1,0 @@
-export CFLAGS=-I/usr/local/lib/python2.7/site-packages/numpy/core/include/
