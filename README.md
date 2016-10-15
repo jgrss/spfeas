@@ -15,15 +15,13 @@ Installation
 
 3) Test the installation
 
-    * On OSX, the following line should print /usr/local/bin/spfeas:
+* On OSX, the following line should print /usr/local/bin/spfeas:
 
-    ```
-    which spfeas
-    ```
+`which spfeas`
 
 4) Test the installation on Windows (the following line should print C:\??\spfeas):
 
-    > where spfeas
+`where spfeas`
 
 5) To uninstall SpFeas, type the following line in the terminal
 
