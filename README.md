@@ -15,11 +15,11 @@ Installation
 
 3) Test the installation
 
-    The following line should print **/usr/local/bin/spfeas** on OSX:
+    On OSX, the following line should print /usr/local/bin/spfeas:
         
         > which spfeas
 
-    The following line should print **C:\??\spfeas** on Windows:
+    On Windows, the following line should print C:\??\spfeas:
         
         > where spfeas
 
