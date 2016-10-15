@@ -19,7 +19,7 @@ Installation
 which spfeas
 ```
 
-4) Test the installation on Windows (the following line should print C:\??\spfeas):
+4) On Windows, the following line should print C:\??\spfeas:
 
 ```
 where spfeas
@@ -27,34 +27,48 @@ where spfeas
 
 5) To uninstall SpFeas, type the following line in the terminal
 
-    > pip uninstall spfeas
+```
+pip uninstall spfeas
+```
 
 Usage examples
 -----
 
 Print help for spatial variable calculations:
 
-    > spfeas -h
+```
+spfeas -h
+```
 
 Print examples of spatial variable calculations:
 
-    > spfeas -e
+```
+spfeas -e
+```
 
 Create spatial variables:
 
-    > spfeas -i /your_image.tif -o /your_output_directory
+```
+spfeas -i /your_image.tif -o /your_output_directory
+```
 
 Sample land cover data:
 
-    > sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
+```
+sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
+```
 
 Image classification:
 
-    > sp_classify -i /value_image.tif -o /output_image.tif -s /land_cover_samples.txt
+```
+sp_classify -i /value_image.tif -o /output_image.tif -s /land_cover_samples.txt
+```
 
 Test classification accuracy:
 
-    > sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif --accuracy
+```
+sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif --accuracy
+```
 
 
 Development
