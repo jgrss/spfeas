@@ -63,9 +63,11 @@ def get_package_data():
                        'sphelpers/*.pyx',
                        'sphelpers/*.c',
                        'sphelpers/*.so',
+                       'sphelpers/*.pyd',
                        'sphelpers/stats/*.pyx',
                        'sphelpers/stats/*.c',
                        'sphelpers/stats/*.so',
+                       'sphelpers/stats/*.pyd',
                        'notebooks/*.ipynb',
                        'notebooks/*.png']}
 
