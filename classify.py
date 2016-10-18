@@ -5,6 +5,7 @@
 Date Created: 10/1/2016
 """
 
+import sys
 import time
 import argparse
 import ast
@@ -30,7 +31,12 @@ class Classify(object):
 
 
 def _examples():
-    return
+
+    sys.exit("""\
+
+    classify.py -i /input_image.tif -o output_image.tif -s /samples.txt --classifier-info "{'classifier': 'RF'}"
+
+    """)
 
 
 def main():
@@ -53,7 +59,7 @@ def main():
     parser.add_argument('--recode-dict', dest='recode_dict', help='A dictionary of land cover recode pairs',
                         default=None)
     parser.add_argument('--classes2remove', dest='classes2remove', help='A list of land cover classes to remove',
-                        default=[], type='int', nargs='+')
+                        default=[], type=int, nargs='+')
     parser.add_argument('--sample-weight', dest='sample_weight', help='A list of sample weights', default=[],
                         type=float, nargs='+')
     parser.add_argument('--ignore_feas', dest='ignore_feas', help='A list of features to ignore', default=[],
