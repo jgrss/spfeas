@@ -1,7 +1,9 @@
 IF where pip > NUL (
     pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas PySAL retrying scikit-image scikit-learn scipy six tables xmltodict 
-    
+   
+    pip uninstall mpglue 
     pip install MpGlue-0.0.1.tar.gz
+    pip uninstall spfeas
     pip install SpFeas-0.0.1.tar.gz
 
     IF where spfeas > NUL (

@@ -51,9 +51,11 @@ echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.
 brew link --force gdal2
 
 # MpGlue
+pip uninstall mpglue
 pip install ~/Downloads/MpGlue-0.0.1.tar.gz
 
 # SpFeas
+pip uninstall spfeas
 pip install ~/Downloads/SpFeas-0.0.1.tar.gz
 
 echo
