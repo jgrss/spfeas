@@ -11,7 +11,7 @@ fi
 # curl -sL https://github.com/jgrss/spfeas/archive/SpFeas-0.0.1.tar.gz | tar xz
 
 # Upgrade or install Homebrew
-if which brew >/devnull; then
+if which brew >/dev/null; then
   brew update
   brew upgrade
 else
