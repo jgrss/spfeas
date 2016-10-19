@@ -35,7 +35,7 @@ brew install python hdf4 hdf5 spatialindex
 brew linkapps python
 
 # Python pip
-if which pip >/devnull; then
+if which pip >/dev/null; then
   echo 'pip is installed'
 else
   sudo -H easy_install pip
@@ -58,7 +58,7 @@ pip install SpFeas-0.0.1.tar.gz
 
 echo
 
-if which spfeas >/devnull; then
+if which spfeas >/dev/null; then
   echo 'The installation has finished!'
 else
   echo 'SpFeas failed to install.'
