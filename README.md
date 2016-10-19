@@ -9,7 +9,7 @@ Installation
 ------------
 #### Installation instructions
 
-1) Open INSTALLATION.ipynb under [**/notebooks**.](https://github.com/jgrss/spfeas/tree/master/notebooks)
+1) Open INSTALLATION.ipynb under [**/notebooks**.](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks)
 
 2) Follow the instructions to install SpFeas for your system.
 
