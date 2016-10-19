@@ -50,6 +50,9 @@ brew install gdal2 --with-hdf4 --with-hdf5
 echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
 brew link --force gdal2
 
+# MpGlue
+pip install MpGlue-0.0.1.tar.gz
+
 # SpFeas
 pip install SpFeas-0.0.1.tar.gz
 
