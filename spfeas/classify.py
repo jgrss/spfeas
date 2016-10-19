@@ -34,7 +34,7 @@ def _examples():
 
     sys.exit("""\
 
-    classify.py -i /input_image.tif -o output_image.tif -s /samples.txt --classifier-info "{'classifier': 'RF'}"
+    spfeas_classify -i /input_image.tif -o output_image.tif -s /samples.txt --classifier-info "{'classifier': 'RF'}"
 
     """)
 

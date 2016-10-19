@@ -649,19 +649,19 @@ def _examples():
     sys.exit("""\
 
     # Sample some_image.tif with pts.shp, returning one set of sample data
-    sample_raster.py -s /pts.shp -i /some_image.tif -o /out_dir
+    spfeas_sample_raster -s /pts.shp -i /some_image.tif -o /out_dir
 
     # Sample all rasters in /some_dir with pts.shp, returning one set of sample data
-    sample_raster.py -s /pts.shp -i /some_dir -opt 2
+    spfeas_sample_raster -s /pts.shp -i /some_dir -opt 2
 
     # Sample all rasters in /some_dir with all shapefiles in /some_dir_pts, returning sample data for each raster
-    sample_raster.py -s /some_dir_pts -i /some_dir --option 3
+    spfeas_sample_raster -s /some_dir_pts -i /some_dir --option 3
 
     # Query the <trees> and <shrubs> fields in <polys.shp> prior to sampling
-    sample_raster.py -s /polys.shp -c CLASS -i /image.tif -o /out_dir --sql_field name --sql_attr trees shrubs
+    spfeas_sample_raster -s /polys.shp -c CLASS -i /image.tif -o /out_dir --sql_field name --sql_attr trees shrubs
 
     # compute the accuracy of some_image.tif
-    sample_raster.py -s /pts.shp -i /some_image.tif --accuracy
+    spfeas_sample_raster -s /pts.shp -i /some_image.tif --accuracy
 
     """)
 

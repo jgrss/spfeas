@@ -11,9 +11,8 @@ import itertools
 from .sphelpers import sputilities
 import spsplit
 from .sphelpers import spreshape
-from .veg_indices import VegIndicesEquations
 
-from mpglue import raster_tools
+from mpglue import raster_tools, VegIndicesEquations
 
 # Pickle
 try:

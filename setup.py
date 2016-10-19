@@ -60,6 +60,10 @@ def get_package_data():
 
     return {'spfeas': ['*.md',
                        '*.txt',
+                       'helpers/*.pyx',
+                       'helpers/*.c',
+                       'helpers/*.so',
+                       'helpers/*.pyd',
                        'sphelpers/*.pyx',
                        'sphelpers/*.c',
                        'sphelpers/*.so',
@@ -73,15 +77,19 @@ def get_package_data():
 
 
 def get_pyx_list():
-    return ['spfeas/sphelpers/*.pyx', 'spfeas/sphelpers/stats/*.pyx']
+
+    return ['spfeas/helpers/*.pyx',
+            'spfeas/sphelpers/*.pyx',
+            'spfeas/sphelpers/stats/*.pyx']
 
 
 def get_console_dict():
 
     return {'console_scripts': ['spfeas_classify=spfeas.classify:main',
+                                'spfeas_sample_raster=spfeas.sample_raster:main',
+                                'spfeas_density=spfeas.density:main',
                                 'spfeas=spfeas.spfeas:main',
-                                'spfeas_veg_indices=spfeas.veg_indices:main',
-                                'spfeas_sample_raster=spfeas.sample_raster:main']}
+                                'spfeas_veg_indices=spfeas.veg_indices:main']}
 
 
 def setup_package():
