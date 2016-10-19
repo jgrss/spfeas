@@ -9,7 +9,7 @@ import subprocess
 from joblib import Parallel, delayed
 
 from spfunctions import *
-from .helpers.paths import get_path
+from paths import get_path
 
 SPFEAS_PATH = get_path()
 

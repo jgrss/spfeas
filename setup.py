@@ -68,10 +68,6 @@ def get_package_data():
                        'sphelpers/*.c',
                        'sphelpers/*.so',
                        'sphelpers/*.pyd',
-                       'sphelpers/stats/*.pyx',
-                       'sphelpers/stats/*.c',
-                       'sphelpers/stats/*.so',
-                       'sphelpers/stats/*.pyd',
                        'notebooks/*.ipynb',
                        'notebooks/*.png']}
 
@@ -79,17 +75,13 @@ def get_package_data():
 def get_pyx_list():
 
     return ['spfeas/helpers/*.pyx',
-            'spfeas/sphelpers/*.pyx',
-            'spfeas/sphelpers/stats/*.pyx']
+            'spfeas/sphelpers/*.pyx']
 
 
 def get_console_dict():
 
-    return {'console_scripts': ['spfeas_classify=spfeas.classify:main',
-                                'spfeas_sample_raster=spfeas.sample_raster:main',
-                                'spfeas_density=spfeas.density:main',
-                                'spfeas=spfeas.spfeas:main',
-                                'spfeas_veg_indices=spfeas.veg_indices:main']}
+    return {'console_scripts': ['density=spfeas.density:main',
+                                'spfeas=spfeas.spfeas:main']}
 
 
 def setup_package():

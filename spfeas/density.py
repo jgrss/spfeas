@@ -22,12 +22,11 @@ except:
 else:
    import pickle
 
-import classification       #, classification_r
 from .helpers import moving_window
 from .helpers.plot import _handle_axis_spines, _add_axis_commas, _handle_axis_ticks, \
     _handle_axis_frame, _handle_tick_labels
 
-from mpglue import raster_tools, vector_tools
+from mpglue import raster_tools, vector_tools, classification
 
 # Scikit-learn
 try:
@@ -1003,31 +1002,31 @@ def _examples():
     sys.exit("""\
 
     # (1) Setup the parameters
-    spfeas_density --setup -o /building_density --patches /patches.shp --buildings /buildings.shp --features /features.vrt -s 1. -w 100
+    density --setup -o /building_density --patches /patches.shp --buildings /buildings.shp --features /features.vrt -s 1. -w 100
 
     # (2) Prepare image features for each patch
-    spfeas_density --prep-features -o /building_density
+    density --prep-features -o /building_density
 
     # (3) Prepare sampled buildings for patch density
-    spfeas_density --prep-buildings -o /building_density
+    density --prep-buildings -o /building_density
 
     # (4) Prepare building density samples from image features
-    spfeas_density --prep-train -o /building_density
+    density --prep-train -o /building_density
 
     # Rank feature variable importance
-    spfeas_density --rank-feas -o /building_density
+    density --rank-feas -o /building_density
 
     # (5) Train a regression model
-    spfeas_density --train -o /building_density --parameters "{'classifier': 'RFR', 'trees': 500}"
+    density --train -o /building_density --parameters "{'classifier': 'RFR', 'trees': 500}"
 
     # (6) Test a regression model
-    spfeas_density --test -o /building_density --parameters "{'classifier': 'RFR'}"
+    density --test -o /building_density --parameters "{'classifier': 'RFR'}"
 
     # (7) Plot the predictions of a regression model
-    spfeas_density --plot --what2plot scatter -o /building_density --parameters "{'classifier': 'RFR'}"
+    density --plot --what2plot scatter -o /building_density --parameters "{'classifier': 'RFR'}"
 
     # (8) Predict building density (choose the model to use)
-    spfeas_density --predict -o /building_density --parameters "{'classifier': 'RFR'}"
+    density --predict -o /building_density --parameters "{'classifier': 'RFR'}"
 
     """)
 
