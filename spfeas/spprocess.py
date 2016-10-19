@@ -8,11 +8,12 @@ import copy
 import psutil
 import itertools
 
-import sputilities
+from .sphelpers import sputilities
 import spsplit
-import spreshape
-import raster_tools
-from veg_indices import VegIndicesEquations
+import .sphelpers import spreshape
+from .veg_indices import VegIndicesEquations
+
+from mpglue import raster_tools
 
 # Pickle
 try:

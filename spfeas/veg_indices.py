@@ -18,9 +18,9 @@ import fnmatch
 from collections import OrderedDict
 
 # MapPy
-import raster_tools
 # from mappy.utilities import composite
-from helpers.other.progress_iter import _iteration_parameters
+from mpglue import raster_tools
+from mpglue.helpers import _iteration_parameters_values
 
 # Numpy    
 try:

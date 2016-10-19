@@ -10,7 +10,7 @@ import time
 import argparse
 import ast
 
-from classification import classification
+from .classification import classification
 # from classification import classification_r
 
 

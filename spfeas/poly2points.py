@@ -11,14 +11,11 @@ import time
 import subprocess
 from copy import copy
 
-# MapPy
-import raster_tools
-import vector_tools
-from paths import gdal_path
+from mpglue import raster_tools
+from mpglue import vector_tools
 
 # GDAL
 try:
-    from osgeo.gdalconst import *
     from osgeo import ogr
 except ImportError:
     raise ImportError('GDAL did not load')
@@ -201,13 +198,8 @@ def poly2points(poly, out_shp, targ_img, class_id='Id', cell_size=None, field_ty
               (no_data_val, class_id, cell_size, cell_size, poly, out_rst)
 
     print '\nRasterizing %s ...\n' % f_name
-    
-    try:
-        subprocess.call(com, shell=True)
-    except:
 
-        com = r'%s/helpers/%s/apps/%s' % (os.path.realpath('..'), gdal_path, com)
-        subprocess.call(com, shell=True)
+    subprocess.call(com, shell=True)
 
     _add_points_from_raster(out_shp, class_id, field_type, out_rst, proj=vct_info.proj)
 

@@ -36,13 +36,13 @@ maintainer_email = 'jordan.graesser@mail.mcgill.ca'
 description = 'A Python library for processing spatial (contextual) image features and image classification'
 git_url = 'http://github.com/spfeas.git'
 
-with open('spfeas/README.md') as f:
+with open('README.md') as f:
     long_description = f.read()
 
-with open('spfeas/LICENSE.txt') as f:
+with open('LICENSE.txt') as f:
     license_file = f.read()
 
-with open('spfeas/AUTHORS.txt') as f:
+with open('AUTHORS.txt') as f:
     author_file = f.read()
 
 required_packages = ['numpy>=1.11.0', 'scipy>=0.17.1', 'scikit-learn>=0.17.1', 'scikit-image>=0.12.3', 'gdal>=2.1',
@@ -78,9 +78,7 @@ def get_pyx_list():
 
 def get_console_dict():
 
-    return {'console_scripts': ['spfeas_raster_tools=spfeas.raster_tools:main',
-                                'spfeas_vector_tools=spfeas.vector_tools:main',
-                                'spfeas_classify=spfeas.classify:main',
+    return {'console_scripts': ['spfeas_classify=spfeas.classify:main',
                                 'spfeas=spfeas.spfeas:main',
                                 'spfeas_veg_indices=spfeas.veg_indices:main',
                                 'spfeas_sample_raster=spfeas.sample_raster:main']}

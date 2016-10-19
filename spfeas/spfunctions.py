@@ -3,8 +3,8 @@
 import sys
 import itertools
 
-from sphelpers import lsr
-from sphelpers.spatial_pyramid_hist import pyramid_hist_sift
+from .sphelpers import lsr
+from .sphelpers.spatial_pyramid_hist import pyramid_hist_sift
 
 try:
     from skimage.feature import hog as HOG

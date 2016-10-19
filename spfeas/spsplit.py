@@ -9,15 +9,15 @@ import subprocess
 from joblib import Parallel, delayed
 
 from spfunctions import *
-from paths import get_mappy_path
+from .helpers.paths import get_path
 
-MAPPY_PATH = get_mappy_path()
+SPFEAS_PATH = get_path()
 
 try:
     from sphelpers import _stats
 except:
 
-    os.chdir('{}/sphelpers'.format(MAPPY_PATH))
+    os.chdir('{}/sphelpers'.format(SPFEAS_PATH))
 
     com = 'python setup_stats.py build_ext --inplace'
     subprocess.call(com, shell=True)
@@ -28,7 +28,7 @@ try:
     from sphelpers import _chunk
 except:
 
-    os.chdir('{}/sphelpers'.format(MAPPY_PATH))
+    os.chdir('{}/sphelpers'.format(SPFEAS_PATH))
 
     com = 'python setup_chunk.py build_ext --inplace'
     subprocess.call(com, shell=True)

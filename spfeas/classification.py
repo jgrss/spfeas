@@ -23,21 +23,20 @@ from collections import OrderedDict
 # import xml.etree.ElementTree as ET
 
 # MapPy
-import raster_tools
-import vector_tools
+from mpglue import raster_tools
+from mpglue import vector_tools
 import error_matrix
-from paths import gdal_path
 # from mappy.helpers.other.progress_iter import _iteration_parameters
-from paths import get_mappy_path
+from .helpers.paths import get_path
 
-MAPPY_PATH = get_mappy_path()
+SPFEAS_PATH = get_path()
 
 # helpers
 try:
     from sphelpers.stats import _lin_interp
 except:
 
-    os.chdir('{}/helpers/stats'.format(MAPPY_PATH))
+    os.chdir('{}/helpers/stats'.format(SPFEAS_PATH))
 
     com = 'python setup_lin_interp.py build_ext --inplace'
     subprocess.call(com, shell=True)
@@ -48,7 +47,7 @@ try:
     from sphelpers.stats import _rolling_stats
 except:
 
-    os.chdir('{}/helpers/stats'.format(MAPPY_PATH))
+    os.chdir('{}/helpers/stats'.format(SPFEAS_PATH))
 
     com = 'python setup_rolling_stats.py build_ext --inplace'
     subprocess.call(com, shell=True)
@@ -4453,36 +4452,21 @@ class classification(Samples, EndMembers, Visualization, Preprocessing):
 
         com = 'gdalbuildvrt %s %s %s' % (band_list, out_img, input_image)
 
-        try:
-            subprocess.call(com, shell=True)
-        except:
-
-            com = r'%s/helpers/%s/apps/%s' % (os.path.realpath('..'), gdal_path, com)
-            subprocess.call(com, shell=True)
+        subprocess.call(com, shell=True)
 
         if 'tif' in f_ext.lower():
 
             com = 'gdal_translate --config GDAL_CACHEMAX 256 -of GTiff -co TILED=YES -co COMPRESS=LZW %s %s' % \
                   (out_img, out_img_orig)
 
-            try:
-                subprocess.call(com, shell=True)
-            except:
-
-                com = r'%s/helpers/%s/apps/%s' % (os.path.realpath('..'), gdal_path, com)
-                subprocess.call(com, shell=True)
+            subprocess.call(com, shell=True)
 
         elif 'img' in f_ext.lower():
 
             com = 'gdal_translate --config GDAL_CACHEMAX 256 -of HFA -co COMPRESS=YES %s %s' % \
                   (out_img, out_img_orig)
 
-            try:
-                subprocess.call(com, shell=True)
-            except:
-
-                com = r'%s/helpers/%s/apps/%s' % (os.path.realpath('..'), gdal_path, com)
-                subprocess.call(com, shell=True)
+            subprocess.call(com, shell=True)
 
     def grid_search(self, classifier_name, classifier_parameters, file_name, k_folds=3,
                     perc_samp=.5, ignore_feas=[], use_xy=False, classes2remove=[],
@@ -5347,7 +5331,7 @@ class classification_r(classification):
 
             # self.mapC5_dir = os.path.realpath('../helpers/mapC5')
             # python_home = 'C:/Python27/ArcGIS10.1/Lib/site-packages'
-            self.mapC5_dir = '{}/helpers/mapC5'.format(MAPPY_PATH)
+            self.mapC5_dir = '{}/helpers/mapC5'.format(SPFEAS_PATH)
 
             # copy the mapC5 files to the model directory
             self._copy_mapC5(tree_model)
@@ -5367,12 +5351,7 @@ class classification_r(classification):
                                                                          out_image_dir, out_image_base, out_image_dir,
                                                                          out_image_base)
 
-            try:
-                subprocess.call(com, shell=True)
-            except:
-
-                com = r'{}/helpers/{}/apps/{}'.format(MAPPY_PATH, gdal_path, com)
-                subprocess.call(com, shell=True)
+            subprocess.call(com, shell=True)
 
             self._clean_mapC5(tree_model)
 

@@ -11,7 +11,7 @@ import logging
 from copy import copy
 from six import string_types
 
-import raster_tools
+from mpglue import raster_tools
 
 try:
     import numpy as np

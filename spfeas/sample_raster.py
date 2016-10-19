@@ -14,13 +14,12 @@ import argparse
 import fnmatch
 from joblib import Parallel, delayed
 
-# MapPy
-import raster_tools
-import vector_tools
 from poly2points import poly2points
 from error_matrix import error_matrix
-from helpers.other.progress_iter import _iteration_parameters_values
-from paths import gdal_path
+
+from mpglue import raster_tools
+from mpglue import vector_tools
+from mpglue.helpers import _iteration_parameters_values
 
 # NumPy
 try:
@@ -167,12 +166,7 @@ class SampleImage(object):
 
         print '\nSubsetting {} by classes {} ...\n'.format(self.points_file, ','.join(self.sql_expression_attr))
 
-        try:
-            subprocess.call(ogr_com, shell=True)
-        except:
-
-            ogr_com = r'{}/helpers/{}/apps/{}'.format(os.path.realpath('..'), gdal_path, ogr_com)
-            subprocess.call(ogr_com, shell=True)
+        subprocess.call(ogr_com, shell=True)
 
         self.d_name_points, f_name_points = os.path.split(out_points)
         self.f_base_points, __ = os.path.splitext(f_name_points)

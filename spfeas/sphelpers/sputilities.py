@@ -6,7 +6,7 @@ import platform
 import subprocess
 import copy
 
-import raster_tools
+from mpglue import raster_tools
 
 import numpy as np
 import numexpr as ne
