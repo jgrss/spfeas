@@ -55,19 +55,19 @@ spfeas -i /your_image.tif -o /your_output_directory
 Sample land cover data:
 
 ```
-sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
+sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
 ```
 
 Image classification:
 
 ```
-sp_classify -i /value_image.tif -o /output_image.tif -s /land_cover_samples.txt
+classify -i /value_image.tif -o /output_image.tif -s /land_cover_samples.txt
 ```
 
 Test classification accuracy:
 
 ```
-sp_sample_raster -s /land_cover_samples.shp -i /value_image.tif --accuracy
+sample_raster -s /land_cover_samples.shp -i /value_image.tif --accuracy
 ```
 
 
