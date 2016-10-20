@@ -54,6 +54,14 @@ fi
 # Upgrade Python setuptools
 pip install --upgrade setuptools
 
+LINE_BREAK1='========================================='
+
+echo
+echo $LINE_BREAK1
+echo 'If prompted, enter your computer password'
+echo $LINE_BREAK1
+echo
+
 # Python libraries
 sudo -H pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict
 
@@ -67,10 +75,26 @@ else
   brew link --force gdal2
 fi
 
+LINE_BREAK2='======================================='
+
+echo
+echo $LINE_BREAK2
+echo "Type 'y' to uninstall MpGlue and SpFeas"
+echo $LINE_BREAK2
+echo
+
 # MpGlue
 if which classify >/dev/null; then
   pip uninstall mpglue
 fi
+
+LINE_BREAK3='===================================================='
+
+echo
+echo $LINE_BREAK3
+echo 'If prompted, enter your GitHub username and password'
+echo $LINE_BREAK3
+echo
 
 pip install git+https://github.com/jgrss/mpglue.git
 # pip install ~/Downloads/MpGlue-0.0.1.tar.gz
@@ -79,6 +103,12 @@ pip install git+https://github.com/jgrss/mpglue.git
 if which classify >/dev/null; then
   pip uninstall spfeas
 fi
+
+echo
+echo $LINE_BREAK
+echo 'If prompted, enter your GitHub username and password'
+echo $LINE_BREAK
+echo
 
 pip install git+https://github.com/jgrss/spfeas.git
 # pip install ~/Downloads/SpFeas-0.0.1.tar.gz
