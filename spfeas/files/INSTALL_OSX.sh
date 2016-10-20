@@ -23,8 +23,12 @@ if [ ! -f ~/.profile ]; then
   touch ~/.profile
 fi
 
-echo 'export CFLAGS=-I/usr/local/lib/python2.7/site-packages/numpy/core/include/' >>~/.profile
-source ~/.profile
+if [ -z ${CFLAGS} ]; then 
+  echo 'export CFLAGS=-I/usr/local/lib/python2.7/site-packages/numpy/core/include/' >>~/.profile
+  source ~/.profile
+else
+  echo "CFLAGS is already set to '$CFLAGS'"
+fi
 
 # Homebrew
 brew tap osgeo/osgeo4mac
