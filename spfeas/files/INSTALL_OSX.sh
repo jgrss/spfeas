@@ -35,32 +35,53 @@ brew tap osgeo/osgeo4mac
 brew tap homebrew/science
 brew tap homebrew/versions
 #brew install gcc python hdf4 hdf5 spatialindex
-brew install python hdf4 hdf5 spatialindex
-brew linkapps python
+
+# Python from Homebrew
+if which python >/dev/null; then
+  echo 'Python is already installed'
+else
+  brew install python
+  brew linkapps python
+fi
 
 # Python pip
 if which pip >/dev/null; then
-  echo 'pip is installed'
+  echo 'pip is already installed'
 else
   sudo -H easy_install pip
 fi
 
+# Upgrade Python setuptools
 pip install --upgrade setuptools
 
 # Python libraries
 sudo -H pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict
 
-brew install gdal2 --with-hdf4 --with-hdf5
-echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
-brew link --force gdal2
+# GDAL from Homebrew
+if which gdalinfo >/dev/null; then
+  echo 'GDAL is already installed'
+else
+  brew install hdf4 hdf5 spatialindex
+  brew install gdal2 --with-hdf4 --with-hdf5
+  echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
+  brew link --force gdal2
+fi
 
 # MpGlue
-pip uninstall mpglue
-pip install ~/Downloads/MpGlue-0.0.1.tar.gz
+if which classify >/dev/null; then
+  pip uninstall mpglue
+fi
+
+pip install git+https://github.com/jgrss/mpglue.git
+# pip install ~/Downloads/MpGlue-0.0.1.tar.gz
 
 # SpFeas
-pip uninstall spfeas
-pip install ~/Downloads/SpFeas-0.0.1.tar.gz
+if which classify >/dev/null; then
+  pip uninstall spfeas
+fi
+
+pip install git+https://github.com/jgrss/spfeas.git
+# pip install ~/Downloads/SpFeas-0.0.1.tar.gz
 
 echo
 
