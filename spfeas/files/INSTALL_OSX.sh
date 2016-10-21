@@ -71,7 +71,8 @@ if which gdalinfo >/dev/null; then
 else
   brew install hdf4 hdf5 spatialindex
   brew install gdal2 --with-hdf4 --with-hdf5
-  echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
+  # echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
+  export GDAL_DRIVER_PATH=/usr/local/lib/gdalplugins
   brew link --force gdal2
 fi
 
