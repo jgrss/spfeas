@@ -3,7 +3,7 @@ where /q pip
 
 IF NOT ERRORLEVEL 1 (
 
-    pip install beautifulsoup4 retrying six xmltodict colorama cython joblib matplotlib opencv-python pandas psutil PySAL PyYAML Rtree scikit-learn 
+    pip install beautifulsoup4 retrying six xmltodict colorama cython joblib matplotlib opencv-python pandas psutil PySAL PyYAML scikit-learn 
 
     pip install numpy-1.11.2+mkl-cp27-cp27m-win32.whl numexpr-2.6.1-cp27-cp27m-win32.whl scikit_image-0.12.3-cp27-cp27m-win32.whl scipy-0.18.1-cp27-cp27m-win32.whl tables-3.3.0-cp27-cp27m-win32.whl Bottleneck-1.2.0-cp27-cp27m-win32.whl 
    
@@ -13,7 +13,12 @@ IF NOT ERRORLEVEL 1 (
         pip uninstall mpglue
       )
 
-    pip install git+https://github.com/jgrss/mpglue.git
+    where /q git
+    IF NOT ERRORLEVEL 1 (
+        pip install git+https://github.com/jgrss/mpglue.git
+    ) ELSE (
+        pip install MpGlue-0.0.1.tar.gz
+    )
 
     REM Uninstall SpFeas if it already exists
     where /q spfeas
@@ -21,7 +26,12 @@ IF NOT ERRORLEVEL 1 (
         pip uninstall spfeas
       ) 
 
-    pip install git+https://github.com/jgrss/spfeas.git     
+    where /q git
+    IF NOT ERRORLEVEL 1 (
+        pip install git+https://github.com/jgrss/spfeas.git     
+    ) ELSE (
+        pip install SpFeas-0.0.1.tar.gz
+    )
 
     REM Check if SpFeas installed correctly
     where /q spfeas
