@@ -11,7 +11,7 @@ Installation
 
 1) Open INSTALLATION.ipynb under [**/notebooks**.](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks)
 
-2) Follow the instructions to install SpFeas for your system.
+2) Follow the instructions to install SpFeas for your operating system.
 
 3) On OSX, the following line should print **/usr/local/bin/spfeas**:
 
