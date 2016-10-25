@@ -26,6 +26,7 @@ Windows:
 
 import setuptools
 from distutils.core import setup
+import platform
 
 
 __version__ = '0.0.1'
@@ -45,11 +46,14 @@ with open('LICENSE.txt') as f:
 with open('AUTHORS.txt') as f:
     author_file = f.read()
 
-required_packages = ['numpy>=1.11.0', 'scipy>=0.17.1', 'scikit-learn>=0.17.1', 'scikit-image>=0.12.3', 'gdal>=2.0',
-                     'numexpr>=2.6.1', 'tables>=3.2.2', 'pandas>=0.18.1', 'matplotlib>=1.5.1', 'psutil>=4.3.1',
-                     'joblib>=0.10.2', 'BeautifulSoup4>=4.5.1', 'PyYAML>=3.12', 'colorama>=0.3.7',
-                     'cython>=0.24.1', 'bottleneck>=1.1.0', 'xmltodict', 'Rtree>=0.8.2', 'retrying',
-                     'opencv-python>=3.1.0', 'PySAL>=1.11.2', 'six>=1.10.0']
+required_packages = ['numpy>=1.11.0', 'scipy>=0.17.1', 'scikit-learn>=0.17.1', 'scikit-image>=0.12.3',
+                         'numexpr>=2.6.1', 'tables>=3.2.2', 'pandas>=0.18.1', 'matplotlib>=1.5.1', 'psutil>=4.3.1',
+                         'joblib>=0.10.2', 'BeautifulSoup4>=4.5.1', 'PyYAML>=3.12', 'colorama>=0.3.7',
+                         'cython>=0.24.1', 'bottleneck>=1.1.0', 'xmltodict', 'Rtree>=0.8.2', 'retrying',
+                         'opencv-python>=3.1.0', 'PySAL>=1.11.2', 'six>=1.10.0']
+
+if platform.system() == 'Darwin':
+    required_packages.append('gdal>=2.1')
 
 
 def get_packages():
