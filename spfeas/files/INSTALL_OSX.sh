@@ -34,6 +34,7 @@ fi
 brew tap osgeo/osgeo4mac
 brew tap homebrew/science
 brew tap homebrew/versions
+#brew install wget spatialindex
 #brew install gcc python hdf4 hdf5 spatialindex
 
 # Python from Homebrew
