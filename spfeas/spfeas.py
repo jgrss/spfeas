@@ -194,7 +194,7 @@ def main():
     parser.add_argument('--rgb2gray', dest='rgb2gray', help='RGB conversion', default=None,
                         choices=[None, 'BGR', 'RGB'])
     parser.add_argument('--convert', dest='convert', help='Whether to convert the feature stack', action='store_true')
-    parser.add_argument('--stack', dest='stack', help='Whether not to stack features', action='store_false')
+    parser.add_argument('--stack', dest='stack', help='Whether to stack features', action='store_true')
     parser.add_argument('--stack-only', dest='stack_only', help='Whether to only stack features', action='store_true')
     parser.add_argument('--band-red', dest='band_red', help='The red band position', default=3, type=int)
     parser.add_argument('--band-nir', dest='band_nir', help='The NIR band position', default=4, type=int)
@@ -220,13 +220,13 @@ def main():
     start_time = time.time()
 
     spatial_features(args.input, args.output, band_positions=args.band_positions, block=args.block,
-                     scales=args.scales, triggers=args.triggers, threshold=args.hline_threshold,
-                     min_len=args.hline_min, line_gap=args.hline_gap, weighted=args.weight,
-                     sfs_thresh=args.sfs_threshold, resamp_sfs=args.sfs_resample, n_angles=args.sfs_angles,
+                     scales=args.scales, triggers=args.triggers, hline_threshold=args.hline_threshold,
+                     hline_min=args.hline_min, hline_gap=args.hline_gap, weight=args.weight,
+                     sfs_thresh=args.sfs_threshold, sfs_resample=args.sfs_resample, sfs_angles=args.sfs_angles,
                      smooth=args.smooth, equalize=args.equalize, equalize_adapt=args.equalize_adapt,
-                     visualize=args.visualize, convert_stk=args.convert, do_pca=args.pca, rgb2gray=args.rgb2gray,
-                     stack_feas=args.stack, stack_only=args.stack_only, band_red=args.band_red, band_nir=args.band_nir,
-                     neighbors=args.neighbors, n_jobs=args.n_jobs, reset_sects=args.reset, image_max=args.image_max,
+                     visualize=args.visualize, convert=args.convert, do_pca=args.pca, rgb2gray=args.rgb2gray,
+                     stack=args.stack, stack_only=args.stack_only, band_red=args.band_red, band_nir=args.band_nir,
+                     neighbors=args.neighbors, n_jobs=args.n_jobs, reset=args.reset, image_max=args.image_max,
                      lac_r=args.lac_r, section_size=args.section_size, chunk_size=args.chunk_size,
                      gdal_cache=args.gdal_cache)
 

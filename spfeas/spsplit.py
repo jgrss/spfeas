@@ -16,30 +16,18 @@ SPFEAS_PATH = get_path()
 try:
     from sphelpers import _stats
 except:
-
-    os.chdir('{}/sphelpers'.format(SPFEAS_PATH))
-
-    com = 'python setup_stats.py build_ext --inplace'
-    subprocess.call(com, shell=True)
-
-    from sphelpers import _stats
+    raise ImportError('The stats functions did not load')
 
 try:
     from sphelpers import _chunk
 except:
-
-    os.chdir('{}/sphelpers'.format(SPFEAS_PATH))
-
-    com = 'python setup_chunk.py build_ext --inplace'
-    subprocess.call(com, shell=True)
-
-    from sphelpers import _chunk
+    raise ImportError('The chunk functions did not load')
 
 try:
     from sphelpers.gabor_filter_bank import prep_gabor
 except:
     print('\n!!!\nWarning: skimage.filter.gabor_kernel did not load\n \
-    Cannot compute Gabor features\n Upgrade to latest scikits-image')
+    Cannot compute Gabor features\n Upgrade to latest scikit-image')
 
 # Scikit-image
 try:
@@ -634,10 +622,10 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                                   parameter_object.scales[-1],
                                                                   parameter_object.lac_r) for bd_ in bd)
 
-    elif trigger == 'ctr':
-
-        print '\n  Copying band scales ...'
-        return pool.map(startCtr, itertools.izip(bd, [blk_size]*len(bd), [scs]*len(bd)))
+    # elif trigger == 'ctr':
+    #
+    #     print '\n  Copying band scales ...'
+    #     return pool.map(startCtr, itertools.izip(bd, [blk_size]*len(bd), [scs]*len(bd)))
 
     elif trigger == 'gabor':
 

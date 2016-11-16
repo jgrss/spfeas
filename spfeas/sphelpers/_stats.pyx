@@ -1,7 +1,4 @@
-"""
-@authors: Jordan Graesser & Rafael Alvarez
-Date Created: 7/2/2013
-"""
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 import sys
 
@@ -16,7 +13,7 @@ from libc.math cimport pow, atan, sqrt
 from cython.parallel import parallel, prange
 
 from spatial_pyramid_hist import pyramid_hist_sift
-from stats import _lin_interp
+from mpglue.stats import _lin_interp
 
 # OpenCV
 try:    

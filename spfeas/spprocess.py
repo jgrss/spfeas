@@ -75,7 +75,7 @@ def run(parameter_object):
     """.format(time.asctime(time.localtime(time.time())), parameter_object.input_image, parameter_object.output_dir,
                parameter_object.rgb2write, parameter_object.smooth, parameter_object.block,
                ','.join([str(bpos) for bpos in parameter_object.scales]), ','.join(parameter_object.triggers),
-               parameter_object.sfs_thresh, parameter_object.n_angles, parameter_object.band_red,
+               parameter_object.sfs_thresh, parameter_object.sfs_angles, parameter_object.band_red,
                parameter_object.band_nir, parameter_object.write_neighbors, parameter_object.write_equalize,
                parameter_object.write_equalize_adapt))
 
@@ -231,7 +231,7 @@ def run(parameter_object):
 
                             feature_status = -999
 
-                        if parameter_object.reset_sects:
+                        if parameter_object.reset:
                             feature_status = -999
 
                         # append new features to a list to stack
@@ -680,6 +680,7 @@ def run(parameter_object):
 
         # Stack the features
         if hasattr(parameter_object, 'stack'):
+
             if parameter_object.stack:
                 out_vrt = sputilities.stack_features(parameter_object, new_feas_list)
 
