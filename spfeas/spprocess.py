@@ -75,7 +75,7 @@ def run(parameter_object):
     """.format(time.asctime(time.localtime(time.time())), parameter_object.input_image, parameter_object.output_dir,
                parameter_object.rgb2write, parameter_object.smooth, parameter_object.block,
                ','.join([str(bpos) for bpos in parameter_object.scales]), ','.join(parameter_object.triggers),
-               parameter_object.sfs_thresh, parameter_object.sfs_angles, parameter_object.band_red,
+               parameter_object.sfs_threshold, parameter_object.sfs_angles, parameter_object.band_red,
                parameter_object.band_nir, parameter_object.write_neighbors, parameter_object.write_equalize,
                parameter_object.write_equalize_adapt))
 

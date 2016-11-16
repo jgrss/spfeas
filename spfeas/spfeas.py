@@ -222,7 +222,7 @@ def main():
     spatial_features(args.input, args.output, band_positions=args.band_positions, block=args.block,
                      scales=args.scales, triggers=args.triggers, hline_threshold=args.hline_threshold,
                      hline_min=args.hline_min, hline_gap=args.hline_gap, weight=args.weight,
-                     sfs_thresh=args.sfs_threshold, sfs_resample=args.sfs_resample, sfs_angles=args.sfs_angles,
+                     sfs_threshold=args.sfs_threshold, sfs_resample=args.sfs_resample, sfs_angles=args.sfs_angles,
                      smooth=args.smooth, equalize=args.equalize, equalize_adapt=args.equalize_adapt,
                      visualize=args.visualize, convert=args.convert, do_pca=args.pca, rgb2gray=args.rgb2gray,
                      stack=args.stack, stack_only=args.stack_only, band_red=args.band_red, band_nir=args.band_nir,
