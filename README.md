@@ -46,12 +46,9 @@ Print examples:
 spfeas -e
 ```
 
-Detailed examples
------
+#### Detailed examples
 
-```
 Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
-```
 
 Development
 -----------
