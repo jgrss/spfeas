@@ -9,7 +9,7 @@ Installation
 ------------
 #### Installation instructions
 
-1) Open INSTALLATION.ipynb under [**/notebooks**.](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks)
+1) Open INSTALLATION.ipynb under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
 
 2) Follow the instructions to install SpFeas for your operating system.
 
@@ -34,42 +34,24 @@ pip uninstall spfeas
 Usage examples
 -----
 
-Print help for spatial variable calculations:
+Print help:
 
 ```
 spfeas -h
 ```
 
-Print examples of spatial variable calculations:
+Print examples:
 
 ```
 spfeas -e
 ```
 
-Create spatial variables:
+Detailed examples
+-----
 
 ```
-spfeas -i /your_image.tif -o /your_output_directory
+Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
 ```
-
-Sample land cover data:
-
-```
-sample_raster -s /land_cover_samples.shp -i /value_image.tif -o /output_directory
-```
-
-Image classification:
-
-```
-classify -i /value_image.tif -o /output_image.tif -s /land_cover_samples.txt
-```
-
-Test classification accuracy:
-
-```
-sample_raster -s /land_cover_samples.shp -i /value_image.tif --accuracy
-```
-
 
 Development
 -----------
