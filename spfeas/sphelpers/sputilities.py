@@ -6,7 +6,7 @@ import platform
 import subprocess
 import copy
 
-from mpglue import raster_tools
+from mpglue import raster_tools, vrt_builder
 
 import numpy as np
 import numexpr as ne
@@ -142,14 +142,18 @@ def stack_features(parameter_object, new_feas_list):
         os.remove(out_vrt)
 
     # create the stack list
-    if platform.system() == 'Windows':
-        com = 'gdalbuildvrt -separate -input_file_list {} {}'.format(new_feas_list, out_vrt)
-    else:
-        com = 'gdalbuildvrt -separate {} {}'.format(out_vrt, ' '.join(new_feas_list))
+    # if platform.system() == 'Windows':
+    #     com = 'gdalbuildvrt -separate -input_file_list {} {}'.format(new_feas_list, out_vrt)
+    # else:
+    #     com = 'gdalbuildvrt -separate {} {}'.format(out_vrt, ' '.join(new_feas_list))
+    #
+    # print '\nMosaicking {:d} features ...\n'.format(len(new_feas_list))
+    #
+    # subprocess.call(com, shell=True)
 
-    print '\nMosaicking {:d} features ...\n'.format(len(new_feas_list))
+    stack_dict = {'1': new_feas_list}
 
-    subprocess.call(com, shell=True)
+    vrt_builder(stack_dict, out_vrt, force_type='float32')
 
     return out_vrt
 
