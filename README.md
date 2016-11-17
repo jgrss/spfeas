@@ -19,7 +19,7 @@ Installation
 which spfeas
 ```
 
-4) On Windows, the following line should print **C:\??\spfeas**:
+4) On Windows, the following line should print **C:\<Python path>\Scripts\spfeas**:
 
 ```
 where spfeas
