@@ -48,7 +48,7 @@ spfeas -e
 
 #### Detailed examples
 
-Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
+Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks/examples.ipynb).
 
 Development
 -----------
