@@ -66,22 +66,18 @@ def get_package_data():
 
     return {'spfeas': ['*.md',
                        '*.txt',
-                       'helpers/*.pyx',
-                       'helpers/*.c',
                        'helpers/*.so',
                        'helpers/*.pyd',
-                       'sphelpers/*.pyx',
-                       'sphelpers/*.c',
                        'sphelpers/*.so',
                        'sphelpers/*.pyd',
                        'notebooks/*.ipynb',
                        'notebooks/*.png']}
 
 
-def get_pyx_list():
-
-    return ['spfeas/helpers/*.pyx',
-            'spfeas/sphelpers/*.pyx']
+# def get_pyx_list():
+#
+#     return ['spfeas/helpers/*.pyx',
+#             'spfeas/sphelpers/*.pyx']
 
 
 def get_console_dict():
