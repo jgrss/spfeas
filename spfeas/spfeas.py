@@ -23,8 +23,8 @@ class SPParameters(object):
 
     def __init__(self, input_image, output_dir):
 
-        self.input_image = input_image
-        self.output_dir = output_dir
+        self.input_image = os.path.normpath(input_image)
+        self.output_dir = os.path.normpath(output_dir)
         
     def set_defaults(self, **kwargs):
         
@@ -68,10 +68,10 @@ class SPParameters(object):
         self.f_ext = '.tif'
 
         # The status dictionary file.
-        self.status_dict_txt = '{}/{}_status.txt'.format(self.output_dir, self.f_base)
+        self.status_dict_txt = os.path.join(self.output_dir, '{}_status.txt'.format(self.f_base))
 
         # The log file.
-        self.log_txt = '{}/{}_log.txt'.format(self.output_dir, self.f_base)
+        self.log_txt = os.path.join(self.output_dir, '{}_log.txt'.format(self.f_base))
 
         if isinstance(self.rgb2gray, str):
             self.rgb2write = self.rgb2gray

@@ -63,22 +63,20 @@ def scale_fea_check(trigger, feas_dir, band_p, scale, feature, parameter_object)
         band_pos_str = '-'.join(band_pos_str)
 
     if feature < 10:
-
-        out_img = '{}/{}_{}_bd{}_blk{:d}_sc{:d}_fea00{:d}{}'.format(feas_dir, parameter_object.f_base, trigger,
-                                                                    band_pos_str, parameter_object.block,
-                                                                    scale, feature, parameter_object.f_ext)
-
+        feature_str = 'fea00'
     elif 10 <= feature < 100:
-
-        out_img = '{}/{}_{}_bd{}_blk{:d}_sc{:d}_fea0{:d}{}'.format(feas_dir, parameter_object.f_base, trigger,
-                                                                   band_pos_str, parameter_object.block,
-                                                                   scale, feature, parameter_object.f_ext)
-
+        feature_str = 'fea0'
     else:
+        feature_str = 'fea'
 
-        out_img = '{}/{}_{}_bd{}_blk{:d}_sc{:d}_fea{:d}{}'.format(feas_dir, parameter_object.f_base, trigger,
-                                                                  band_pos_str, parameter_object.block,
-                                                                  scale, feature, parameter_object.f_ext)
+    out_img = os.path.join(feas_dir, '{}_{}_bd{}_blk{:d}_sc{:d}_{}{:d}{}'.format(parameter_object.f_base,
+                                                                                 trigger,
+                                                                                 band_pos_str,
+                                                                                 parameter_object.block,
+                                                                                 scale,
+                                                                                 feature_str,
+                                                                                 feature,
+                                                                                 parameter_object.f_ext))
 
     out_img_d_name, out_img_f_name = os.path.split(out_img)
     out_img_f_base, out_img_f_ext = os.path.splitext(out_img_f_name)
@@ -96,12 +94,12 @@ def stack_features(parameter_object, new_feas_list):
     band_pos_str = [str(bp) for bp in parameter_object.band_positions]
 
     # write band list to text
-    fea_list_txt = '{}/{}.{}.stk.bd{}.block{}.scales{}_fea_list.txt'.format(parameter_object.output_dir,
-                                                                            parameter_object.f_base,
-                                                                            '-'.join(parameter_object.triggers),
-                                                                            '-'.join(band_pos_str),
-                                                                            parameter_object.block,
-                                                                            '-'.join(scs_str))
+    fea_list_txt = os.path.join(parameter_object.output_dir,
+                                '{}.{}.stk.bd{}.block{}.scales{}_fea_list.txt'.format(parameter_object.f_base,
+                                                                                      '-'.join(parameter_object.triggers),
+                                                                                      '-'.join(band_pos_str),
+                                                                                      parameter_object.block,
+                                                                                      '-'.join(scs_str)))
 
     # remove stacked VRT list
     if os.path.isfile(fea_list_txt):
@@ -131,12 +129,12 @@ def stack_features(parameter_object, new_feas_list):
     fea_list_txt_wr.close()
 
     # stack features here
-    out_vrt = '{}/{}.{}.stk.bd{}.block{}.scales{}.vrt'.format(parameter_object.output_dir,
-                                                              parameter_object.f_base,
-                                                              '-'.join(parameter_object.triggers),
-                                                              '-'.join(band_pos_str),
-                                                              parameter_object.block,
-                                                              '-'.join(scs_str))
+    out_vrt = os.path.join(parameter_object.output_dir,
+                           '{}.{}.stk.bd{}.block{}.scales{}.vrt'.format(parameter_object.f_base,
+                                                                        '-'.join(parameter_object.triggers),
+                                                                        '-'.join(band_pos_str),
+                                                                        parameter_object.block,
+                                                                        '-'.join(scs_str)))
 
     if os.path.isfile(out_vrt):
         os.remove(out_vrt)
@@ -160,7 +158,7 @@ def stack_features(parameter_object, new_feas_list):
 
 def set_feas_dir(parameter_object, trigger):
 
-    feas_dir = '{}/{}'.format(parameter_object.output_dir, trigger)
+    feas_dir = os.path.join(parameter_object.output_dir, trigger)
 
     if not os.path.isdir(feas_dir):
         os.makedirs(feas_dir)

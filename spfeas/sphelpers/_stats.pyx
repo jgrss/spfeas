@@ -1,4 +1,6 @@
+"""
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+"""
 
 import sys
 
@@ -30,8 +32,8 @@ try:
 except:
     raise ImportError('Skimage.feature did not load')
 
-import pyximport
-pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+# import pyximport
+# pyximport.install(setup_args={'include_dirs': [np.get_include()]})
 
 old_settings = np.seterr(all='ignore')
 

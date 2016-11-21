@@ -138,15 +138,15 @@ def prep_building_training():
 
     out_dir = PARAMETERS['out dir']
     window_size = PARAMETERS['window size meters']
-    building_image_directory = '{}/buildings2density'.format(out_dir)
-    feature_image_directory = '{}/patch_features'.format(out_dir)
+    building_image_directory = os.path.join(out_dir, 'buildings2density')
+    feature_image_directory = os.path.join(out_dir, 'patch_features')
 
-    out_training_dir = '{}/training'.format(out_dir)
+    out_training_dir = os.path.join(out_dir, 'training')
 
     if not os.path.isdir(out_training_dir):
         os.makedirs(out_training_dir)
 
-    out_training_text = '{}/training_master.txt'.format(out_training_dir)
+    out_training_text = os.path.join(out_dir, 'training_master.txt')
 
     half_window = window_size / 2
 
@@ -156,8 +156,8 @@ def prep_building_training():
     # Iterate over each building density raster.
     for bi, bldg_img in enumerate(bldg_img_list):
 
-        bldg_density = '{}/{}'.format(building_image_directory, bldg_img)
-        features = '{}/{}'.format(feature_image_directory, bldg_img)
+        bldg_density = os.path.join(building_image_directory, bldg_img)
+        features = os.path.join(feature_image_directory, bldg_img)
 
         if not os.path.isfile(features):
             continue
@@ -195,7 +195,9 @@ def prep_building_training():
         fea_arr = np.c_[fea_arr, bldg_arr.ravel()]
 
         # Save the patch samples to file.
-        out_training_text_patch = '{}/training_{}.txt'.format(out_training_dir, bldg_img.replace('.tif', ''))
+        out_training_text_patch = os.path.join(out_training_dir,
+                                               'training_{}.txt'.format(bldg_img.replace('.tif', '')))
+
         samples2file(fea_arr, bands, out_training_text_patch)
 
         # Add samples.
@@ -215,8 +217,8 @@ def rank_patch_features(model_parameters, top_feas):
 
     out_dir = PARAMETERS['out dir']
 
-    training_dir = '{}/training'.format(out_dir)
-    bad_dir = '{}/bad_feas'.format(out_dir)
+    training_dir = os.path.join(out_dir, 'training')
+    bad_dir = os.path.join(out_dir, 'bad_feas')
 
     if not os.path.isdir(bad_dir):
         os.makedirs(bad_dir)
@@ -229,8 +231,8 @@ def rank_patch_features(model_parameters, top_feas):
     # Train a model on each patch, plus the master
     for training_file in fnmatch.filter(os.listdir(training_dir), '*.txt'):
 
-        input_training = '{}/{}'.format(training_dir, training_file)
-        output_bad_features = '{}/{}'.format(bad_dir, training_file)
+        input_training = os.path.join(training_dir, training_file)
+        output_bad_features = os.path.join(bad_dir, training_file)
 
         cl.split_samples(input_training, perc_samp=1., scale_data=True)
 
@@ -259,8 +261,8 @@ def buildings2density(overwrite):
     density_m = PARAMETERS['window size meters']
     fea_cell_size = PARAMETERS['feature cell size']
 
-    patch_features_dir = '{}/patch_features'.format(out_dir)
-    out_dir = '{}/buildings2density'.format(out_dir)
+    patch_features_dir = os.path.join(out_dir, 'patch_features')
+    out_dir = os.path.join(out_dir, 'buildings2density')
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -293,17 +295,15 @@ def buildings2density(overwrite):
 
         # name the output feature patch by the patch id number
         if vct_patch_num < 10:
-            temp_rst = '{}/temp_00{:d}.tif'.format(out_dir, vct_patch_num)
-            fea_patch = '{}/00{:d}.tif'.format(patch_features_dir, vct_patch_num)
-            bldg_density = '{}/00{:d}.tif'.format(out_dir, vct_patch_num)
+            count_str = '00{:d}'.format(vct_patch_num)
         elif 10 <= vct_patch_num < 100:
-            temp_rst = '{}/temp_0{:d}.tif'.format(out_dir, vct_patch_num)
-            fea_patch = '{}/0{:d}.tif'.format(patch_features_dir, vct_patch_num)
-            bldg_density = '{}/0{:d}.tif'.format(out_dir, vct_patch_num)
+            count_str = '0{:d}'.format(vct_patch_num)
         else:
-            temp_rst = '{}/temp_{:d}.tif'.format(out_dir, vct_patch_num)
-            fea_patch = '{}/{:d}.tif'.format(patch_features_dir, vct_patch_num)
-            bldg_density = '{}/{:d}.tif'.format(out_dir, vct_patch_num)
+            count_str = str(vct_patch_num)
+
+        temp_rst = os.path.join(out_dir, 'temp_{}.tif'.format(count_str))
+        fea_patch = os.path.join(patch_features_dir, '{}.tif'.format(count_str))
+        bldg_density = os.path.join(out_dir, '{}.tif'.format(count_str))
 
         if overwrite:
 
@@ -380,7 +380,7 @@ def prep_image_features(overwrite, resample2features=0.):
     out_dir = PARAMETERS['out dir']
     patch_id = PARAMETERS['patch id']
 
-    out_dir = '{}/patch_features'.format(out_dir)
+    out_dir = os.path.join(out_dir, 'patch_features')
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -415,11 +415,11 @@ def prep_image_features(overwrite, resample2features=0.):
 
         # Name the output feature patch by the patch id number
         if vct_patch_num < 10:
-            out_patch = '{}/00{:d}.tif'.format(out_dir, vct_patch_num)
+            out_patch = os.path.join(out_dir, '00{:d}.tif'.format(vct_patch_num))
         elif 10 <= vct_patch_num < 100:
-            out_patch = '{}/0{:d}.tif'.format(out_dir, vct_patch_num)
+            out_patch = os.path.join(out_dir, '0{:d}.tif'.format(vct_patch_num))
         else:
-            out_patch = '{}/{:d}.tif'.format(out_dir, vct_patch_num)
+            out_patch = os.path.join(out_dir, '{:d}.tif'.format(vct_patch_num))
 
         com = '{} -te {:f} {:f} {:f} {:f} -tr {:f} {:f} {} {}'.format(com_orig,
                                                                       n_patch_extent[0], n_patch_extent[3],
@@ -444,7 +444,7 @@ def prep_image_features(overwrite, resample2features=0.):
             d_name, f_name = os.path.split(out_patch)
             f_base, f_ext = os.path.splitext(f_name)
 
-            out_patch_temp = '{}/{}_temp{}'.format(d_name, f_base, f_ext)
+            out_patch_temp = os.path.join(d_name, '{}_temp{}'.format(f_base, f_ext))
 
             com = 'gdalwarp --config GDAL_CACHEMAX 256 -tr {:f} {:f} \
             -r cubic -co COMPRESS=LZW {} {}'.format(resample2features, resample2features,
@@ -469,11 +469,11 @@ def train(model_parameters, overwrite, ignore_feas):
     """
 
     out_dir = PARAMETERS['out dir']
-    training_dir = '{}/training'.format(out_dir)
+    training_dir = os.path.join(out_dir, 'training')
 
-    model_dir = '{}/models'.format(out_dir)
-    report_dir = '{}/reports'.format(out_dir)
-    bad_dir = '{}/bad_feas'.format(out_dir)
+    model_dir = os.path.join(out_dir, 'models')
+    report_dir = os.path.join(out_dir, 'reports')
+    bad_dir = os.path.join(out_dir, 'bad_feas')
 
     for dir2create in [model_dir, report_dir]:
 
@@ -491,18 +491,18 @@ def train(model_parameters, overwrite, ignore_feas):
         if '_scaler.txt' in training_file:
             continue
 
-        input_training = '{}/{}'.format(training_dir, training_file)
-        output_accuracy = '{}/{}'.format(report_dir, training_file)
+        input_training = os.path.join(training_dir, training_file)
+        output_accuracy = os.path.join(report_dir, training_file)
 
         if model_parameters['classifier'] == 'Cubist':
 
-            output_model = '{}/{}_{}'.format(model_dir, model_parameters['classifier'],
-                                             training_file.replace('.txt', ''))
+            output_model = os.path.join(model_dir, '{}_{}'.format(model_parameters['classifier'],
+                                                                  training_file.replace('.txt', '')))
 
         else:
 
-            output_model = '{}/{}_{}.txt'.format(model_dir, model_parameters['classifier'],
-                                                 training_file.replace('.txt', ''))
+            output_model = os.path.join(model_dir, '{}_{}.txt'.format(model_parameters['classifier'],
+                                                                      training_file.replace('.txt', '')))
 
         if overwrite:
 
@@ -521,7 +521,7 @@ def train(model_parameters, overwrite, ignore_feas):
 
         if ignore_feas:
 
-            output_bad_features = '{}/{}'.format(bad_dir, training_file)
+            output_bad_features = os.path.join(bad_dir, training_file)
             ignore_feas = pickle.load(file(output_bad_features, 'rb'))
 
         else:
@@ -536,7 +536,7 @@ def train(model_parameters, overwrite, ignore_feas):
             cl.construct_model(classifier_info=model_parameters, output_model=output_model)
 
     # Write the classifier parameters to file.
-    parameter_file = '{}/model_parameters_{}.yaml'.format(out_dir, model_parameters['classifier'])
+    parameter_file = os.path.join(out_dir, 'model_parameters_{}.yaml'.format(model_parameters['classifier']))
 
     if os.path.isfile(parameter_file):
 
@@ -564,24 +564,24 @@ def test(model_parameters, ignore_feas):
 
     out_dir = PARAMETERS['out dir']
 
-    training_dir = '{}/training'.format(out_dir)
-    model_dir = '{}/models'.format(out_dir)
-    report_dir = '{}/reports'.format(out_dir)
-    bad_dir = '{}/bad_feas'.format(out_dir)
+    training_dir = os.path.join(out_dir, 'training')
+    model_dir = os.path.join(out_dir, 'models')
+    report_dir = os.path.join(out_dir, 'reports')
+    bad_dir = os.path.join(out_dir, 'bad_feas')
 
     assert os.path.isdir(training_dir) and os.path.isdir(model_dir) and os.path.isdir(report_dir)
 
     # Load the master model.
     if model_parameters['classifier'] == 'Cubist':
 
-        input_model = '{}/{}_training_master.tree'.format(model_dir, model_parameters['classifier'])
+        input_model = os.path.join(model_dir, '{}_training_master.tree'.format(model_parameters['classifier']))
 
         cl = classification_r()
         cl.construct_r_model(input_model=input_model)
 
     else:
 
-        input_model = '{}/{}_training_master.txt'.format(model_dir, model_parameters['classifier'])
+        input_model = os.path.join(model_dir, '{}_training_master.txt'.format(model_parameters['classifier']))
 
         cl = classification()
         cl.construct_model(input_model=input_model)
@@ -592,15 +592,15 @@ def test(model_parameters, ignore_feas):
         if '_scaler.txt' in training_file:
             continue
 
-        input_training = '{}/{}'.format(training_dir, training_file)
-        output_accuracy = '{}/{}_{}'.format(report_dir, model_parameters['classifier'], training_file)
+        input_training = os.path.join(training_dir, training_file)
+        output_accuracy = os.path.join(report_dir, '{}_{}'.format(model_parameters['classifier'], training_file))
 
         if os.path.isfile(output_accuracy):
             os.remove(output_accuracy)
 
         if ignore_feas:
 
-            output_bad_features = '{}/{}'.format(bad_dir, training_file)
+            output_bad_features = os.path.join(bad_dir, training_file)
             ignore_feas = pickle.load(file(output_bad_features, 'rb'))
 
         else:
@@ -630,13 +630,13 @@ def plot(model_parameters, what2plot='scatter'):
 
     out_dir = PARAMETERS['out dir']
 
-    training_dir = '{}/training'.format(out_dir)
-    model_dir = '{}/models'.format(out_dir)
-    figure_dir = '{}/figures'.format(out_dir)
-    patch_dir = '{}/patch_features'.format(out_dir)
-    buildings_dir = '{}/buildings2density'.format(out_dir)
+    training_dir = os.path.join(out_dir, 'training')
+    model_dir = os.path.join(out_dir, 'models')
+    figure_dir = os.path.join(out_dir, 'figures')
+    patch_dir = os.path.join(out_dir, 'patch_features')
+    buildings_dir = os.path.join(out_dir, 'buildings2density')
 
-    output_figure = '{}/{}_{}.png'.format(figure_dir, model_parameters['classifier'], what2plot)
+    output_figure = os.path.join(figure_dir, '{}_{}.png'.format(model_parameters['classifier'], what2plot))
 
     if not os.path.isdir(figure_dir):
         os.makedirs(figure_dir)
@@ -646,14 +646,14 @@ def plot(model_parameters, what2plot='scatter'):
     # Load the master model.
     if model_parameters['classifier'] == 'Cubist':
 
-        input_model = '{}/{}_training_master.tree'.format(model_dir, model_parameters['classifier'])
+        input_model = os.path.join(model_dir, '{}_training_master.tree'.format(model_parameters['classifier']))
 
         cl = classification_r()
         cl.construct_r_model(input_model=input_model)
 
     else:
 
-        input_model = '{}/{}_training_master.txt'.format(model_dir, model_parameters['classifier'])
+        input_model = os.path.join(model_dir, '{}_training_master.txt'.format(model_parameters['classifier']))
 
         cl = classification()
         cl.construct_model(input_model=input_model)
@@ -682,7 +682,7 @@ def plot(model_parameters, what2plot='scatter'):
     # Test the master model against each patch.
     for ti, training_file in enumerate(fnmatch.filter(os.listdir(training_dir), '*.txt')):
 
-        input_training = '{}/{}'.format(training_dir, training_file)
+        input_training = os.path.join(training_dir, training_file)
 
         # Load the samples to test.
         cl.split_samples(input_training, perc_samp=1, labs_type='float')
@@ -744,8 +744,8 @@ def plot(model_parameters, what2plot='scatter'):
             ax2 = axes[ti, 1]
 
             # Load the buildings image.
-            patch_image = '{}/{}'.format(patch_dir, training_file.replace('.txt', '.tif'))
-            building_image = '{}/{}'.format(buildings_dir, training_file.replace('.txt', '.tif'))
+            patch_image = os.path.join(patch_dir, training_file.replace('.txt', '.tif'))
+            building_image = os.path.join(buildings_dir, training_file.replace('.txt', '.tif'))
 
             # Open the patch image.
             i_info = raster_tools.rinfo(patch_image.replace('training_', ''))
@@ -852,28 +852,28 @@ def predict(overwrite, model_parameters, ignore_feas):
     out_dir = PARAMETERS['out dir']
     image2classify = PARAMETERS['features']
 
-    model_dir = '{}/models'.format(out_dir)
-    bad_dir = '{}/bad_feas'.format(out_dir)
-    map_dir = '{}/maps'.format(out_dir)
+    model_dir = os.path.join(out_dir, 'models')
+    bad_dir = os.path.join(out_dir, 'bad_feas')
+    map_dir = os.path.join(out_dir, 'maps')
 
     if not os.path.isdir(map_dir):
         os.makedirs(map_dir)
 
     if model_parameters['classifier'] == 'Cubist':
 
-        input_model = '{}/{}_training_master.tree'.format(model_dir, model_parameters['classifier'])
+        input_model = os.path.join(model_dir, '{}_training_master.tree'.format(model_parameters['classifier']))
 
         cl = classification_r()
         cl.construct_r_model(input_model=input_model)
 
     else:
 
-        input_model = '{}/{}_training_master.txt'.format(model_dir, model_parameters['classifier'])
+        input_model = os.path.join(model_dir, '{}_training_master.txt'.format(model_parameters['classifier']))
 
         cl = classification()
         cl.construct_model(input_model=input_model)
 
-    output_image = '{}/building_density_{}.tif'.format(map_dir, cl.classifier_info['classifier'])
+    output_image = os.path.join(map_dir, 'building_density_{}.tif'.format(cl.classifier_info['classifier']))
 
     if overwrite:
 
@@ -887,7 +887,7 @@ def predict(overwrite, model_parameters, ignore_feas):
 
     if ignore_feas:
 
-        output_bad_features = '{}/training_master.txt'.format(bad_dir)
+        output_bad_features = os.path.join(bad_dir, 'training_master.txt')
         ignore_feas = pickle.load(file(output_bad_features, 'rb'))
 
     else:
@@ -935,7 +935,7 @@ def detect(setup=False, out_dir=None, patches=None, buildings=None, features=Non
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
 
-    parameter_file = '{}/parameters.yaml'.format(out_dir)
+    parameter_file = os.path.join(out_dir, 'parameters.yaml')
 
     if setup:
 

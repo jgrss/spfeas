@@ -83,7 +83,8 @@ def run(parameter_object):
 
     if platform.system() == 'Windows':
 
-        new_feas_list = '{}/{}_win_feas_list.txt'.format(parameter_object.output_dir, parameter_object.f_base)
+        new_feas_list = os.path.join(parameter_object.output_dir,
+                                     '{}_win_feas_list.txt'.format(parameter_object.f_base))
 
         win_feas_list_o = open(new_feas_list, 'w')
 
@@ -114,7 +115,7 @@ def run(parameter_object):
 
                         # append new features to a list to stack
                         if platform.system() == 'Windows':
-                            win_feas_list_o.write('%s\n' % out_img)
+                            win_feas_list_o.write('{}\n'.format(out_img))
                         else:
                             new_feas_list.append(out_img)
 
@@ -616,8 +617,9 @@ def run(parameter_object):
 
                                 out_img_d_name, out_img_f_name = os.path.split(out_img)
 
-                                out_img_resamp = '{}/{}_resamp{}'.format(out_img_d_name, out_img_base,
-                                                                         parameter_object.f_ext)
+                                out_img_resamp = os.path.join(out_img_d_name,
+                                                              '{}_resamp{}'.format(out_img_base,
+                                                                                   parameter_object.f_ext))
 
                                 # Replace the block size.
                                 out_img_resamp = out_img_resamp.replace('blk{:d}'.format(parameter_object.block),
@@ -692,12 +694,12 @@ def run(parameter_object):
                 scales_str = [str(sc) for sc in parameter_object.scales]
                 band_pos_str = [str(bp) for bp in parameter_object.band_positions]
 
-                out_gtiff = '{}/{}.{}.stk.bd{}.block{}.scales{}.tif'.format(parameter_object.output_dir,
-                                                                            parameter_object.f_base,
-                                                                            '-'.join(parameter_object.triggers),
-                                                                            '-'.join(band_pos_str),
-                                                                            parameter_object.block,
-                                                                            '-'.join(scales_str))
+                out_gtiff = os.path.join(parameter_object.output_dir,
+                                         '{}.{}.stk.bd{}.block{}.scales{}.tif'.format(parameter_object.f_base,
+                                                                                      '-'.join(parameter_object.triggers),
+                                                                                      '-'.join(band_pos_str),
+                                                                                      parameter_object.block,
+                                                                                      '-'.join(scales_str)))
 
                 raster_tools.translate(out_vrt, out_gtiff,
                                        format='GTiff',
