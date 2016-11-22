@@ -1,8 +1,4 @@
-"""
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-"""
-
-import sys
+#!/usr/bin/env python
 
 import cython
 cimport cython
@@ -11,8 +7,8 @@ import numpy as np
 cimport numpy as np
 
 from libc.math cimport pow, atan, sqrt
-# from libc.math cimport isnan, isinf
 from cython.parallel import parallel, prange
+# from libc.math cimport isnan, isinf
 
 from spatial_pyramid_hist import pyramid_hist_sift
 from mpglue.stats import _lin_interp

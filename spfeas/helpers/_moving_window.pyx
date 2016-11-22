@@ -2,13 +2,13 @@
 
 from __future__ import division
 
-import sys
-from copy import copy
-
 from cpython.array cimport array, clone
+
+import cython
+cimport cython
+
 import numpy as np
 cimport numpy as np
-cimport cython
 
 from libc.math cimport pow
 # from libc.math cimport fabs
