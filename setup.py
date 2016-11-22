@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 To build .tar.gz:
     1. Setup directory structure
@@ -21,7 +19,6 @@ Windows:
         1. setup.py build
     Create the executable installer
         2. setup.py bdist_wininst --target-version=2.7
-
 """
 
 import setuptools
@@ -33,9 +30,9 @@ __version__ = '0.0.1'
 
 spfeas_name = 'SpFeas'
 maintainer = 'Jordan Graesser'
-maintainer_email = 'jordan.graesser@mail.mcgill.ca'
+maintainer_email = 'graesser@bu.edu'
 description = 'A Python library for processing spatial (contextual) image features and image classification'
-git_url = 'http://github.com/spfeas.git'
+git_url = 'http://github.com/jgrss/spfeas.git'
 
 with open('README.md') as f:
     long_description = f.read()
