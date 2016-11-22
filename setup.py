@@ -64,10 +64,8 @@ def get_package_data():
     return {'spfeas': ['*.md',
                        '*.txt',
                        'helpers/*.so',
-                       'helpers/*.pyx',
                        'helpers/*.pyd',
                        'sphelpers/*.so',
-                       'sphelpers/*.pyx',
                        'sphelpers/*.pyd',
                        'notebooks/*.ipynb',
                        'notebooks/*.png']}
