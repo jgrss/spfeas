@@ -2326,7 +2326,7 @@ static const char __pyx_k_spfeas_helpers__moving_window[] = "spfeas.helpers._mov
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
 static const char __pyx_k_The_statistic_is_not_an_option[] = "The statistic {} is not an option.";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
-static const char __pyx_k_Users_Dill_Documents_scripts_Py[] = "/Users/Dill/Documents/scripts/Python/git_repos/spfeas/spfeas/helpers/_moving_window.pyx";
+static const char __pyx_k_Users_Brome_Documents_scripts_P[] = "/Users/Brome/Documents/scripts/Python/git_repos/spfeas/spfeas/helpers/_moving_window.pyx";
 static const char __pyx_k_numpy_core_multiarray_failed_to[] = "numpy.core.multiarray failed to import";
 static const char __pyx_k_unknown_dtype_code_in_numpy_pxd[] = "unknown dtype code in numpy.pxd (%d)";
 static const char __pyx_k_Buffer_view_does_not_expose_stri[] = "Buffer view does not expose strides";
@@ -2375,7 +2375,7 @@ static PyObject *__pyx_n_s_RuntimeError;
 static PyObject *__pyx_kp_s_The_statistic_is_not_an_option;
 static PyObject *__pyx_n_s_TypeError;
 static PyObject *__pyx_kp_s_Unable_to_convert_item_to_object;
-static PyObject *__pyx_kp_s_Users_Dill_Documents_scripts_Py;
+static PyObject *__pyx_kp_s_Users_Brome_Documents_scripts_P;
 static PyObject *__pyx_n_s_ValueError;
 static PyObject *__pyx_n_s_all;
 static PyObject *__pyx_n_s_allocate_buffer;
@@ -34756,7 +34756,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_s_The_statistic_is_not_an_option, __pyx_k_The_statistic_is_not_an_option, sizeof(__pyx_k_The_statistic_is_not_an_option), 0, 0, 1, 0},
   {&__pyx_n_s_TypeError, __pyx_k_TypeError, sizeof(__pyx_k_TypeError), 0, 0, 1, 1},
   {&__pyx_kp_s_Unable_to_convert_item_to_object, __pyx_k_Unable_to_convert_item_to_object, sizeof(__pyx_k_Unable_to_convert_item_to_object), 0, 0, 1, 0},
-  {&__pyx_kp_s_Users_Dill_Documents_scripts_Py, __pyx_k_Users_Dill_Documents_scripts_Py, sizeof(__pyx_k_Users_Dill_Documents_scripts_Py), 0, 0, 1, 0},
+  {&__pyx_kp_s_Users_Brome_Documents_scripts_P, __pyx_k_Users_Brome_Documents_scripts_P, sizeof(__pyx_k_Users_Brome_Documents_scripts_P), 0, 0, 1, 0},
   {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
   {&__pyx_n_s_all, __pyx_k_all, sizeof(__pyx_k_all), 0, 0, 1, 1},
   {&__pyx_n_s_allocate_buffer, __pyx_k_allocate_buffer, sizeof(__pyx_k_allocate_buffer), 0, 0, 1, 1},
@@ -35197,7 +35197,7 @@ static int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__30 = PyTuple_Pack(15, __pyx_n_s_image_array, __pyx_n_s_statistic, __pyx_n_s_window_size, __pyx_n_s_skip_block, __pyx_n_s_target_value, __pyx_n_s_ignore_value, __pyx_n_s_iterations, __pyx_n_s_weights, __pyx_n_s_endpoint_image, __pyx_n_s_gradient_image, __pyx_n_s_n_neighbors, __pyx_n_s_circle_list, __pyx_n_s_min_egm, __pyx_n_s_smallest_allowed_gap, __pyx_n_s_medium_allowed_gap); if (unlikely(!__pyx_tuple__30)) __PYX_ERR(0, 1635, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__30);
   __Pyx_GIVEREF(__pyx_tuple__30);
-  __pyx_codeobj__31 = (PyObject*)__Pyx_PyCode_New(15, 0, 15, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__30, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_Dill_Documents_scripts_Py, __pyx_n_s_moving_window, 1635, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__31)) __PYX_ERR(0, 1635, __pyx_L1_error)
+  __pyx_codeobj__31 = (PyObject*)__Pyx_PyCode_New(15, 0, 15, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__30, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_Brome_Documents_scripts_P, __pyx_n_s_moving_window, 1635, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__31)) __PYX_ERR(0, 1635, __pyx_L1_error)
 
   /* "View.MemoryView":282
  *         return self.name
