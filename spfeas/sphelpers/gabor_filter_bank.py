@@ -6,7 +6,7 @@ except ImportError:
     raise ImportError('NumPy must be installed')
 
 try:
-    from skimage.filter import gabor_kernel
+    from skimage.filters import gabor_kernel
 except ImportError:
     raise ImportWarning('Skimage.filter.gabor_kernel did not load')
 

@@ -97,6 +97,19 @@ def azimuthal_avg(image, center=None):
     return radialProf
 
 
+def fourier_transform(ch_bd):
+
+    dft = cv2.dft(np.float32(ch_bd), flags=cv2.DFT_COMPLEX_OUTPUT)
+    dft_shift = np.fft.fftshift(dft)
+
+    # get the Power Spectrum
+    magnitude_spectrum = 20. * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))
+
+    psd1D = azimuthal_avg(magnitude_spectrum)
+
+    return list(cv2.meanStdDev(psd1D))
+
+
 def feature_fourier(chBd, blk, scs, end_scale):
 
     rows, cols = chBd.shape
@@ -380,9 +393,9 @@ def feaSURF(chBd, blk, scs):
 
 def feaSFS_C(inImg, outImg, B, blk, spe, spa, nb, al, mxc, mem):
 
-    '''
+    """
     Structural Feature Sets from the Orfeo OTB library
-    '''
+    """
 
     dName, fName= os.path.split(outImg)
     fBase, fExt = os.path.splitext(fName)
