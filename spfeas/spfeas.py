@@ -23,8 +23,8 @@ class SPParameters(object):
 
     def __init__(self, input_image, output_dir):
 
-        self.input_image = os.path.normpath(input_image)
-        self.output_dir = os.path.normpath(output_dir)
+        self.input_image = input_image
+        self.output_dir = output_dir
         
     def set_defaults(self, **kwargs):
         
