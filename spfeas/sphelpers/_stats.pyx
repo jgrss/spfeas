@@ -310,6 +310,25 @@ cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs):
+
+    cdef:
+        Py_ssize_t bi, bj
+        DTYPE_float32_t mu = _get_mean(block, rs, cs)
+        DTYPE_float32_t block_var = 0.
+
+    for bi in xrange(0, rs):
+
+        for bj in xrange(0, cs):
+
+            block_var += pow(float(block[bi, bj]) - mu, 2)
+
+    return block_var / (rs*cs)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef DTYPE_float32_t _get_var_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
 
     cdef:
@@ -517,6 +536,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
         Py_ssize_t i, j, ki, kl
         unsigned int k, k_half
         DTYPE_uint8_t[:, :] ch_bd
+        DTYPE_uint8_t[:, :] ch_bd_gabor
         DTYPE_float32_t[:] sts
         list st
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
@@ -542,12 +562,14 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
 
                     # sts = gabor_mean_var(cv2.filter2D(np.array(ch_bd), -1, kernels[kl]))
 
-                    out_list[pix_ctr] = _get_mean_uint8(ch_bd, bcr, bcc)
+                    ch_bd_gabor = cv2.filter2D(np.uint8(ch_bd), -1, kernels[kl])
+
+                    out_list[pix_ctr] = _get_mean_uint8(ch_bd_gabor, bcr, bcc)
                     pix_ctr += 1
-                    out_list[pix_ctr] = _get_var_uint8(ch_bd, bcr, bcc)
+                    out_list[pix_ctr] = _get_var_uint8(ch_bd_gabor, bcr, bcc)
                     pix_ctr += 1
 
-    return np.asarray(out_list).astype(np.float32)
+    return np.float32(np.asarray(out_list))
 
 
 @cython.boundscheck(False)
@@ -1506,8 +1528,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t
         np.ndarray[DTYPE_float64_t, ndim=1] angle
 
     pix_ctr = 0
-    for i in xrange(0, rows-scales_block, blk):
-        for j in xrange(0, cols-scales_block, blk):
+
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
 
             # get the angles at the largest scale
             lines_list = []
@@ -1552,7 +1575,7 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
                   int min_len, int line_gap):
 
     cdef:
-        Py_ssize_t i, j, k, pix_ctr
+        Py_ssize_t i, j, k
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
         list sts
@@ -1560,11 +1583,12 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
         int out_len = 0
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
+        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        int scale_length = scales_array.shape[0]
 
-
-    for i in xrange(0, rows-scales_block, blk):
-        for j in xrange(0, cols-scales_block, blk):
-            for k in scs:
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in xrange(0, scale_length):
                 out_len += 4
 
     return _feature_hough(chBd, blk, scs, scales_half, scales_block, out_len, rows, cols,
@@ -2080,7 +2104,7 @@ cdef DTYPE_float32_t _lacunarity(DTYPE_uint8_t[:, :] chunk_sub, int r):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef list _feature_lacunarity(DTYPE_uint8_t[:, :] chunk_block, int blk, list scales, int scales_half,
+cdef list _feature_lacunarity(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_uint8_t[:] scales, int scales_half,
                               int scales_block, int rows, int cols, int r, int out_len, int scale_length):
 
     cdef:
@@ -2124,12 +2148,126 @@ def feature_lacunarity(np.ndarray chunk_block, int blk, list scales, int end_sca
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         int out_len = 0
-        int scale_length = len(scales)
+        DTYPE_uint8_t[:] scale_array = np.array(scales, dtype='uint8')
+        int scale_length = scale_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
             for ki in xrange(0, scale_length):
                 out_len += 1
 
-    return _feature_lacunarity(np.uint8(chunk_block), blk, scales, scales_half, scales_block,
+    return _feature_lacunarity(np.uint8(chunk_block), blk, scale_array, scales_half, scales_block,
                                rows, cols, r, out_len, scale_length)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef azimuthal_avg(image, center=None):
+
+    """
+    Calculate the azimuthally averaged radial profile.
+
+    image - The 2D image
+    center - The [x,y] pixel coordinates used as the center. The default is
+             None, which then uses the center of the image (including
+             fracitonal pixels).
+    """
+
+    # Calculate the indices from the image
+    y, x = np.indices(image.shape)
+
+    if not center:
+        center = np.array([(x.max() - x.min()) / 2., (x.max() - x.min()) / 2.0])
+
+    # get hypotenuse
+    r = np.hypot(np.subtract(x, center[0]), np.subtract(y, center[1]))
+
+    # get sorted radii indices
+    ind = np.argsort(r.flat)
+    rSorted = r.flat[ind]
+
+    # get image values from index positions
+    iSorted = image.flat[ind]
+
+    # Get the integer part of the radii (bin size = 1)
+    rInt = rSorted.astype(int)
+
+    # Find all pixels that fall within each radial bin.
+    deltar = np.subtract(rInt[1:], rInt[:-1])  # Assumes all radii represented
+    rind = np.where(deltar)[0]       # location of changed radius
+    nr = np.subtract(rind[1:], rind[:-1])        # number of radius bin
+
+    # Cumulative sum to figure out sums for each radius bin
+    csim = np.cumsum(iSorted, dtype=float)
+    tbin = np.subtract(csim[rind[1:]], csim[rind[:-1]])
+
+    radialProf = np.divide(tbin, nr)
+
+    return radialProf
+
+
+@cython.boundscheck(False)
+cdef DTYPE_float32_t[:, :] _fourier_transform(DTYPE_uint8_t[:, :] chunk_block):
+
+    cdef:
+        DTYPE_float32_t[:, :] dft = cv2.dft(np.float32(chunk_block), flags=cv2.DFT_COMPLEX_OUTPUT)
+        DTYPE_float32_t[:, :, :] dft_shift = np.fft.fftshift(dft)
+
+    # get the Power Spectrum
+    return np.float32(azimuthal_avg(20. * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))))
+
+
+@cython.boundscheck(False)
+cdef list _feature_fourier(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_uint8_t[:] scales, int scales_half,
+                           int scales_block, int rows, int cols, int out_len, int scale_length):
+
+    cdef:
+        Py_ssize_t i, j, k, ki, cr, cc
+        Py_ssize_t pixel_counter = 0
+        DTYPE_uint8_t[:, :] ch_bd
+        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
+        int k_half
+
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in xrange(0, scale_length):
+
+                k = scales[ki]
+                k_half = (k / 2)
+
+                ch_bd = chunk_block[i+scales_half-k_half:i+scales_half-k_half+k,
+                                    j+scales_half-k_half:j+scales_half-k_half+k]
+
+                bcr = ch_bd.shape[0]
+                bcc = ch_bd.shape[1]
+
+                ch_bd_transform = _fourier_transform(ch_bd)
+
+                out_list[pixel_counter] = _get_mean(ch_bd_transform, bcr, bcc)
+                pixel_counter += 1
+                out_list[pixel_counter] = _get_mean(ch_bd_transform, bcr, bcc)
+                pixel_counter += 1
+
+    return list(np.asarray(out_list))
+
+
+@cython.boundscheck(False)
+def feature_fourier(np.ndarray chunk_block, int blk, list scales, int end_scale):
+
+    cdef:
+        Py_ssize_t i, j, ki
+        int rows = chunk_block.shape[0]
+        int cols = chunk_block.shape[1]
+        int scales_half = end_scale / 2
+        int scales_block = end_scale - blk
+        int out_len = 0
+        DTYPE_uint8_t[:] scale_array = np.array(scales, dtype='uint8')
+        int scale_length = scale_array.shape[0]
+
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in xrange(0, scale_length):
+                out_len += 1
+
+    return _feature_fourier(np.uint8(chunk_block), blk, scale_array, scales_half, scales_block,
+                               rows, cols, out_len, scale_length)

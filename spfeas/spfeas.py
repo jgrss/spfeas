@@ -33,7 +33,7 @@ class SPParameters(object):
 
         # Set the features dictionary.
         self.features_dict = dict(mean=1, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
-                                  lbpm=4, gabor=2 * 9, surf=4, seg=1, fourier=2, sfs=5, ndvi=1,
+                                  lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=5, ndvi=1,
                                   objects=1, dmp=1, xy=2, lac=1)
 
         # Set the output bands based on the trigger.
@@ -168,7 +168,7 @@ def main():
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
-                        nargs='+', choices=['ctr', 'dmp', 'fourier', 'gabor', 'hog', 'hough', 'lac',
+                        nargs='+', choices=['dmp', 'fourier', 'gabor', 'hog', 'lac',
                                             'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'pantex', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=20, type=int)
@@ -200,7 +200,7 @@ def main():
     parser.add_argument('--band-nir', dest='band_nir', help='The NIR band position', default=4, type=int)
     parser.add_argument('--neighbors', dest='neighbors', help='Whether to add features as neighbors',
                         action='store_true')
-    parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs', default=-1, type=int)
+    parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs', default=1, type=int)
     parser.add_argument('--sect-size', dest='section_size', help='The section size', default=8000, type=int)
     parser.add_argument('--chunk-size', dest='chunk_size', help='The section chunk size', default=512, type=int)
     parser.add_argument('--gdal-cache', dest='gdal_cache', help='The GDAL cache size (MB)', default=256, type=int)

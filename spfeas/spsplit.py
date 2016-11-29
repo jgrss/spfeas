@@ -6,9 +6,10 @@ Date Created: 7/2/2013
 import os
 import timeit
 import subprocess
+import itertools
 from joblib import Parallel, delayed
 
-from spfunctions import *
+import spfunctions
 from paths import get_path
 
 SPFEAS_PATH = get_path()
@@ -32,7 +33,7 @@ except:
 # Scikit-image
 try:
     from skimage.exposure import equalize_hist, rescale_intensity, equalize_adapthist
-    from skimage.filter import canny
+    from skimage.filters import canny
 except ImportError:
     raise ImportError('Scikits must be installed')
 
@@ -87,7 +88,7 @@ def call_gabor(block_array_, block_size_, scales_, end_scale_, kernels_):
 
 
 def call_fourier(block_array_, block_size_, scales_, end_scale_):
-    return feature_fourier(block_array_, block_size_, scales_, end_scale_)
+    return spfunctions.feature_fourier(block_array_, block_size_, scales_, end_scale_)
 
 
 def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_):
@@ -111,7 +112,7 @@ def call_lacunarity(block_array_, block_size_, scales_, end_scale_, lac_r_):
 
 
 def call_lsr(block_array_, block_size_, scales_, end_scale_):
-    return feature_lsr(block_array_, block_size_, scales_, end_scale_)
+    return spfunctions.feature_lsr(block_array_, block_size_, scales_, end_scale_)
 
 
 def call_mean(block_array_, block_size_, scales_, end_scale_):
@@ -126,8 +127,8 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, cell_size_, sfs_thr
     return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, cell_size_, sfs_thresh_, n_angles_)
 
 
-def startCtr(bd_blk_scs):
-    return feaCtr(*bd_blk_scs)
+# def startCtr(bd_blk_scs):
+#     return feaCtr(*bd_blk_scs)
 
 
 def getOutRows(in_bd, blk, scs):
