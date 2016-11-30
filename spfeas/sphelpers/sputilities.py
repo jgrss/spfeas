@@ -149,7 +149,10 @@ def stack_features(parameter_object, new_feas_list):
     #
     # subprocess.call(com, shell=True)
 
-    stack_dict = {'1': new_feas_list}
+    stack_dict = {}
+
+    for ni, new_feas in enumerate(new_feas_list):
+        stack_dict[str(ni+1)] = [new_feas]
 
     vrt_builder(stack_dict, out_vrt, force_type='float32')
 
