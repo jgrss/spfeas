@@ -81,15 +81,15 @@ def run(parameter_object):
 
     log_txt_wr.close()
 
-    if platform.system() == 'Windows':
-
-        new_feas_list = os.path.join(parameter_object.output_dir,
-                                     '{}_win_feas_list.txt'.format(parameter_object.f_base))
-
-        win_feas_list_o = open(new_feas_list, 'w')
-
-    else:
-        new_feas_list = []
+    # if platform.system() == 'Windows':
+    #
+    #     new_feas_list = os.path.join(parameter_object.output_dir,
+    #                                  '{}_win_feas_list.txt'.format(parameter_object.f_base))
+    #
+    #     win_feas_list_o = open(new_feas_list, 'w')
+    #
+    # else:
+    new_feas_list = []
 
     if parameter_object.stack_only:
 
@@ -114,15 +114,15 @@ def run(parameter_object):
                             continue
 
                         # append new features to a list to stack
-                        if platform.system() == 'Windows':
-                            win_feas_list_o.write('{}\n'.format(out_img))
-                        else:
-                            new_feas_list.append(out_img)
+                        # if platform.system() == 'Windows':
+                        #     win_feas_list_o.write('{}\n'.format(out_img))
+                        # else:
+                        new_feas_list.append(out_img)
 
                         obds += 1
 
-        if platform.system() == 'Windows':
-            win_feas_list_o.close()
+        # if platform.system() == 'Windows':
+        #     win_feas_list_o.close()
 
         # If prompted, stack features only.
         out_vrt = sputilities.stack_features(parameter_object, new_feas_list)
@@ -236,10 +236,10 @@ def run(parameter_object):
                             feature_status = -999
 
                         # append new features to a list to stack
-                        if platform.system() == 'Windows':
-                            win_feas_list_o.write('{}\n'.format(out_img))
-                        else:
-                            new_feas_list.append(out_img)
+                        # if platform.system() == 'Windows':
+                        #     win_feas_list_o.write('{}\n'.format(out_img))
+                        # else:
+                        new_feas_list.append(out_img)
 
                         # only create a new feature if the file does not exist
                         if feature_status == -999:
@@ -677,8 +677,8 @@ def run(parameter_object):
 
                         obds += 1
 
-        if platform.system() == 'Windows':
-            win_feas_list_o.close()
+        # if platform.system() == 'Windows':
+        #     win_feas_list_o.close()
 
         # Stack the features
         if hasattr(parameter_object, 'stack'):
