@@ -105,28 +105,27 @@ def stack_features(parameter_object, new_feas_list):
     if os.path.isfile(fea_list_txt):
         os.remove(fea_list_txt)
 
-    fea_list_txt_wr = open(fea_list_txt, 'wb')
-    fea_list_txt_wr.write('Layer,Name\n')
+    with open(fea_list_txt, 'wb') as fea_list_txt_wr:
 
-    if platform.system() == 'Windows':
+        fea_list_txt_wr.write('Layer,Name\n')
 
-        with open(new_feas_list) as f:
-
-            fea_ctr = 1
-            for line in f:
-                fea_list_txt_wr.write('{:d},{}'.format(fea_ctr, line))
-                fea_ctr += 1
-
-        f.close()
-
-    else:
+        # if platform.system() == 'Windows':
+        #
+        #     with open(new_feas_list) as f:
+        #
+        #         fea_ctr = 1
+        #         for line in f:
+        #             fea_list_txt_wr.write('{:d},{}'.format(fea_ctr, line))
+        #             fea_ctr += 1
+        #
+        #     f.close()
+        #
+        # else:
 
         fea_ctr = 1
         for fea_name in new_feas_list:
             fea_list_txt_wr.write('{:d},{}\n'.format(fea_ctr, fea_name))
             fea_ctr += 1
-
-    fea_list_txt_wr.close()
 
     # stack features here
     out_vrt = os.path.join(parameter_object.output_dir,
