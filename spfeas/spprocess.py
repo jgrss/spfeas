@@ -686,29 +686,29 @@ def run(parameter_object):
             if parameter_object.stack:
                 out_vrt = sputilities.stack_features(parameter_object, new_feas_list)
 
-        # Optional conversion to GeoTiff.
-        if hasattr(parameter_object, 'convert'):
+    # Optional conversion to GeoTiff.
+    if hasattr(parameter_object, 'convert'):
 
-            if parameter_object.convert:
+        if parameter_object.convert:
 
-                scales_str = [str(sc) for sc in parameter_object.scales]
-                band_pos_str = [str(bp) for bp in parameter_object.band_positions]
+            scales_str = [str(sc) for sc in parameter_object.scales]
+            band_pos_str = [str(bp) for bp in parameter_object.band_positions]
 
-                out_gtiff = os.path.join(parameter_object.output_dir,
-                                         '{}.{}.stk.bd{}.block{}.scales{}.tif'.format(parameter_object.f_base,
-                                                                                      '-'.join(parameter_object.triggers),
-                                                                                      '-'.join(band_pos_str),
-                                                                                      parameter_object.block,
-                                                                                      '-'.join(scales_str)))
+            out_gtiff = os.path.join(parameter_object.output_dir,
+                                     '{}.{}.stk.bd{}.block{}.scales{}.tif'.format(parameter_object.f_base,
+                                                                                  '-'.join(parameter_object.triggers),
+                                                                                  '-'.join(band_pos_str),
+                                                                                  parameter_object.block,
+                                                                                  '-'.join(scales_str)))
 
-                raster_tools.translate(out_vrt, out_gtiff,
-                                       format='GTiff',
-                                       creationOptions=['TILED=YES', 'COMPRESS=LZW'])
+            raster_tools.translate(out_vrt, out_gtiff,
+                                   format='GTiff',
+                                   creationOptions=['TILED=YES', 'COMPRESS=LZW'])
 
-                # com = 'gdal_translate --config GDAL_CACHEMAX {:d} \
-                # -of GTiff -co TILED=YES -co COMPRESS=LZW {} {}'.format(parameter_object.gdal_cache, out_vrt, out_gtiff)
+            # com = 'gdal_translate --config GDAL_CACHEMAX {:d} \
+            # -of GTiff -co TILED=YES -co COMPRESS=LZW {} {}'.format(parameter_object.gdal_cache, out_vrt, out_gtiff)
 
-                # subprocess.call(com, shell=True)
+            # subprocess.call(com, shell=True)
 
         # Run PCA on features.
         # if parameter_object.pca:
