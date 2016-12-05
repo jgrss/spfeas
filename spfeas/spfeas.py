@@ -68,7 +68,7 @@ class SPParameters(object):
         self.f_ext = '.tif'
 
         # The status dictionary file.
-        self.status_dict_txt = os.path.join(self.output_dir, '{}_status.txt'.format(self.f_base))
+        self.status_dict_txt = os.path.join(self.output_dir, '{}_status.yaml'.format(self.f_base))
 
         # The log file.
         self.log_txt = os.path.join(self.output_dir, '{}_log.txt'.format(self.f_base))

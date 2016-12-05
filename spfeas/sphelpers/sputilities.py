@@ -199,20 +199,20 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=Fa
 
     gray_min, gray_max = 0, 0
 
-    if rgb == 'RGB':
-        coeff_dict = {1: .2125, 2: .7154, 3: .0721}
-    elif rgb == 'BGR':
-        coeff_dict = {1: .0721, 2: .7154, 3: .2125}
+    coeff_dict = dict(B=.0721, G=.7154, R=.2125)
 
-    for band_p in xrange(1, 4):
-
-        coeff = coeff_dict[band_p]
+    for band_p, band_l in enumerate('BGR'):
 
         if stats:
-            temp_bd_sect = i_info.mparray(bands2open=band_p, d_type='float32')
+            temp_bd_sect = i_info.mparray(bands2open=band_p+1, d_type='float32')
         else:
-            temp_bd_sect = i_info.mparray(bands2open=band_p, i=i_sect, j=j_sect,
-                                          rows=n_rows, cols=n_cols, d_type='float32')
+
+            temp_bd_sect = i_info.mparray(bands2open=band_p+1,
+                                          i=i_sect, j=j_sect,
+                                          rows=n_rows, cols=n_cols,
+                                          d_type='float32')
+
+        coeff = coeff_dict[band_l]
 
         luminosity = ne.evaluate('(temp_bd_sect * coeff) + luminosity')
 
@@ -294,8 +294,7 @@ def create_band(meta_info, out_img, parameter_object, out_bands, blocks=True):
     if blocks:
         i_info = get_adj_info(meta_info, i_info, parameter_object)
 
-    i_info.bands = out_bands
-    i_info.storage = 'float32'
+    i_info.update_info(bands=out_bands, storage='float32')
 
     out_rst = raster_tools.create_raster(out_img, i_info)
 

@@ -14,13 +14,11 @@ from .sphelpers import spreshape
 
 from mpglue import raster_tools, VegIndicesEquations
 
-# Pickle
+# YAML
 try:
-    import cPickle as pickle
-except:
-    from six.moves import cPickle as pickle
-else:
-   import pickle
+    import yaml
+except ImportError:
+    raise ImportError('YAML must be installed')
 
 # NumPy
 try:
@@ -100,13 +98,14 @@ def run(parameter_object):
 
             for band_p in parameter_object.band_positions:
 
-                # get feature names
+                # Get feature names
                 obds = 1
                 for scale in parameter_object.scales:
 
                     for feature in xrange(1, parameter_object.features_dict[trigger]+1):
 
-                        out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir, band_p, scale, feature,
+                        out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir,
+                                                                            band_p, scale, feature,
                                                                             parameter_object)
 
                         # skip the feature if it doesn't exist
@@ -134,15 +133,16 @@ def run(parameter_object):
         # Iterate over each feature trigger.
         for trigger in parameter_object.triggers:
 
-            # output features folder# Set the output features folder.
+            # Set the output features folder.
             feas_dir, parameter_object = sputilities.set_feas_dir(parameter_object, trigger)
 
+            # Iterate over each band
             for band_p in parameter_object.band_positions:
 
-                # get image information
+                # Get image information
                 i_info = raster_tools.rinfo(parameter_object.input_image)
 
-                # check available memory
+                # Check available cpu memory
                 avilable_space = psutil.virtual_memory().available * 9.53674e-7
                 # free = psutil.virtual_memory().free * 9.53674e-7
 
@@ -195,21 +195,18 @@ def run(parameter_object):
                 obds = 1
                 for scale in parameter_object.scales:
 
-                    for feature in xrange(1, parameter_object.features_dict[trigger] + 1):
+                    for feature in xrange(1, parameter_object.features_dict[trigger]+1):
 
-                        in_trig_name = copy.copy(trigger)
-
-                        out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir, band_p, scale, feature,
+                        out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir,
+                                                                            band_p, scale, feature,
                                                                             parameter_object)
 
                         # status dictionary
                         if os.path.isfile(parameter_object.status_dict_txt):
 
                             # open the status dictionary
-                            with open(parameter_object.status_dict_txt, 'rb') as status_dict_txt_o:
-
-                                # pickle the status dictionary
-                                status_dict = pickle.load(status_dict_txt_o)
+                            with open(parameter_object.status_dict_txt, 'r') as pf:
+                                status_dict = yaml.load(pf)
 
                             # get the feature status
                             try:
@@ -218,12 +215,7 @@ def run(parameter_object):
                                 status_dict[out_img_base] = -999
                                 feature_status = -999
 
-                            status_dict_txt_o = open(parameter_object.status_dict_txt, 'wb')
-
                         else:
-
-                            # create the status dictionary
-                            status_dict_txt_o = open(parameter_object.status_dict_txt, 'wb')
 
                             status_dict = dict()
 
@@ -249,10 +241,9 @@ def run(parameter_object):
                             # set the status as created
                             status_dict[out_img_base] = 0
 
-                        # pickle the status dictionary
-                        pickle.dump(status_dict, status_dict_txt_o)
-
-                        status_dict_txt_o.close()
+                        # Store the status dictionary
+                        with open(parameter_object.status_dict_txt, 'w') as pf:
+                            pf.write(yaml.dump(status_dict, default_flow_style=False))
 
                         obds += 1
 
@@ -307,19 +298,16 @@ def run(parameter_object):
 
                             for feature in xrange(1, parameter_object.features_dict[trigger]+1):
 
-                                if trigger_orig_seg:
-                                    in_trig_name = 'seg'
-                                else:
-                                    in_trig_name = copy.copy(trigger)
-
-                                out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir, band_p, scale,
-                                                                                    feature, parameter_object)
+                                out_img, out_img_base = sputilities.scale_fea_check(trigger,
+                                                                                    feas_dir,
+                                                                                    band_p,
+                                                                                    scale,
+                                                                                    feature,
+                                                                                    parameter_object)
 
                                 # Open the status dictionary.
-                                with open(parameter_object.status_dict_txt, 'rb') as status_dict_txt_o:
-
-                                    # Pickle the status dictionary.
-                                    status_dict = pickle.load(status_dict_txt_o)
+                                with open(parameter_object.status_dict_txt, 'r') as pf:
+                                    status_dict = yaml.load(pf)
 
                                 sect_status = status_dict[out_img_base]
 
@@ -333,30 +321,38 @@ def run(parameter_object):
                         # Open the image array.
                         if trigger == 'ndvi':
 
-                            sect_in = i_info.mparray(bands2open=[parameter_object.band_red, parameter_object.band_nir],
-                                                     i=i_sect, j=j_sect, rows=numRws, cols=numCols, d_type='float32')
+                            sect_in = i_info.mparray(bands2open=[parameter_object.band_red,
+                                                                 parameter_object.band_nir],
+                                                     i=i_sect, j=j_sect,
+                                                     rows=numRws, cols=numCols,
+                                                     d_type='float32')
 
                             vie = VegIndicesEquations(sect_in, chunk_size=-1)
-                            sect_in = vie.compute('NDVI', out_type=2)
+                            sect_in = vie.compute(trigger.upper(), out_type=2)
 
                             mn = 0
                             mx = 255
 
                         elif trigger == 'dmp':
 
-                            sect_in = np.asarray([i_info.mparray(bands2open=dmp_bd, i=i_sect, j=j_sect,
-                                                                 rows=numRws, cols=numCols, d_type='float32')
+                            sect_in = np.asarray([i_info.mparray(bands2open=dmp_bd,
+                                                                 i=i_sect, j=j_sect,
+                                                                 rows=numRws, cols=numCols,
+                                                                 d_type='float32')
                                                   for dmp_bd in xrange(1, i_info.bands+1)]).reshape(i_info.bands,
                                                                                                     numRws, numCols)
 
                         elif isinstance(parameter_object.rgb2gray, str):
 
-                            sect_in, __, __ = sputilities.convert_rgb2gray(i_info, j_sect, i_sect, numCols, numRws,
+                            sect_in, __, __ = sputilities.convert_rgb2gray(i_info,
+                                                                           j_sect, i_sect,
+                                                                           numCols, numRws,
                                                                            rgb=parameter_object.rgb2gray)
 
                         else:
 
-                            sect_in = i_info.mparray(bands2open=band_p, i=i_sect, j=j_sect,
+                            sect_in = i_info.mparray(bands2open=band_p,
+                                                     i=i_sect, j=j_sect,
                                                      rows=numRws, cols=numCols)
 
                         # pad array here
@@ -488,13 +484,15 @@ def run(parameter_object):
                             #   chunks and process the features.
 
                             # Split image and compute features.
-                            tk = spsplit.get_sect_feas(sect_in, lRows, lCols, mn, mx, i_info.cellY, trigger,
+                            tk = spsplit.get_sect_feas(sect_in, lRows, lCols, mn, mx,
+                                                       i_info.cellY, trigger,
                                                        parameter_object)
 
                             # Reshape list of features into
                             #   <features x rows x columns> array.
                             out_sect_arr = spreshape.reshape_feas(trigger, tk, oR, oC, lRows,
-                                                                  lCols, out_rows, out_cols, parameter_object)
+                                                                  lCols, out_rows, out_cols,
+                                                                  parameter_object)
 
                             print '  Writing features to file ...'
 
@@ -502,11 +500,6 @@ def run(parameter_object):
                             for scale in parameter_object.scales:
 
                                 for feature in xrange(1, parameter_object.features_dict[trigger]+1):
-
-                                    if trigger_orig_seg:
-                                        in_trig_name = 'seg'
-                                    else:
-                                        in_trig_name = copy.copy(trigger)
 
                                     out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir, band_p,
                                                                                         scale, feature,
@@ -557,28 +550,19 @@ def run(parameter_object):
 
                                 for feature in xrange(1, parameter_object.features_dict[trigger]+1):
 
-                                    if trigger_orig_seg:
-                                        in_trig_name = 'seg'
-                                    else:
-                                        in_trig_name = copy.copy(trigger)
-
                                     out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir, band_p,
                                                                                         scale, feature,
                                                                                         parameter_object)
 
                                     # open the status dictionary
-                                    with open(parameter_object.status_dict_txt, 'rb') as status_dict_txt_o:
-
-                                        # pickle the status dictionary
-                                        status_dict = pickle.load(status_dict_txt_o)
+                                    with open(parameter_object.status_dict_txt, 'r') as pf:
+                                        status_dict = yaml.load(pf)
 
                                     status_dict[out_img_base] = n_sect
 
-                                    # open the status dictionary
-                                    with open(parameter_object.status_dict_txt, 'wb') as status_dict_txt_o:
-
-                                        # pickle the status dictionary
-                                        pickle.dump(status_dict, status_dict_txt_o)
+                                    # store the status dictionary
+                                    with open(parameter_object.status_dict_txt, 'w') as pf:
+                                        pf.write(yaml.dump(status_dict, default_flow_style=False))
 
                                     obds_t += 1
 
@@ -596,11 +580,6 @@ def run(parameter_object):
                 for scale in parameter_object.scales:
 
                     for feature in xrange(1, parameter_object.features_dict[trigger]+1):
-
-                        if trigger_orig_seg:
-                            in_trig_name = 'seg'
-                        else:
-                            in_trig_name = copy.copy(trigger)
 
                         out_img, out_img_base = sputilities.scale_fea_check(trigger, feas_dir, band_p,
                                                                             scale, feature,
