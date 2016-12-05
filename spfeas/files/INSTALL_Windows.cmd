@@ -4,9 +4,9 @@ where /q pip
 IF NOT ERRORLEVEL 1 (
 
     REM Install compiled wheels that do not pip install
-    pip install numpy-1.11.2+mkl-cp27-cp27m-win32.whl numexpr-2.6.1-cp27-cp27m-win32.whl scikit_image-0.12.3-cp27-cp27m-win32.whl scipy-0.18.1-cp27-cp27m-win32.whl tables-3.3.0-cp27-cp27m-win32.whl Bottleneck-1.2.0-cp27-cp27m-win32.whl GDAL‑2.1.2‑cp27‑cp27m‑win32.whl statsmodels-0.8.0rc1-cp27-cp27m-win32.whl
+    pip install --no-cache-dir numpy-1.11.2+mkl-cp27-cp27m-win32.whl numexpr-2.6.1-cp27-cp27m-win32.whl scikit_image-0.12.3-cp27-cp27m-win32.whl scipy-0.18.1-cp27-cp27m-win32.whl tables-3.3.0-cp27-cp27m-win32.whl Bottleneck-1.2.0-cp27-cp27m-win32.whl GDAL‑2.1.2‑cp27‑cp27m‑win32.whl statsmodels-0.8.0rc1-cp27-cp27m-win32.whl
 
-    pip install beautifulsoup4 retrying six xmltodict colorama cython joblib matplotlib opencv-python pandas psutil PySAL PyYAML scikit-learn 
+    pip install --no-cache-dir beautifulsoup4 retrying six xmltodict colorama cython joblib matplotlib opencv-python pandas psutil PySAL PyYAML scikit-learn 
 
     REM Uninstall MpGlue if it already exists 
     where /q classify
