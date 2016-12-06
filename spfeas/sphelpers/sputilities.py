@@ -176,6 +176,21 @@ def min_max_func(im):
     return None, im_min, im_max
 
 
+def get_luminosity(im_block, rows_, cols_, rgb):
+
+    coeff_dict = dict(B=.0721, G=.7154, R=.2125)
+
+    luminosity = np.zeros((rows_, cols_), dtype='float32')
+
+    for band_l in rgb.upper():
+
+        coeff = coeff_dict[band_l]
+
+        luminosity = ne.evaluate('(im_block * coeff) + luminosity')
+
+    return luminosity
+
+
 def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=False):
 
     """
@@ -195,40 +210,51 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=Fa
         stats (Optional[bool]
     """
 
-    global im_min, im_max
-
-    coeff_dict = dict(B=.0721, G=.7154, R=.2125)
-
     if stats:
+
+        print '\nCalculating image min and max ...\n'
 
         im_min = 1000000
         im_max = -1000000
 
-        bp = raster_tools.BlockFunc(min_max_func, [i_info], None, None,
-                                    out_attributes=['im_min', 'im_max'],
-                                    print_statement='\nGetting image statistics ...\n',
-                                    write_array=False,
-                                    close_files=False,
-                                    be_quiet=False)
+        for i in xrange(0, i_info.rows, 512):
 
-        bp.run()
+            n_rows_ = raster_tools.n_rows_cols(i, 512, i_info.rows)
 
-        return None, bp.im_min, bp.im_max
+            for j in xrange(0, i_info.cols, 512):
+
+                n_cols_ = raster_tools.n_rows_cols(j, 512, i_info.cols)
+
+                im_block = i_info.mparray(bands2open=[1, 2, 3],
+                                          i=i, j=j,
+                                          rows=n_rows_, cols=n_cols_,
+                                          d_type='float32')
+
+                luminosity = get_luminosity(im_block, n_rows, n_cols, rgb)
+
+                im_min, im_max = min_max_func(luminosity, im_min, im_max)
+
+        # bp = raster_tools.BlockFunc(min_max_func, [i_info], None, None,
+        #                             out_attributes=['im_min', 'im_max'],
+        #                             print_statement='\nGetting image statistics ...\n',
+        #                             write_array=False,
+        #                             close_files=False,
+        #                             be_quiet=False)
+        #
+        # bp.run()
+
+        return None, im_min, im_max
 
     else:
 
-        luminosity = np.zeros((n_rows, n_cols), dtype='float32')
+        print '\nConverting {} to luminosity ...\n'.format(rgb.upper())
+        
+        im_block = i_info.mparray(bands2open=[1, 2, 3],
+                                  i=i_sect, j=j_sect,
+                                  rows=n_rows, cols=n_cols,
+                                  d_type='float32')
 
-        for band_p, band_l in enumerate(rgb.upper()):
-
-            temp_bd_sect = i_info.mparray(bands2open=band_p+1,
-                                          i=i_sect, j=j_sect,
-                                          rows=n_rows, cols=n_cols,
-                                          d_type='float32')
-
-            coeff = coeff_dict[band_l]
-
-            luminosity = ne.evaluate('(temp_bd_sect * coeff) + luminosity')
+        luminosity = get_luminosity(im_block, n_rows, n_cols, rgb)
 
         return luminosity, None, None
 
