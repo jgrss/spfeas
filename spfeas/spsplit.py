@@ -3,14 +3,11 @@
 Date Created: 7/2/2013
 """
 
-import os
-import timeit
-import subprocess
 import itertools
 from joblib import Parallel, delayed
 
-import spfunctions
-from paths import get_path
+from . import spfunctions
+from .paths import get_path
 
 SPFEAS_PATH = get_path()
 

@@ -26,7 +26,7 @@ from distutils.core import setup
 import platform
 
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 spfeas_name = 'SpFeas'
 maintainer = 'Jordan Graesser'

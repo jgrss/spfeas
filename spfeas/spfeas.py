@@ -10,7 +10,7 @@ import sys
 import argparse
 import time
 
-import spprocess
+from . import spprocess
 
 try:
     import colorama
@@ -25,7 +25,7 @@ class SPParameters(object):
 
         self.input_image = input_image
         self.output_dir = output_dir
-        
+
     def set_defaults(self, **kwargs):
         
         for k, v in kwargs.iteritems():

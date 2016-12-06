@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import sys
-import platform
-import subprocess
 import copy
 
 from mpglue import raster_tools, vrt_builder
@@ -171,7 +168,15 @@ def set_feas_dir(parameter_object, trigger):
     return feas_dir, parameter_object
 
 
-def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=False):
+def min_max_func(im):
+
+    im_min = np.minimum(im_min, im.min())
+    im_max = np.maximum(im_max, im.max())
+
+    return None, im_min, im_max
+
+
+def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, stats=False):
 
     """
     Convert RGB to gray scale array
@@ -190,41 +195,42 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=Fa
         stats (Optional[bool]
     """
 
-    print '\nConverting RGB to grayscale ...'
-
-    if stats:
-        luminosity = np.zeros((i_info.rows, i_info.cols), dtype='float32')
-    else:
-        luminosity = np.zeros((n_rows, n_cols), dtype='float32')
-
-    gray_min, gray_max = 0, 0
+    global im_min, im_max
 
     coeff_dict = dict(B=.0721, G=.7154, R=.2125)
 
-    for band_p, band_l in enumerate('BGR'):
+    if stats:
 
-        if stats:
-            temp_bd_sect = i_info.mparray(bands2open=band_p+1, d_type='float32')
-        else:
+        im_min = 1000000
+        im_max = -1000000
+
+        bp = raster_tools.BlockFunc(min_max_func, [i_info], None, None,
+                                    out_attributes=['im_min', 'im_max'],
+                                    print_statement='\nGetting image statistics ...\n',
+                                    write_array=False,
+                                    close_files=False,
+                                    be_quiet=False)
+
+        bp.run()
+
+        return None, bp.im_min, bp.im_max
+
+    else:
+
+        luminosity = np.zeros((n_rows, n_cols), dtype='float32')
+
+        for band_p, band_l in enumerate('BGR'):
 
             temp_bd_sect = i_info.mparray(bands2open=band_p+1,
                                           i=i_sect, j=j_sect,
                                           rows=n_rows, cols=n_cols,
                                           d_type='float32')
 
-        coeff = coeff_dict[band_l]
+            coeff = coeff_dict[band_l]
 
-        luminosity = ne.evaluate('(temp_bd_sect * coeff) + luminosity')
+            luminosity = ne.evaluate('(temp_bd_sect * coeff) + luminosity')
 
-    if stats:
-
-        gray_min = luminosity.min()
-        gray_max = luminosity.max()
-
-        return None, gray_min, gray_max
-
-    else:
-        return luminosity, gray_min, gray_max
+        return luminosity, None, None
 
 
 def get_sect_chunk_size(img_info, max_section_size):

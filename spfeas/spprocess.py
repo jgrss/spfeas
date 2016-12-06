@@ -9,7 +9,7 @@ import psutil
 import itertools
 
 from .sphelpers import sputilities
-import spsplit
+from . import spsplit
 from .sphelpers import spreshape
 
 from mpglue import raster_tools, VegIndicesEquations
@@ -159,7 +159,8 @@ def run(parameter_object):
                     if isinstance(parameter_object.rgb2gray, str):
 
                         __, mn, mx = sputilities.convert_rgb2gray(i_info, 0, 0, 0, 0,
-                                                                  rgb=parameter_object.rgb2gray, stats=True)
+                                                                  rgb=parameter_object.rgb2gray,
+                                                                  stats=True)
 
                     else:
 
@@ -178,7 +179,8 @@ def run(parameter_object):
                     if isinstance(parameter_object.rgb2gray, str):
 
                         __, mn, mx = sputilities.convert_rgb2gray(i_info, 0, 0, 0, 0,
-                                                                  rgb=parameter_object.rgb2gray, stats=True)
+                                                                  rgb=parameter_object.rgb2gray,
+                                                                  stats=True)
 
                     else:
 
