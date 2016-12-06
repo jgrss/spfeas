@@ -189,7 +189,7 @@ def run(parameter_object):
                             mn = 0
                         else:
                             mn, mx, mnn, stdev = i_info.datasource.GetRasterBand(band_p).GetStatistics(1, 1)
-                
+
                 # Get section and chunk size.
                 sect_row_size, sect_col_size = sputilities.get_sect_chunk_size(i_info, parameter_object.section_size)
 
@@ -632,7 +632,6 @@ def run(parameter_object):
                                                       cell_size=parameter_object.sfs_resample,
                                                       resampleAlg='average',
                                                       warpMemoryLimit=256,
-                                                      format='HFA',
                                                       multithread=True,
                                                       creationOptions=['COMPRESS=DEFLATE', 'BIGTIFF=YES', 'TILED=YES'])
 
