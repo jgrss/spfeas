@@ -176,7 +176,7 @@ def min_max_func(im):
     return None, im_min, im_max
 
 
-def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, stats=False):
+def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=False):
 
     """
     Convert RGB to gray scale array
@@ -219,7 +219,7 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, stats=False):
 
         luminosity = np.zeros((n_rows, n_cols), dtype='float32')
 
-        for band_p, band_l in enumerate('BGR'):
+        for band_p, band_l in enumerate(rgb.upper()):
 
             temp_bd_sect = i_info.mparray(bands2open=band_p+1,
                                           i=i_sect, j=j_sect,
