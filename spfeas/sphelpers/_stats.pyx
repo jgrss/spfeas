@@ -2,11 +2,16 @@
 
 import cython
 cimport cython
+from cpython cimport array
 
 import numpy as np
 cimport numpy as np
 
-from libc.math cimport pow, atan, sqrt
+from copy import copy
+
+from libc.stdlib cimport free
+from libc.math cimport pow, atan, sqrt, sin, cos, round
+
 from cython.parallel import parallel, prange
 # from libc.math cimport isnan, isinf
 
@@ -23,7 +28,7 @@ except ImportError:
 try:
     from skimage.feature import hog as HOG
     from skimage.feature import local_binary_pattern as LBP
-    from skimage.feature import greycomatrix, greycoprops
+    # from skimage.feature import greycomatrix, greycoprops
     from skimage.transform import probabilistic_hough_line as PHL
 except:
     raise ImportError('Skimage.feature did not load')
@@ -35,6 +40,9 @@ old_settings = np.seterr(all='ignore')
 
 DTYPE_int = np.int
 ctypedef np.int_t DTYPE_int_t
+
+DTYPE_int64 = np.int64
+ctypedef np.int64_t DTYPE_int64_t
 
 DTYPE_uint8 = np.uint8
 ctypedef np.uint8_t DTYPE_uint8_t
@@ -59,7 +67,10 @@ ctypedef np.float64_t DTYPE_float64_t
 cdef extern from 'numpy/npy_math.h':
     bint npy_isnan(DTYPE_float32_t x)
 
-cdef extern from "math.h":
+cdef extern from 'numpy/npy_math.h':
+    bint npy_isinf(DTYPE_float32_t x)
+
+cdef extern from 'math.h':
     DTYPE_float32_t ceil(DTYPE_float32_t x)
 
 
@@ -136,7 +147,7 @@ cdef DTYPE_float32_t _get_max_f2d(DTYPE_float32_t[:, :] block, int rs, int cs):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int _get_max(DTYPE_uint8_t[:, :] block, int rs, int cs):
+cdef int _get_max(DTYPE_uint8_t[:, :] block, Py_ssize_t rs, Py_ssize_t cs):
 
     cdef:
         Py_ssize_t bi, bj
@@ -1139,64 +1150,67 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
     return _feature_sfs(chBd, blk, scs, cell_size, thresh_1, n_angles, scales_half, scales_block, out_len, rows, cols)
 
 
-@cython.boundscheck(False)
-cdef list surfFunc(np.ndarray[DTYPE_uint8_t, ndim=2] surf_arr, k_pts, int j, int i, int k, list scs):
-
-    """
-    Get the moments
-    """
-
-    cdef int start_y = i+(scs[-1]/2)-(k/2)
-    cdef int start_x = j+(scs[-1]/2)-(k/2)
-
-    if surf_arr.max() == 0:
-        return [0., 0., 0., 0.]
-    else:
-        if k_pts:
-            # return desc_stats[m](pyramid_hist_sift(surfArr, kPts, start_x, start_y).sp_hist)
-            return get_moments(pyramid_hist_sift(surf_arr, k_pts, start_x, start_y).sp_hist)
-        else:
-            return [0., 0., 0., 0.]
-
-
-@cython.boundscheck(False)
-def feaSURF(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs):
-
-    cdef int i, j, k
-    cdef int rows = chBd.shape[0]
-    cdef int cols = chBd.shape[1]
-    cdef list sts
-    cdef DTYPE_float64_t st
-    cdef int scales_half = scs[-1] / 2
-    cdef int scales_blk = scs[-1] - blk
-    cdef np.ndarray[DTYPE_float64_t, ndim=1] out_list
-    cdef int out_len = 0
-    cdef int pix_ctr = 0
-
-    for i in xrange(0, rows-scales_blk, blk):
-        for j in xrange(0, cols-scales_blk, blk):
-            for k in scs:
-                out_len += 4
-
-    # set the output list
-    out_list = np.zeros(out_len).astype(np.float64)
-
-    # compute SURF features
-    kPts, descrip = cv2.SURF(50).detectAndCompute(chBd, None)
-
-    for i in xrange(0, rows-scales_blk, blk):
-        for j in xrange(0, cols-scales_blk, blk):
-            for k in scs:
-
-                sts = surfFunc(chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, \
-                               j+scales_half-(k/2):j+scales_half-(k/2)+k], kPts, j, i, k, scs)
-
-                for st in sts:
-                    out_list[pix_ctr] = st
-
-                    pix_ctr += 1
-
-    return out_list
+# @cython.boundscheck(False)
+# cdef list _feature_surf(np.ndarray[DTYPE_uint8_t, ndim=2] surf_arr, k_pts, int j, int i, int k, list scs):
+#
+#     """
+#     Get the moments
+#     """
+#
+#     cdef int start_y = i+(scs[-1]/2)-(k/2)
+#     cdef int start_x = j+(scs[-1]/2)-(k/2)
+#
+#     if surf_arr.max() == 0:
+#         return [0., 0., 0., 0.]
+#     else:
+#         if k_pts:
+#             # return desc_stats[m](pyramid_hist_sift(surfArr, kPts, start_x, start_y).sp_hist)
+#             return get_moments(pyramid_hist_sift(surf_arr, k_pts, start_x, start_y).sp_hist)
+#         else:
+#             return [0., 0., 0., 0.]
+#
+#
+# @cython.boundscheck(False)
+# def feature_surf(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale):
+#
+#     cdef:
+#         Py_ssize_t i, j, ki, k, k_half
+#         int rows = chBd.shape[0]
+#         int cols = chBd.shape[1]
+#         list sts
+#         DTYPE_float64_t st
+#         int scales_half = end_scale / 2
+#         int scales_block = end_scale - blk
+#         np.ndarray[DTYPE_float64_t, ndim=1] out_list
+#         int out_len = 0
+#         int pix_ctr = 0
+#         int n_scales = np.array(scs).shape[0]
+#
+#     for i from 0 <= i < rows-scales_block by blk:
+#         for j from 0 <= j < cols-scales_block by blk:
+#             for ki in xrange(0, n_scales):
+#                 out_len += 4
+#
+#     # set the output list
+#     out_list = np.zeros(out_len).astype(np.float64)
+#
+#     # compute SURF features
+#     kPts, descrip = cv2.SURF(50).detectAndCompute(chBd, None)
+#
+#     for i from 0 <= i < rows-scales_block by blk:
+#         for j from 0 <= j < cols-scales_block by blk:
+#             for ki in xrange(0, n_scales):
+#
+#                 sts = _feature_surf(chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+#                                     j+scales_half-k_half:j+scales_half-k_half+k], kPts, j, i, k, scs)
+#
+#                 for st in xrange(0, 4):
+#
+#                     out_list[pix_ctr] = sts[st]
+#
+#                     pix_ctr += 1
+#
+#     return out_list
 
 
 # Local binary patterns
@@ -1599,47 +1613,269 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t pantex_min(np.ndarray[DTYPE_float32_t, ndim=4] glcm_mat, \
-                                list dists, list dispVect, \
-                                np.ndarray[DTYPE_uint8_t, ndim=2] ch_bd, weighted):
-    
-    """
-    Get the local minimum contrast for all displacement vectors
-    """
+cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
+                DTYPE_float32_t[:] angles, Py_ssize_t levels,
+                DTYPE_float32_t[:, :, :, ::1] out,
+                DTYPE_float32_t[:, :] out_sums,
+                Py_ssize_t rows, Py_ssize_t cols):
 
     cdef:
-        int dV, dist
-        np.ndarray[DTYPE_float32_t, ndim=1] gmat = np.asarray([greycoprops(glcm_mat, 'contrast')[dist-1][dV]
-                                                               for dV in xrange(0, len(dispVect))
-                                                               for dist in dists]).astype(np.float32)
+        Py_ssize_t a_idx, d_idx, r, c, row, col
+        Py_ssize_t angles_, distances_
+        DTYPE_uint8_t i, j
+        DTYPE_float32_t angle, distance
 
-    return _get_min_f(gmat, len(gmat))
+    angles_ = angles.shape[0]
+    distances_ = distances.shape[0]
+
+    for a_idx in xrange(0, angles_):
+
+        angle = angles[a_idx]
+
+        for d_idx in xrange(0, distances_):
+
+            distance = distances[d_idx]
+
+            # Iterate over the image
+            for r in xrange(0, rows):
+
+                for c in xrange(0, cols):
+
+                    # Current pixel value
+                    i = image[r, c]
+
+                    # compute the location of the offset pixel
+                    # row = r + <int>round(sin(angle) * distance)
+                    # col = c + <int>round(cos(angle) * distance)
+
+                    row = r + int(round(sin(angle) * distance))
+                    col = c + int(round(cos(angle) * distance))
+
+                    # make sure the offset is within bounds
+                    # if (0 <= row < rows) and (0 <= col < cols):
+                    if row >= 0 and row < rows and col >= 0 and col < cols:
+                        j = image[row, col]
+
+                        # if (0 <= i < levels) and (0 <= j < levels):
+                        if i >= 0 and i < levels and j >= 0 and j < levels:
+
+                            out[i, j, d_idx, a_idx] += 1
+
+                            # symmetric
+                            out[rows-1-i, cols-1-j, d_idx, a_idx] += 1
+
+                            out_sums[d_idx, a_idx] += 2
+
+    return out, out_sums
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(np.ndarray[DTYPE_uint8_t, ndim=2] chBd,
+cdef _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
+                                            DTYPE_float32_t[:, :] Pt_sums, DTYPE_float32_t[:] distances,
+                                            DTYPE_float32_t[:] angles, Py_ssize_t levels,
+                                            Py_ssize_t rows, Py_ssize_t cols,
+                                            DTYPE_float32_t[:, :, :, :] glcm_normed_):
+
+    cdef:
+        Py_ssize_t a_idx, d_idx, r, c
+        Py_ssize_t angles_, distances_
+        DTYPE_float32_t angle_dist_sum
+
+    angles_ = angles.shape[0]
+    distances_ = distances.shape[0]
+
+    # Get the sums
+    for a_idx in xrange(0, angles_):
+
+        for d_idx in xrange(0, distances_):
+
+            # angle_dist_sum = 0.
+
+            # Iterate over the image
+            for r in xrange(0, rows):
+
+                for c in xrange(0, cols):
+                    glcm_normed_[r, c, d_idx, a_idx] += (Pt[r, c, d_idx, a_idx] / Pt_sums[d_idx, a_idx])
+
+    return glcm_normed_
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _check_nans(DTYPE_float32_t[:, :, :, :] glcm_mat_nan,
+                                             DTYPE_float32_t[:] distances,
+                                             DTYPE_float32_t[:] angles,
+                                             Py_ssize_t rows, Py_ssize_t cols):
+
+    cdef:
+        Py_ssize_t a_idx, d_idx, r, c
+        Py_ssize_t angles_, distances_
+        DTYPE_float32_t value2check
+
+    angles_ = angles.shape[0]
+    distances_ = distances.shape[0]
+
+    # Get the sums
+    for a_idx in xrange(0, angles_):
+
+        for d_idx in xrange(0, distances_):
+
+            # angle_dist_sum = 0.
+
+            # Iterate over the image
+            for r in xrange(0, rows):
+
+                for c in xrange(0, cols):
+
+                    value2check = glcm_mat_nan[r, c, d_idx, a_idx]
+
+                    if npy_isnan(value2check) or npy_isinf(value2check):
+                        glcm_mat_nan[r, c, d_idx, a_idx] = 0
+
+    return glcm_mat_nan
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _greycomatrix(DTYPE_uint8_t[:, :] image,
+                  DTYPE_float32_t[:] distances,
+                  DTYPE_float32_t[:] angles,
+                  Py_ssize_t levels, Py_ssize_t rows, Py_ssize_t cols):
+
+    cdef:
+        # P = array.clone(Pc, rows*cols*distances.shape[0]*angles.shape[0], zero=True)
+        DTYPE_float32_t[:, :, :, ::1] P = np.zeros((levels, levels, distances.shape[0], angles.shape[0]),
+                                                 dtype='float32')
+
+        DTYPE_float32_t[:, :] angle_dist_sums = np.zeros((distances.shape[0], angles.shape[0]),
+                                                         dtype='float32')
+
+        DTYPE_float32_t[:, :, :, ::1] glcm_normed = np.zeros((levels, levels, distances.shape[0], angles.shape[0]),
+                                                                   dtype='float32')
+
+        DTYPE_float32_t[:, :, :, ::1] glcm_mat, glcm_mat_nans
+
+    # count co-occurences
+    P, angle_dist_sums = _glcm_loop(image, distances, angles, levels, P, angle_dist_sums, rows, cols)
+
+    # Normalize the matrix
+    glcm_normed = _norm_glcm(P, angle_dist_sums, distances, angles, levels, rows, cols, glcm_normed)
+
+    glcm_normed = _check_nans(glcm_normed, distances, angles, rows, cols)
+
+    # return np.array(glcm_normed)
+    return glcm_normed
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P, DTYPE_float32_t[:] distances,
+                                    DTYPE_float32_t[:] angles, Py_ssize_t levels,
+                                    DTYPE_float32_t[:, :] contrast_array):
+
+    cdef:
+        Py_ssize_t a_idx, d_idx, r, c
+        Py_ssize_t angles_, distances_
+        DTYPE_float32_t min_contrast
+        DTYPE_float32_t contrast_sum
+
+    angles_ = angles.shape[0]
+    distances_ = distances.shape[0]
+
+    min_contrast = 1000000.
+
+    for a_idx in xrange(0, angles_):
+
+        for d_idx in xrange(0, distances_):
+            print a_idx, d_idx
+            # Sum the contrast for the current angle/distance pair.
+            contrast_sum = 0.
+
+            # Iterate over the image
+            for r in xrange(0, levels):
+
+                for c in xrange(0, levels):
+                    # print a_idx, d_idx, r, c, np.array(contrast_array).shape, np.array(P).shape
+                    contrast_sum += contrast_array[r, c] * P[r, c, d_idx, a_idx]
+
+            print contrast_sum
+            # Get the minimum contrast over all angle/distance pairs
+            min_contrast = _get_min_sample_f(min_contrast, contrast_sum)
+
+            print min_contrast
+            print
+
+    print min_contrast
+    print 'OUT'
+    # free(P)
+
+    return min_contrast
+
+
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+# def pantex_min(DTYPE_float32_t[:, :, :, ::1] glcm_mat,
+#                                 DTYPE_float32_t[:] distances, DTYPE_float32_t[:] angles,
+#                                 Py_ssize_t levels, DTYPE_float32_t[:, :] contrast_array):
+#
+#     """
+#     Get the local minimum contrast for all displacement vectors
+#     """
+#
+#     # cdef:
+#     #     Py_ssize_t dV, dist
+#     #     # np.ndarray[DTYPE_float32_t, ndim=1] gmat = np.asarray([greycoprops(glcm_mat, 'contrast')[dist-1][dV]
+#     #     #                                                        for dV in xrange(0, len(dispVect))
+#     #     #                                                        for dist in dists]).astype(np.float32)
+#
+#     return _glcm_contrast(glcm_mat, distances, angles, levels, contrast_array)
+
+    # return _get_min_f(gmat, len(gmat))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.ndarray[DTYPE_float32_t, ndim=2] _set_contrast_weights(Py_ssize_t levels):
+
+    cdef:
+        Py_ssize_t li, lj
+        np.ndarray[DTYPE_float32_t, ndim=2] contrast_array = np.zeros((levels, levels), dtype='float32')
+
+    for li in xrange(0, levels):
+        for lj in xrange(0, levels):
+            contrast_array[li, lj] = pow(li-lj, 2)
+
+    return contrast_array
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chBd,
                                                          int blk, DTYPE_uint8_t[:] scs, int scales_half,
                                                          int scales_block, int out_len, bint weighted,
-                                                         int rows, int cols, int scale_length):
+                                                         int rows, int cols, int scale_length,
+                                                         int levels=32):
     
     """
-    Get the Anisotropic Built-up Presence Index
+    Get the Anisotropic Built-up Presence Index (PanTex)
     """
 
     cdef:
-        Py_ssize_t i, j, ki
-        unsigned int k, k_half
-        np.ndarray[DTYPE_uint8_t, ndim=2] ch_bd
+        Py_ssize_t i, j, ki, block_rows, block_cols
+        DTYPE_uint8_t k, k_half
+        DTYPE_uint8_t[:, :] ch_bd
         DTYPE_float32_t pi = 3.14159265
-        np.ndarray[DTYPE_float32_t, ndim=4] glcm_mat
-        DTYPE_float64_t con_min
-        int pix_ctr = 0
-        np.ndarray[DTYPE_float32_t, ndim=1] out_list = np.zeros(out_len, dtype='float32')
+        DTYPE_float32_t[:, :, :, ::1] glcm_mat
+        DTYPE_float32_t con_min
+        Py_ssize_t pix_ctr = 0
+        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         # directions [E, NE, N, NW]
-        list dispVect = [0., pi / 6., pi / 4., pi / 3., pi / 2., (2. * pi) / 3., (3. * pi) / 4., (5. * pi) / 6.]
-        list dists = [1, 2]
+        DTYPE_float32_t[:] dispVect = np.array([0., pi / 6., pi / 4., pi / 3., pi / 2., (2. * pi) / 3., (3. * pi) / 4., (5. * pi) / 6.], dtype='float32')
+        DTYPE_float32_t[:] dists = np.array([1, 2], dtype='float32')
+        DTYPE_float32_t[:, :] contrast_weights = _set_contrast_weights(levels)
 
     if weighted:
 
@@ -1654,14 +1890,21 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(np.ndarray[DTYPE_uint8_
                     ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
                                  j+scales_half-k_half:j+scales_half-k_half+k]
 
-                    if ch_bd.max() == 0:
+                    block_rows = ch_bd.shape[0]
+                    block_cols = ch_bd.shape[1]
+
+                    if _get_max(ch_bd, ch_bd.shape[0], ch_bd.shape[1]) == 0:
                         con_min = 0.
                     else:
 
-                        glcm_mat = greycomatrix(ch_bd, dists, dispVect,
-                                                levels=32, symmetric=True, normed=True).astype(np.float32)
+                        # glcm_mat = greycomatrix(ch_bd, dists, dispVect,
+                        #                         levels=32, symmetric=True, normed=True).astype(np.float32)
 
-                        con_min = pantex_min(glcm_mat, dists, dispVect, ch_bd, weighted) * cv2.mean(ch_bd)[0]
+                        glcm_mat = _greycomatrix(ch_bd, dists, dispVect, levels, block_rows, block_cols)
+
+                        con_min = _glcm_contrast(glcm_mat, dists, dispVect, levels, contrast_weights)
+                        # con_min = pantex_min(glcm_mat, dists, dispVect,
+                        #                      levels, contrast_weights) * cv2.mean(ch_bd)[0]
                     
                     out_list[pix_ctr] = con_min
 
@@ -1677,23 +1920,40 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(np.ndarray[DTYPE_uint8_
 
                     k_half = k / 2
 
-                    ch_bd = np.asarray(chBd[i+scales_half-k_half:i+scales_half-k_half+k,
-                                       j+scales_half-k_half:j+scales_half-k_half+k])
+                    ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                 j+scales_half-k_half:j+scales_half-k_half+k]
 
-                    if ch_bd.max() == 0:
+                    block_rows = ch_bd.shape[0]
+                    block_cols = ch_bd.shape[1]
+
+                    if _get_max(ch_bd, block_rows, block_cols) == 0:
                         con_min = 0.
                     else:
 
-                        glcm_mat = greycomatrix(ch_bd, dists, dispVect,
-                                                levels=32, symmetric=True, normed=True).astype(np.float32)
+                        # glcm_mat = greycomatrix(ch_bd, dists, dispVect,
+                        #                         levels=32, symmetric=True, normed=True).astype(np.float32)
 
-                        con_min = pantex_min(glcm_mat, dists, dispVect, ch_bd, weighted)
+                        glcm_mat = _greycomatrix(ch_bd, dists, dispVect, levels, block_rows, block_cols)
 
+                        # print 'started contrast'
+                        # print i, j, ki
+                        # print np.array(glcm_mat).shape
+                        # print np.array(dists).shape
+                        # print np.array(dispVect).shape
+                        # print levels
+                        # print np.array(contrast_weights).shape
+                        con_min = _glcm_contrast(np.array(glcm_mat), dists, dispVect, levels, contrast_weights)
+
+                        # print 'finished contrast'
+                        # print con_min
+                        # print
+                        # con_min = pantex_min(glcm_mat, dists, dispVect, levels, contrast_weights)
+                    # print pix_ctr, out_list.shape[0]
                     out_list[pix_ctr] = con_min
 
                     pix_ctr += 1
             
-    return out_list
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
@@ -1777,7 +2037,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
 
                 k = scs[ki]
 
-                block_chunk = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, j+scales_half-(k/2):j+scales_half-(k/2)+k]
+                block_chunk = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k,
+                                   j+scales_half-(k/2):j+scales_half-(k/2)+k]
+
                 bcr = block_chunk.shape[0]
                 bcc = block_chunk.shape[1]
 
@@ -1785,7 +2047,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
 
                 pix_ctr += 1
 
-    return np.asarray(out_list).astype(np.float32)
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)      

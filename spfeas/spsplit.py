@@ -124,6 +124,9 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, cell_size_, sfs_thr
     return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, cell_size_, sfs_thresh_, n_angles_)
 
 
+def call_surf(block_array_, block_size_, scales_, end_scale_):
+    return _stats.feature_surf(block_array_, block_size_, scales_, end_scale_)
+
 # def startCtr(bd_blk_scs):
 #     return feaCtr(*bd_blk_scs)
 
@@ -607,6 +610,15 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
 
         return Parallel(n_jobs=parameter_object.n_jobs,
                         max_nbytes=None)(delayed(call_mean)(bd_, parameter_object.block,
+                                                            parameter_object.scales,
+                                                            parameter_object.scales[-1]) for bd_ in bd)
+
+    elif trigger == 'surf':
+
+        print '\n  Processing SURF ...'
+
+        return Parallel(n_jobs=parameter_object.n_jobs,
+                        max_nbytes=None)(delayed(call_surf)(bd_, parameter_object.block,
                                                             parameter_object.scales,
                                                             parameter_object.scales[-1]) for bd_ in bd)
 
