@@ -158,7 +158,7 @@ def run(parameter_object):
 
                     if isinstance(parameter_object.rgb2gray, str):
 
-                        __, mn, mx = sputilities.convert_rgb2gray(i_info, 0, 0, 0, 0,
+                        __, mn, mx = sputilities.convert_rgb2gray(i_info, None, None, None, None,
                                                                   rgb=parameter_object.rgb2gray,
                                                                   stats=True)
 
@@ -178,7 +178,7 @@ def run(parameter_object):
 
                     if isinstance(parameter_object.rgb2gray, str):
 
-                        __, mn, mx = sputilities.convert_rgb2gray(i_info, 0, 0, 0, 0,
+                        __, mn, mx = sputilities.convert_rgb2gray(i_info, None, None, None, None,
                                                                   rgb=parameter_object.rgb2gray,
                                                                   stats=True)
 
@@ -189,7 +189,7 @@ def run(parameter_object):
                             mn = 0
                         else:
                             mn, mx, mnn, stdev = i_info.datasource.GetRasterBand(band_p).GetStatistics(1, 1)
-
+                
                 # Get section and chunk size.
                 sect_row_size, sect_col_size = sputilities.get_sect_chunk_size(i_info, parameter_object.section_size)
 
@@ -348,7 +348,7 @@ def run(parameter_object):
 
                             sect_in, __, __ = sputilities.convert_rgb2gray(i_info,
                                                                            j_sect, i_sect,
-                                                                           numCols, numRws,
+                                                                           numRws, numCols,
                                                                            rgb=parameter_object.rgb2gray)
 
                         else:

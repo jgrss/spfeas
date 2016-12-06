@@ -168,30 +168,37 @@ def set_feas_dir(parameter_object, trigger):
     return feas_dir, parameter_object
 
 
-def min_max_func(im):
+def min_max_func(im, im_min, im_max):
 
-    im_min = np.minimum(im_min, im.min())
-    im_max = np.maximum(im_max, im.max())
+    try:
 
-    return None, im_min, im_max
+        im_min = np.minimum(im_min, im.min())
+        im_max = np.maximum(im_max, im.max())
+
+    except ValueError:  # raised if `im_min` is empty.
+        pass
+
+    return im_min, im_max
 
 
 def get_luminosity(im_block, rows_, cols_, rgb):
 
-    coeff_dict = dict(B=.0721, G=.7154, R=.2125)
+    # coeff_dict = dict(B=.0721, G=.7154, R=.2125)
 
     luminosity = np.zeros((rows_, cols_), dtype='float32')
 
-    for band_l in rgb.upper():
+    for band_p, band_l in enumerate(rgb.upper()):
 
-        coeff = coeff_dict[band_l]
+        # coeff = coeff_dict[band_l]
 
-        luminosity = ne.evaluate('(im_block * coeff) + luminosity')
+        luminosity += im_block[band_p]
 
-    return luminosity
+        # luminosity = ne.evaluate('(im_block_ * coeff) + luminosity')
+
+    return luminosity / 3.
 
 
-def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=False):
+def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=False):
 
     """
     Convert RGB to gray scale array
@@ -217,20 +224,20 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=Fa
         im_min = 1000000
         im_max = -1000000
 
-        for i in xrange(0, i_info.rows, 512):
+        for i_ in xrange(0, i_info.rows, 512):
 
-            n_rows_ = raster_tools.n_rows_cols(i, 512, i_info.rows)
+            n_rows_ = raster_tools.n_rows_cols(i_, 512, i_info.rows)
 
-            for j in xrange(0, i_info.cols, 512):
+            for j_ in xrange(0, i_info.cols, 512):
 
-                n_cols_ = raster_tools.n_rows_cols(j, 512, i_info.cols)
+                n_cols_ = raster_tools.n_rows_cols(j_, 512, i_info.cols)
 
                 im_block = i_info.mparray(bands2open=[1, 2, 3],
-                                          i=i, j=j,
+                                          i=i_, j=j_,
                                           rows=n_rows_, cols=n_cols_,
                                           d_type='float32')
 
-                luminosity = get_luminosity(im_block, n_rows, n_cols, rgb)
+                luminosity = get_luminosity(im_block, n_rows_, n_cols_, rgb)
 
                 im_min, im_max = min_max_func(luminosity, im_min, im_max)
 
@@ -248,7 +255,7 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_cols, n_rows, rgb='BGR', stats=Fa
     else:
 
         print '\nConverting {} to luminosity ...\n'.format(rgb.upper())
-        
+
         im_block = i_info.mparray(bands2open=[1, 2, 3],
                                   i=i_sect, j=j_sect,
                                   rows=n_rows, cols=n_cols,
