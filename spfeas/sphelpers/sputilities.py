@@ -162,8 +162,8 @@ def set_feas_dir(parameter_object, trigger):
     if not os.path.isdir(feas_dir):
         os.makedirs(feas_dir)
 
-    if isinstance(parameter_object.rgb2gray, str):
-        parameter_object.band_positions = [parameter_object.rgb2gray.lower()]
+    if parameter_object.use_rgb:
+        parameter_object.band_positions = [parameter_object.rgb2write.lower()]
 
     return feas_dir, parameter_object
 
@@ -182,6 +182,10 @@ def min_max_func(im, im_min, im_max):
 
 
 def get_luminosity(im_block, rows_, cols_, rgb):
+
+    """
+    Get the pixel-wise average in the visible spectrum
+    """
 
     # coeff_dict = dict(B=.0721, G=.7154, R=.2125)
 
@@ -254,7 +258,7 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
     else:
 
-        print '\nConverting {} to luminosity ...\n'.format(rgb.upper())
+        print '\nCalculating average RGB ...\n'.format(rgb.upper())
 
         im_block = i_info.mparray(bands2open=[1, 2, 3],
                                   i=i_sect, j=j_sect,

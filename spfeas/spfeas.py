@@ -73,8 +73,8 @@ class SPParameters(object):
         # The log file.
         self.log_txt = os.path.join(self.output_dir, '{}_log.txt'.format(self.f_base))
 
-        if isinstance(self.rgb2gray, str):
-            self.rgb2write = self.rgb2gray
+        if self.use_rgb:
+            self.rgb2write = 'RGB'
         else:
             self.rgb2write = ','.join([str(bpos) for bpos in self.band_positions])
 
@@ -165,6 +165,8 @@ def main():
     parser.add_argument('-o', '--output', dest='output', help='The output directory', default=None)
     parser.add_argument('-bp', '--band-positions', dest='band_positions', help='The band to process', default=[1],
                         type=int, nargs='+')
+    parser.add_argument('--rgb', dest='use_rgb', help='Whether to use the full RGB spectrum in place of -bp',
+                        action='store_true')
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
@@ -191,8 +193,6 @@ def main():
                         help='Whether to do adaptive histogram equalization', action='store_true')
     parser.add_argument('--visualize', dest='visualize', help='Whether to visualize', action='store_true')
     parser.add_argument('--pca', dest='pca', help='Whether to run PCA', action='store_true')
-    parser.add_argument('--rgb2gray', dest='rgb2gray', help='RGB conversion', default=None,
-                        choices=[None, 'BGR', 'RGB'])
     parser.add_argument('--convert', dest='convert', help='Whether to convert the feature stack', action='store_true')
     parser.add_argument('--stack', dest='stack', help='Whether to stack features', action='store_true')
     parser.add_argument('--stack-only', dest='stack_only', help='Whether to only stack features', action='store_true')
@@ -224,7 +224,7 @@ def main():
                      hline_min=args.hline_min, hline_gap=args.hline_gap, weight=args.weight,
                      sfs_threshold=args.sfs_threshold, sfs_resample=args.sfs_resample, sfs_angles=args.sfs_angles,
                      smooth=args.smooth, equalize=args.equalize, equalize_adapt=args.equalize_adapt,
-                     visualize=args.visualize, convert=args.convert, do_pca=args.pca, rgb2gray=args.rgb2gray,
+                     visualize=args.visualize, convert=args.convert, do_pca=args.pca, use_rgb=args.use_rgb,
                      stack=args.stack, stack_only=args.stack_only, band_red=args.band_red, band_nir=args.band_nir,
                      neighbors=args.neighbors, n_jobs=args.n_jobs, reset=args.reset, image_max=args.image_max,
                      lac_r=args.lac_r, section_size=args.section_size, chunk_size=args.chunk_size,

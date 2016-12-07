@@ -31,7 +31,7 @@ def run(parameter_object):
 
     """
     Args:
-        input_image, output_dir, band_positions=[1], rgb2gray=None, block=2, scales=[8], triggers=['mean'],
+        input_image, output_dir, band_positions=[1], use_rgb=False, block=2, scales=[8], triggers=['mean'],
         threshold=20, min_len=10, line_gap=2, weighted=False, sfs_thresh=80, resamp_sfs=0., n_angles=8,
         equalize=False, equalize_adapt=False, smooth=0, visualize=False, convert_stk=False, gdal_cache=256,
         do_pca=False, stack_feas=True, stack_only=False, band_red=3, band_nir=4, neighbors=False, n_jobs=-1,
@@ -156,11 +156,9 @@ def run(parameter_object):
 
                 if (rows_and_cols < 25000000) or (rows_and_cols < 64000000) and (avilable_space > 8000):
 
-                    if isinstance(parameter_object.rgb2gray, str):
+                    if parameter_object.use_rgb:
 
-                        __, mn, mx = sputilities.convert_rgb2gray(i_info, None, None, None, None,
-                                                                  rgb=parameter_object.rgb2gray,
-                                                                  stats=True)
+                        __, mn, mx = sputilities.convert_rgb2gray(i_info, None, None, None, None, stats=True)
 
                     else:
 
@@ -176,11 +174,9 @@ def run(parameter_object):
 
                 else:
 
-                    if isinstance(parameter_object.rgb2gray, str):
+                    if parameter_object.use_rgb:
 
-                        __, mn, mx = sputilities.convert_rgb2gray(i_info, None, None, None, None,
-                                                                  rgb=parameter_object.rgb2gray,
-                                                                  stats=True)
+                        __, mn, mx = sputilities.convert_rgb2gray(i_info, None, None, None, None, stats=True)
 
                     else:
 
@@ -344,12 +340,11 @@ def run(parameter_object):
                                                   for dmp_bd in xrange(1, i_info.bands+1)]).reshape(i_info.bands,
                                                                                                     numRws, numCols)
 
-                        elif isinstance(parameter_object.rgb2gray, str):
+                        elif parameter_object.use_rgb:
 
                             sect_in, __, __ = sputilities.convert_rgb2gray(i_info,
                                                                            j_sect, i_sect,
-                                                                           numRws, numCols,
-                                                                           rgb=parameter_object.rgb2gray)
+                                                                           numRws, numCols)
 
                         else:
 
