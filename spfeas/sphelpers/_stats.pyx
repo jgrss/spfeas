@@ -1614,7 +1614,7 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
-                DTYPE_float32_t[:] angles, Py_ssize_t levels,
+                DTYPE_float32_t[:] angles, int levels,
                 DTYPE_float32_t[:, :, :, ::1] out,
                 DTYPE_float32_t[:, :] out_sums,
                 Py_ssize_t rows, Py_ssize_t cols):
@@ -1636,7 +1636,8 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
 
             distance = distances[d_idx]
 
-            # Iterate over the image
+            # Iterate over the image to get
+            #   the grey-level pairs.
             for r in xrange(0, rows):
 
                 for c in xrange(0, cols):
@@ -1645,38 +1646,34 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
                     i = image[r, c]
 
                     # compute the location of the offset pixel
-                    # row = r + <int>round(sin(angle) * distance)
-                    # col = c + <int>round(cos(angle) * distance)
+                    row = r + <int>round(sin(angle) * distance)
+                    col = c + <int>round(cos(angle) * distance)
 
-                    row = r + int(round(sin(angle) * distance))
-                    col = c + int(round(cos(angle) * distance))
+                    # row = r + int(round(sin(angle) * distance))
+                    # col = c + int(round(cos(angle) * distance))
 
                     # make sure the offset is within bounds
-                    # if (0 <= row < rows) and (0 <= col < cols):
-                    if row >= 0 and row < rows and col >= 0 and col < cols:
+                    if (0 <= row < rows) and (0 <= col < cols):
+
                         j = image[row, col]
 
-                        # if (0 <= i < levels) and (0 <= j < levels):
-                        if i >= 0 and i < levels and j >= 0 and j < levels:
+                        if (0 <= i < levels) and (0 <= j < levels):
 
                             out[i, j, d_idx, a_idx] += 1
 
                             # symmetric
-                            out[rows-1-i, cols-1-j, d_idx, a_idx] += 1
+                            out[levels-1-i, levels-1-j, d_idx, a_idx] += 1
 
                             out_sums[d_idx, a_idx] += 2
-
-    return out, out_sums
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
-                                            DTYPE_float32_t[:, :] Pt_sums, DTYPE_float32_t[:] distances,
-                                            DTYPE_float32_t[:] angles, Py_ssize_t levels,
-                                            Py_ssize_t rows, Py_ssize_t cols,
-                                            DTYPE_float32_t[:, :, :, :] glcm_normed_):
+                DTYPE_float32_t[:, :] Pt_sums, DTYPE_float32_t[:] distances,
+                DTYPE_float32_t[:] angles, int levels,
+                DTYPE_float32_t[:, :, :, :] glcm_normed_):
 
     cdef:
         Py_ssize_t a_idx, d_idx, r, c
@@ -1693,13 +1690,12 @@ cdef _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
 
             # angle_dist_sum = 0.
 
-            # Iterate over the image
-            for r in xrange(0, rows):
+            # Iterate over the co-occurrence array
+            #   and normalize.
+            for r in xrange(0, levels):
 
-                for c in xrange(0, cols):
+                for c in xrange(0, levels):
                     glcm_normed_[r, c, d_idx, a_idx] += (Pt[r, c, d_idx, a_idx] / Pt_sums[d_idx, a_idx])
-
-    return glcm_normed_
 
 
 @cython.boundscheck(False)
@@ -1707,7 +1703,7 @@ cdef _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
 cdef _check_nans(DTYPE_float32_t[:, :, :, :] glcm_mat_nan,
                                              DTYPE_float32_t[:] distances,
                                              DTYPE_float32_t[:] angles,
-                                             Py_ssize_t rows, Py_ssize_t cols):
+                                             int levels):
 
     cdef:
         Py_ssize_t a_idx, d_idx, r, c
@@ -1725,45 +1721,33 @@ cdef _check_nans(DTYPE_float32_t[:, :, :, :] glcm_mat_nan,
             # angle_dist_sum = 0.
 
             # Iterate over the image
-            for r in xrange(0, rows):
+            for r in xrange(0, levels):
 
-                for c in xrange(0, cols):
+                for c in xrange(0, levels):
 
                     value2check = glcm_mat_nan[r, c, d_idx, a_idx]
 
                     if npy_isnan(value2check) or npy_isinf(value2check):
                         glcm_mat_nan[r, c, d_idx, a_idx] = 0
 
-    return glcm_mat_nan
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef _greycomatrix(DTYPE_uint8_t[:, :] image,
-                  DTYPE_float32_t[:] distances,
-                  DTYPE_float32_t[:] angles,
-                  Py_ssize_t levels, Py_ssize_t rows, Py_ssize_t cols):
-
-    cdef:
-        # P = array.clone(Pc, rows*cols*distances.shape[0]*angles.shape[0], zero=True)
-        DTYPE_float32_t[:, :, :, ::1] P = np.zeros((levels, levels, distances.shape[0], angles.shape[0]),
-                                                 dtype='float32')
-
-        DTYPE_float32_t[:, :] angle_dist_sums = np.zeros((distances.shape[0], angles.shape[0]),
-                                                         dtype='float32')
-
-        DTYPE_float32_t[:, :, :, ::1] glcm_normed = np.zeros((levels, levels, distances.shape[0], angles.shape[0]),
-                                                                   dtype='float32')
-
-        DTYPE_float32_t[:, :, :, ::1] glcm_mat, glcm_mat_nans
+cdef DTYPE_float32_t[:, :, :, ::1] _greycomatrix(DTYPE_uint8_t[:, :] image,
+                                                 DTYPE_float32_t[:] distances,
+                                                 DTYPE_float32_t[:] angles,
+                                                 Py_ssize_t levels, Py_ssize_t rows, Py_ssize_t cols,
+                                                 DTYPE_float32_t[:, :, :, ::1] P,
+                                                 DTYPE_float32_t[:, :] angle_dist_sums,
+                                                 DTYPE_float32_t[:, :, :, ::1] glcm_normed):
 
     # count co-occurences
-    P, angle_dist_sums = _glcm_loop(image, distances, angles, levels, P, angle_dist_sums, rows, cols)
+    _glcm_loop(image, distances, angles, levels, P, angle_dist_sums, rows, cols)
 
     # Normalize the matrix
-    glcm_normed = _norm_glcm(P, angle_dist_sums, distances, angles, levels, rows, cols, glcm_normed)
+    _norm_glcm(P, angle_dist_sums, distances, angles, levels, glcm_normed)
 
-    glcm_normed = _check_nans(glcm_normed, distances, angles, rows, cols)
+    # glcm_normed = _check_nans(glcm_normed, distances, angles, levels)
 
     # return np.array(glcm_normed)
     return glcm_normed
@@ -1771,45 +1755,36 @@ cdef _greycomatrix(DTYPE_uint8_t[:, :] image,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P, DTYPE_float32_t[:] distances,
+cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P,
+                                    DTYPE_float32_t[:] distances,
                                     DTYPE_float32_t[:] angles, Py_ssize_t levels,
                                     DTYPE_float32_t[:, :] contrast_array):
 
     cdef:
         Py_ssize_t a_idx, d_idx, r, c
         Py_ssize_t angles_, distances_
-        DTYPE_float32_t min_contrast
+        DTYPE_float32_t min_contrast = 1000000.
         DTYPE_float32_t contrast_sum
 
     angles_ = angles.shape[0]
     distances_ = distances.shape[0]
 
-    min_contrast = 1000000.
-
     for a_idx in xrange(0, angles_):
 
         for d_idx in xrange(0, distances_):
-            print a_idx, d_idx
+
             # Sum the contrast for the current angle/distance pair.
             contrast_sum = 0.
 
-            # Iterate over the image
+            # Iterate over the co-occurrence matrix
+            #   and get the contrast.
             for r in xrange(0, levels):
 
                 for c in xrange(0, levels):
-                    # print a_idx, d_idx, r, c, np.array(contrast_array).shape, np.array(P).shape
                     contrast_sum += contrast_array[r, c] * P[r, c, d_idx, a_idx]
 
-            print contrast_sum
-            # Get the minimum contrast over all angle/distance pairs
+            # Get the minimum contrast over all angle/distance pairs.
             min_contrast = _get_min_sample_f(min_contrast, contrast_sum)
-
-            print min_contrast
-            print
-
-    print min_contrast
-    print 'OUT'
-    # free(P)
 
     return min_contrast
 
@@ -1837,11 +1812,11 @@ cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P, DTYPE_float
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.ndarray[DTYPE_float32_t, ndim=2] _set_contrast_weights(Py_ssize_t levels):
+cdef DTYPE_float32_t[:, :] _set_contrast_weights(int levels):
 
     cdef:
         Py_ssize_t li, lj
-        np.ndarray[DTYPE_float32_t, ndim=2] contrast_array = np.zeros((levels, levels), dtype='float32')
+        DTYPE_float32_t[:, :] contrast_array = np.zeros((levels, levels), dtype='float32')
 
     for li in xrange(0, levels):
         for lj in xrange(0, levels):
@@ -1873,9 +1848,19 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
         Py_ssize_t pix_ctr = 0
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         # directions [E, NE, N, NW]
-        DTYPE_float32_t[:] dispVect = np.array([0., pi / 6., pi / 4., pi / 3., pi / 2., (2. * pi) / 3., (3. * pi) / 4., (5. * pi) / 6.], dtype='float32')
+        DTYPE_float32_t[:] disp_vect = np.array([0., pi / 6., pi / 4., pi / 3., pi / 2., (2. * pi) / 3.,
+                                                 (3. * pi) / 4., (5. * pi) / 6.], dtype='float32')
         DTYPE_float32_t[:] dists = np.array([1, 2], dtype='float32')
         DTYPE_float32_t[:, :] contrast_weights = _set_contrast_weights(levels)
+
+        DTYPE_float32_t[:, :, :, ::1] P_ = np.zeros((levels, levels, dists.shape[0], disp_vect.shape[0]),
+                                                    dtype='float32')
+
+        DTYPE_float32_t[:, :] angle_dist_sums_ = np.zeros((dists.shape[0], disp_vect.shape[0]),
+                                                          dtype='float32')
+
+        DTYPE_float32_t[:, :, :, ::1] glcm_normed_ = np.zeros((levels, levels, dists.shape[0], disp_vect.shape[0]),
+                                                              dtype='float32')
 
     if weighted:
 
@@ -1897,13 +1882,14 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                         con_min = 0.
                     else:
 
-                        # glcm_mat = greycomatrix(ch_bd, dists, dispVect,
+                        # glcm_mat = greycomatrix(ch_bd, dists, disp_vect,
                         #                         levels=32, symmetric=True, normed=True).astype(np.float32)
 
-                        glcm_mat = _greycomatrix(ch_bd, dists, dispVect, levels, block_rows, block_cols)
+                        glcm_mat = _greycomatrix(ch_bd, dists, disp_vect, levels, block_rows, block_cols,
+                                                 P_.copy(), angle_dist_sums_.copy(), glcm_normed_.copy())
 
-                        con_min = _glcm_contrast(glcm_mat, dists, dispVect, levels, contrast_weights)
-                        # con_min = pantex_min(glcm_mat, dists, dispVect,
+                        con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
+                        # con_min = pantex_min(glcm_mat, dists, disp_vect,
                         #                      levels, contrast_weights) * cv2.mean(ch_bd)[0]
                     
                     out_list[pix_ctr] = con_min
@@ -1930,24 +1916,18 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                         con_min = 0.
                     else:
 
-                        # glcm_mat = greycomatrix(ch_bd, dists, dispVect,
+                        # glcm_mat = greycomatrix(ch_bd, dists, disp_vect,
                         #                         levels=32, symmetric=True, normed=True).astype(np.float32)
 
-                        glcm_mat = _greycomatrix(ch_bd, dists, dispVect, levels, block_rows, block_cols)
+                        glcm_mat = _greycomatrix(ch_bd, dists, disp_vect, levels, block_rows, block_cols,
+                                                 P_.copy(), angle_dist_sums_.copy(), glcm_normed_.copy())
 
-                        # print 'started contrast'
-                        # print i, j, ki
-                        # print np.array(glcm_mat).shape
-                        # print np.array(dists).shape
-                        # print np.array(dispVect).shape
-                        # print levels
-                        # print np.array(contrast_weights).shape
-                        con_min = _glcm_contrast(np.array(glcm_mat), dists, dispVect, levels, contrast_weights)
+                        con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
 
                         # print 'finished contrast'
                         # print con_min
                         # print
-                        # con_min = pantex_min(glcm_mat, dists, dispVect, levels, contrast_weights)
+                        # con_min = pantex_min(glcm_mat, dists, disp_vect, levels, contrast_weights)
                     # print pix_ctr, out_list.shape[0]
                     out_list[pix_ctr] = con_min
 
