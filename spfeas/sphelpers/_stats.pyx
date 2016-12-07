@@ -1642,7 +1642,7 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
 
                 for c in xrange(0, cols):
 
-                    # Current pixel value
+                    # Current row pixel value
                     i = image[r, c]
 
                     # compute the location of the offset pixel
@@ -1655,15 +1655,19 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
                     # make sure the offset is within bounds
                     if (0 <= row < rows) and (0 <= col < cols):
 
+                        # Current column pixel value
                         j = image[row, col]
 
                         if (0 <= i < levels) and (0 <= j < levels):
 
+                            # Fill the co-occurrence matrix.
                             out[i, j, d_idx, a_idx] += 1
 
-                            # symmetric
-                            out[levels-1-i, levels-1-j, d_idx, a_idx] += 1
+                            # Fill the co-occurrence matrix
+                            #   for the symmetric pair.
+                            out[j, i, d_idx, a_idx] += 1
 
+                            # Add 2 for the symmetric sums
                             out_sums[d_idx, a_idx] += 2
 
 

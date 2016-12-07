@@ -36,17 +36,17 @@ def _glcm_loop(image, distances, angles, levels,
 
                     # make sure the offset is within bounds
                     if (0 <= row < rows) and (0 <= col < cols):
-                    # if row >= 0 and row < rows and col >= 0 and col < cols:
+
                         j = image[row, col]
 
                         if (0 <= i < levels) and (0 <= j < levels):
-                        # if i >= 0 and i < levels and j >= 0 and j < levels:
 
                             out[i, j, d_idx, a_idx] += 1
 
-                            # symmetric
+                            # Add the symmetric
                             out[levels-1-i, levels-1-j, d_idx, a_idx] += 1
 
+                            # Add 2 for the symmetric sums
                             out_sums[d_idx, a_idx] += 2
 
 
