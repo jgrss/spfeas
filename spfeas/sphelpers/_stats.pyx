@@ -28,7 +28,7 @@ except ImportError:
 try:
     from skimage.feature import hog as HOG
     from skimage.feature import local_binary_pattern as LBP
-    # from skimage.feature import greycomatrix, greycoprops
+    from skimage.feature import greycomatrix, greycoprops
     from skimage.transform import probabilistic_hough_line as PHL
 except:
     raise ImportError('Skimage.feature did not load')
@@ -1814,25 +1814,24 @@ cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P, DTYPE_float
     return min_contrast
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def pantex_min(DTYPE_float32_t[:, :, :, ::1] glcm_mat,
-#                                 DTYPE_float32_t[:] distances, DTYPE_float32_t[:] angles,
-#                                 Py_ssize_t levels, DTYPE_float32_t[:, :] contrast_array):
-#
-#     """
-#     Get the local minimum contrast for all displacement vectors
-#     """
-#
-#     # cdef:
-#     #     Py_ssize_t dV, dist
-#     #     # np.ndarray[DTYPE_float32_t, ndim=1] gmat = np.asarray([greycoprops(glcm_mat, 'contrast')[dist-1][dV]
-#     #     #                                                        for dV in xrange(0, len(dispVect))
-#     #     #                                                        for dist in dists]).astype(np.float32)
-#
-#     return _glcm_contrast(glcm_mat, distances, angles, levels, contrast_array)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pantex_min(np.ndarray[DTYPE_float32_t, ndim=4] glcm_mat,
+               DTYPE_float32_t[:] distances, DTYPE_float32_t[:] angles):
 
-    # return _get_min_f(gmat, len(gmat))
+    """
+    Get the local minimum contrast for all displacement vectors
+    """
+
+    cdef:
+        Py_ssize_t dV, dist
+        np.ndarray[DTYPE_float32_t, ndim=1] gmat = np.array([greycoprops(glcm_mat, 'contrast')[dist-1][dV]
+                                                             for dV in xrange(0, angles.shape[0]) for dist in xrange(0, distances.shape[0])],
+                                                            dtype='float32')
+
+    # return _glcm_contrast(glcm_mat, distances, angles, levels, contrast_array)
+
+    return _get_min_f(gmat, len(gmat))
 
 
 @cython.boundscheck(False)
@@ -1942,12 +1941,12 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                         # print np.array(dispVect).shape
                         # print levels
                         # print np.array(contrast_weights).shape
-                        con_min = _glcm_contrast(np.array(glcm_mat), dists, dispVect, levels, contrast_weights)
+                        # con_min = _glcm_contrast(np.array(glcm_mat), dists, dispVect, levels, contrast_weights)
 
                         # print 'finished contrast'
                         # print con_min
                         # print
-                        # con_min = pantex_min(glcm_mat, dists, dispVect, levels, contrast_weights)
+                        con_min = pantex_min(np.array(glcm_mat), dists, dispVect)
                     # print pix_ctr, out_list.shape[0]
                     out_list[pix_ctr] = con_min
 
