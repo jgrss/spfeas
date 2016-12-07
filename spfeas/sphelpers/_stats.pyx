@@ -74,26 +74,32 @@ cdef extern from 'math.h':
     DTYPE_float32_t ceil(DTYPE_float32_t x)
 
 
+@cython.profile(False)
 cdef inline int n_rows_cols(int pixel_index, int rows_cols, int block_size):
     return rows_cols if pixel_index + rows_cols < block_size else block_size - pixel_index
 
 
+@cython.profile(False)
 cdef inline int _get_min_sample_i(int s1, int s2):
     return s2 if s2 < s1 else s1
 
 
+@cython.profile(False)
 cdef inline DTYPE_float32_t _get_min_sample_f(DTYPE_float32_t s1, DTYPE_float32_t s2):
     return s2 if s2 < s1 else s1
 
 
+@cython.profile(False)
 cdef inline DTYPE_float32_t _get_max_sample(DTYPE_float32_t s1, DTYPE_float32_t s2):
     return s2 if s2 > s1 else s1
 
 
+@cython.profile(False)
 cdef inline DTYPE_uint8_t _get_max_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2):
     return s2 if s2 > s1 else s1
 
 
+@cython.profile(False)
 cdef inline DTYPE_uint8_t _get_min_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2):
     return s2 if s2 < s1 else s1
 
