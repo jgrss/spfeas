@@ -2,17 +2,21 @@
 
 from __future__ import division
 
+from copy import copy
+
 from cpython.array cimport array, clone
-
-import cython
-cimport cython
-
 import numpy as np
 cimport numpy as np
+cimport cython
 
-from libc.math cimport pow
+from libc.math cimport pow, cos, sqrt
 # from libc.math cimport fabs
 # from cython.parallel import prange, parallel
+
+try:
+    import cv2
+except ImportError:
+    raise ImportError('OpenCV must be installed')
 
 old_settings = np.seterr(all='ignore')
 
@@ -38,13 +42,91 @@ DTYPE_float64 = np.float64
 ctypedef np.float64_t DTYPE_float64_t
 
 cdef extern from 'math.h':
-    DTYPE_float32_t atan2(int x, int y)
+    DTYPE_float32_t atan2(DTYPE_float32_t x, DTYPE_float32_t y)
 
 cdef extern from 'stdlib.h':
     DTYPE_float32_t abs(DTYPE_float32_t x)
 
 cdef extern from 'stdlib.h':
     DTYPE_float32_t exp(DTYPE_float32_t x)
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t _get_max_sample(DTYPE_float32_t s1, DTYPE_float32_t s2):
+    return s2 if s2 > s1 else s1
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t multi(DTYPE_float32_t a, DTYPE_float32_t b):
+    return a - b
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t subi(DTYPE_float32_t a, DTYPE_float32_t b):
+    return a - b
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t _collinearity(DTYPE_float32_t a, DTYPE_float32_t b):
+    return cos(abs(a - b))
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t int_min(DTYPE_float32_t a, DTYPE_float32_t b):
+    return a if a <= b else b
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t int_max(DTYPE_float32_t a, DTYPE_float32_t b):
+    return a if a >= b else b
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t euclidean_distance(DTYPE_float32_t x1, DTYPE_float32_t x2,
+                                               DTYPE_float32_t y1, DTYPE_float32_t y2):
+    return ((x2 - x1)**2 + (y2 - y1)**2)**.5
+
+
+@cython.profile(False)
+@cython.cdivision(True)
+cdef inline DTYPE_float32_t normalize_eu_dist(DTYPE_float32_t d, DTYPE_float32_t max_d):
+    return abs(d - max_d) / max_d
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t euclidean_distance_color(DTYPE_float32_t x1, DTYPE_float32_t x2,
+                                                     DTYPE_float32_t eu_dist):
+    return (((x2 - x1)**2)**.5) * eu_dist
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t simple_distance(DTYPE_float32_t x1, DTYPE_float32_t x2, DTYPE_float32_t eu_dist):
+    return ((x2 - x1)**2) * eu_dist
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t euclidean_distance_color_rgb(DTYPE_float32_t r1, DTYPE_float32_t g1, DTYPE_float32_t b1,
+                                                         DTYPE_float32_t r2, DTYPE_float32_t g2, DTYPE_float32_t b2):
+    return (((r2 - r1)**2) + ((g2 - g1)**2) + ((b2 - b1)**2)) **.5
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef DTYPE_float32_t _get_line_angle(DTYPE_float32_t point1_y, DTYPE_float32_t point1_x,
+                                     DTYPE_float32_t point2_y, DTYPE_float32_t point2_x):
+
+    """
+    point1: [y1, x1]
+    point2: [y2, x2]
+    """
+
+    cdef:
+        DTYPE_float32_t x_diff = subi(point2_x, point1_x)
+        DTYPE_float32_t y_diff = subi(point2_y, point1_y)
+        DTYPE_float32_t pi = 3.14159265
+
+    return atan2(y_diff, x_diff) * 180. / pi
 
 
 # Define a function pointer to a metric.
@@ -128,7 +210,7 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
 
     d = (2 * dy) - dx
 
-    rr = np.zeros(int(dx) + 1, dtype='intp')
+    rr = np.zeros(int(dx)+1, dtype='intp')
     cc = rr.copy()
     # rr = clone(template, int(dx)+1, True)
     # cc = clone(template, int(dx)+1, True)
@@ -217,47 +299,6 @@ cdef dict _direction_dict():
 # cdef inline DTYPE_uint8_t n_rows_cols(int pixel_index, int rows_cols, int block_size):
 #     return rows_cols if (pixel_index + rows_cols) < block_size else block_size - pixel_index
 
-
-@cython.profile(False)
-cdef inline DTYPE_float32_t int_min(DTYPE_float32_t a, DTYPE_float32_t b):
-    return a if a <= b else b
-
-
-@cython.profile(False)
-cdef inline DTYPE_float32_t int_max(DTYPE_float32_t a, DTYPE_float32_t b):
-    return a if a >= b else b
-
-
-@cython.profile(False)
-cdef inline DTYPE_float32_t euclidean_distance(DTYPE_float32_t x1, DTYPE_float32_t x2,
-                                               DTYPE_float32_t y1, DTYPE_float32_t y2):
-    return ((x2 - x1)**2 + (y2 - y1)**2)**.5
-
-
-@cython.profile(False)
-@cython.cdivision(True)
-cdef inline DTYPE_float32_t normalize_eu_dist(DTYPE_float32_t d, DTYPE_float32_t max_d):
-    return abs(d - max_d) / max_d
-
-
-@cython.profile(False)
-cdef inline DTYPE_float32_t euclidean_distance_color(DTYPE_float32_t x1, DTYPE_float32_t x2,
-                                                     DTYPE_float32_t eu_dist):
-    return (((x2 - x1)**2)**.5) * eu_dist
-
-
-@cython.profile(False)
-cdef inline DTYPE_float32_t simple_distance(DTYPE_float32_t x1, DTYPE_float32_t x2, DTYPE_float32_t eu_dist):
-    return ((x2 - x1)**2) * eu_dist
-
-
-@cython.profile(False)
-cdef inline DTYPE_float32_t euclidean_distance_color_rgb(DTYPE_float32_t r1, DTYPE_float32_t g1, DTYPE_float32_t b1,
-                                                         DTYPE_float32_t r2, DTYPE_float32_t g2, DTYPE_float32_t b2):
-
-    return (((r2 - r1)**2) + ((g2 - g1)**2) + ((b2 - b1)**2)) **.5
-
-
 # return 1. - exp(-eu_dist / y)
 
 
@@ -313,6 +354,20 @@ cdef DTYPE_uint8_t _get_sum1d(DTYPE_uint8_t[:] block_list, int length):
     cdef:
         Py_ssize_t fi
         DTYPE_uint8_t s = block_list[0]
+
+    for fi in xrange(1, length):
+        s += block_list[fi]
+
+    return s
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef DTYPE_float32_t _get_sum1d_f(DTYPE_float32_t[:] block_list, int length):
+
+    cdef:
+        Py_ssize_t fi
+        DTYPE_float32_t s = block_list[0]
 
     for fi in xrange(1, length):
         s += block_list[fi]
@@ -394,11 +449,6 @@ cdef DTYPE_float32_t _morph_pass(DTYPE_float32_t[:, :] image_block, DTYPE_intp_t
             OF SELECTED TOPICS IN APPLIED EARTH OBSERVATIONS AND REMOTE SENSING,
             5(5), OCTOBER.
     """
-
-    try:
-        import cv2
-    except ImportError:
-        raise ImportError('OpenCV must be installed')
 
     cdef:
         Py_ssize_t half = int(window_i / 2)
@@ -745,24 +795,6 @@ cdef DTYPE_float32_t _get_distance_rgb(DTYPE_float32_t[:, :, :] block,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int line_angle(int point1_y, int point1_x, int point2_y, int point2_x):
-
-    """
-    point1: [y1, x1]
-    point2: [y2, x2]
-    """
-
-    cdef:
-        int x_diff = point2_x - point1_x
-        int y_diff = point2_y - point1_y
-        DTYPE_float32_t pi = 3.14159265
-
-    return int(atan2(y_diff, x_diff) * 180. / pi)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef int cy_argwhere(DTYPE_uint8_t[:, :] array1, DTYPE_uint8_t[:, :] array2, int dims,
                      DTYPE_int16_t[:, :] angles_dict):
 
@@ -910,6 +942,24 @@ cdef tuple close_end(DTYPE_uint8_t[:, :] edge_block,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef DTYPE_float32_t[:] extract_values_f(DTYPE_float32_t[:, :] block, DTYPE_intp_t[:] rr_, DTYPE_intp_t[:] cc_, int fl):
+
+    cdef:
+        Py_ssize_t fi, fi_, fj_
+        DTYPE_float32_t[:] values = np.zeros(fl, dtype='float32')
+
+    for fi in xrange(0, fl):
+
+        fi_ = rr_[fi]
+        fj_ = cc_[fi]
+
+        values[fi] = block[fi_, fj_]
+
+    return values
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef DTYPE_uint8_t[:] extract_values(DTYPE_uint8_t[:, :] block, DTYPE_intp_t[:] rr_, DTYPE_intp_t[:] cc_, int fl):
 
     cdef:
@@ -1047,7 +1097,7 @@ cdef tuple _link_endpoints(DTYPE_uint8_t[:, :] edge_block,
 
                         match = 0
 
-                        # Northwest or southeast or center point
+                        # Northwest or southeast of center point
                         if ((ii < center-2) and (jj < center-2)) or ((ii > center+2) and (jj > center+2)):
 
                             if (center_angle + connect_angle == 0) or \
@@ -1313,9 +1363,11 @@ cdef np.ndarray[DTYPE_uint8_t, ndim=2] link_window(DTYPE_uint8_t[:, :] edge_imag
         DTYPE_int64_t[:] endpoint_row
         int endpoint_idx_rows
         DTYPE_uint8_t[:, :] edge_block, ep_block
+
         DTYPE_int16_t[:, :] angles_dict = np.array([[-135, -90, -45],
                                                     [-180, 0, 180],
                                                     [45, 90, 135]], dtype='int16')
+
         DTYPE_intp_t[:] h_r = np.array([2, 2, 2, 2, 2], dtype='intp')
         DTYPE_intp_t[:] h_c = np.array([0, 1, 2, 3, 4], dtype='intp')
         DTYPE_intp_t[:] d_c = np.array([4, 3, 2, 1, 0], dtype='intp')
@@ -1345,7 +1397,225 @@ cdef np.ndarray[DTYPE_uint8_t, ndim=2] link_window(DTYPE_uint8_t[:, :] edge_imag
         edge_image[isub:isub+window_size, jsub:jsub+window_size] = edge_block
         endpoint_image[isub:isub+window_size, jsub:jsub+window_size] = ep_block
 
-    return np.asarray(edge_image).astype(np.uint8)
+    return np.uint8(edge_image)
+
+
+cdef Py_ssize_t max_n_consecuative(Py_ssize_t point1_y, Py_ssize_t point1_x,
+                                   Py_ssize_t point2_y, Py_ssize_t point2_x,
+                                   DTYPE_float32_t center_value,
+                                   int half_window, Py_ssize_t rr_shape,
+                                   DTYPE_float32_t[:, :] edge_image_block):
+
+    """
+    Finds the maximum number of pixels along an orthogonal
+    line that are less than the center edge value
+
+    Args:
+        points of the line
+        N: length of the line
+        center_value
+    """
+
+    cdef:
+        Py_ssize_t fi
+        Py_ssize_t y2_ = point1_x
+        Py_ssize_t x2_ = point1_y * -1
+        DTYPE_intp_t[:] rr_, cc_
+        Py_ssize_t max_consecutive = 0
+
+    # Find the orthogonal line
+    # Note that y1, x1 will always be (0, 0)
+    rr_, cc_ = draw_line(half_window, half_window, y2_, x2_)
+
+    # Get the the maximum number of consecutive pixels
+    #   with values less than the center pixel.
+    for fi in xrange(0, rr_shape):
+        if edge_image_block[rr_[fi], cc_[fi]] >= center_value:
+            break
+        max_consecutive += 1
+
+    return max_consecutive
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef tuple _optimal_edge_orientation(DTYPE_float32_t[:, :] edge_image_block, DTYPE_uint8_t[:] indices,
+                                     int half_window, int window_size):
+
+    """
+    Returns:
+        max_sum:  Maximum edge value sum along the optimal angle
+        line_angle:  The optimal line angle
+        n_opt:  The number of pixels along the optimal line angle
+        nc_opt:  The maximum number pixels with an edge value less than the center
+    """
+
+    cdef:
+        Py_ssize_t i_, j_, i__, j__, rr_shape, n_opt, nc_opt
+        DTYPE_intp_t[:] rr, cc
+        DTYPE_float32_t max_sum = 0.    # si_opt
+        DTYPE_float32_t max_sum_
+        DTYPE_float32_t line_angle = 0.
+        DTYPE_float32_t center_value = edge_image_block[half_window, half_window]
+
+    for i_ in xrange(0, 2):
+
+        i__ = indices[i_]
+
+        for j_ in xrange(0, window_size):
+
+            # Draw a line from the center pixel.
+            rr, cc = draw_line(half_window, half_window, i__, j_)
+
+            rr_shape = rr.shape[0]
+
+            # Get the sum of edge gradient magnitudes and compare
+            #   it to the maximum over all angles.
+            max_sum_ = _get_max_sample(max_sum,
+                                       _get_sum1d_f(extract_values_f(edge_image_block, rr, cc, rr_shape), rr_shape))
+
+            # Get the angle if there is a new maximum
+            #   edge gradient magnitude.
+            if max_sum_ > max_sum:
+
+                max_sum = max_sum_
+
+                line_angle = _get_line_angle(float(rr[0]), float(cc[0]),
+                                             float(rr[rr_shape-1]), float(cc[rr_shape-1]))
+
+                # The number of pixels defining the
+                #   optimal search angle.
+                n_opt = rr_shape
+
+                nc_opt = max_n_consecuative(rr[0], cc[0], rr[rr_shape-1], cc[rr_shape-1],
+                                            center_value, half_window, rr_shape,
+                                            edge_image_block)
+
+    for j_ in xrange(0, 2):
+
+        j__ = indices[j_]
+
+        for i_ in xrange(0, window_size):
+
+            # Draw a line from the center pixel.
+            rr, cc = draw_line(half_window, half_window, i_, j__)
+
+            rr_shape = rr.shape[0]
+
+            # Get the sum of edge gradient magnitudes and compare
+            #   it to the maximum over all angles.
+            max_sum_ = _get_max_sample(max_sum,
+                                       _get_sum1d_f(extract_values_f(edge_image_block, rr, cc, rr_shape), rr_shape))
+
+            # Get the angle if there is a new maximum
+            #   edge gradient magnitude.
+            if max_sum_ > max_sum:
+
+                max_sum = max_sum_
+
+                line_angle = _get_line_angle(float(rr[0]), float(cc[0]),
+                                             float(rr[rr_shape-1]), float(cc[rr_shape-1]))
+
+                nc_opt = max_n_consecuative(rr[0], cc[0], rr[rr_shape - 1], cc[rr_shape - 1],
+                                            center_value, half_window, rr_shape,
+                                            edge_image_block)
+
+                # The number of pixels defining the
+                #   optimal search angle.
+                n_opt = rr_shape
+
+    return max_sum, line_angle, n_opt, nc_opt
+
+
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+# cdef _edge_linearity(DTYPE_float32_t[:, :, :] optimal_values_array, int half_window, int window_size):
+#
+#     cdef:
+#         Py_ssize_t i_, j_
+#
+#     for i_ in xrange(0, window_size):
+#
+#         for j_ in xrange(0, window_size):
+#
+#             _collinearity(optimal_values_array[1, i_, j_])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef DTYPE_float32_t _edge_saliency(DTYPE_float32_t[:] optimal_values_array, DTYPE_float32_t l):
+
+    # si_opt * n_opt * n
+    return (optimal_values_array[0] / l) * (optimal_values_array[2] / l) * (optimal_values_array[3] / l)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.ndarray[DTYPE_float32_t, ndim=2] saliency_window(DTYPE_float32_t[:, :] edge_image, int window_size):
+
+    """
+    Computes image edge saliency
+    """
+
+    cdef:
+        int rows = edge_image.shape[0]
+        int cols = edge_image.shape[1]
+        Py_ssize_t i, j, n_opt_angle, nc_opt_angle
+        int half_window = int(window_size / 2)
+        int row_dims = rows - (half_window * 2)
+        int col_dims = cols - (half_window * 2)
+        DTYPE_float32_t[:, :] out_array = np.zeros((rows, cols), dtype='float32')
+        DTYPE_float32_t[:, :, :] out_array_vars = np.zeros((4, rows, cols), dtype='float32')
+        DTYPE_uint8_t[:] indices = np.array([0, window_size-1], dtype='uint8')
+        DTYPE_float32_t max_egm_sum, opt_line_angle
+        DTYPE_float32_t param_l = float(half_window + 1)
+
+    #####################################
+    # Edge orientation derivation (3.3.1)
+    #####################################
+    # It is necessary to iterate over the entire image
+    #   before edge linearity and edge saliency because
+    #   all of the optimum values need to be found.
+    for i in xrange(0, row_dims):
+
+        for j in xrange(0, col_dims):
+
+            # First, get the optimal edge orientation,
+            #   sum of EGM over the optimum line, and
+            #   the number of pixels along the optimal line.
+            max_egm_sum, opt_line_angle, n_opt_angle, nc_opt_angle = _optimal_edge_orientation(edge_image[i:i+window_size,
+                                                                                               j:j+window_size],
+                                                                                               indices,
+                                                                                               half_window,
+                                                                                               window_size)
+
+            out_array_vars[0, i+half_window, j+half_window] = max_egm_sum
+            out_array_vars[1, i+half_window, j+half_window] = opt_line_angle
+            out_array_vars[2, i+half_window, j+half_window] = n_opt_angle
+            out_array_vars[3, i+half_window, j+half_window] = nc_opt_angle
+
+    ###################################
+    # Edge linearity derivation (3.3.2)
+    ###################################
+    # TODO: collinearity
+    # for i in xrange(0, row_dims):
+    #
+    #     for j in xrange(0, col_dims):
+    #
+    #         _edge_linearity(out_array_vars[:, i:i+window_size, j:j+window_size])
+
+    ##################################
+    # Edge saliency derivation (3.3.3)
+    ##################################
+    for i in xrange(0, row_dims):
+
+        for j in xrange(0, col_dims):
+
+            out_array[i+half_window, j+half_window] = _edge_saliency(out_array_vars[:, i+half_window, j+half_window],
+                                                                     param_l)
+
+    return np.float32(out_array)
 
 
 @cython.boundscheck(False)
@@ -1661,7 +1931,7 @@ def moving_window(np.ndarray image_array, str statistic='mean', int window_size=
     """
 
     if statistic not in ['mean', 'min', 'max', 'median', 'majority', 'percent', 'sum',
-                         'link', 'fill', 'circles', 'distance', 'rgb_distance']:
+                         'link', 'fill', 'circles', 'distance', 'rgb_distance', 'saliency']:
 
         raise ValueError('The statistic {} is not an option.'.format(statistic))
 
@@ -1676,26 +1946,30 @@ def moving_window(np.ndarray image_array, str statistic='mean', int window_size=
 
     if statistic == 'link':
 
-        return link_window(np.ascontiguousarray(image_array).astype(np.uint8), window_size,
-                           np.ascontiguousarray(endpoint_image).astype(np.uint8),
-                           np.ascontiguousarray(gradient_image).astype(np.uint8),
+        return link_window(np.uint8(np.ascontiguousarray(image_array)), window_size,
+                           np.uint8(np.ascontiguousarray(endpoint_image)),
+                           np.uint8(np.ascontiguousarray(gradient_image)),
                            min_egm, smallest_allowed_gap, medium_allowed_gap)
+
+    elif statistic == 'saliency':
+
+        return saliency_window(np.float32(np.ascontiguousarray(image_array)), window_size)
 
     elif statistic == 'fill':
 
-        return fill_window(np.ascontiguousarray(image_array).astype(np.uint8), window_size, n_neighbors)
+        return fill_window(np.uint8(np.ascontiguousarray(image_array)), window_size, n_neighbors)
 
     elif statistic == 'circles':
 
-        return fill_circles(np.ascontiguousarray(image_array).astype(np.uint8), circle_list)
+        return fill_circles(np.uint8(np.ascontiguousarray(image_array)), circle_list)
 
     elif statistic == 'rgb_distance':
 
-        return rgb_window(np.ascontiguousarray(image_array).astype(np.float32), window_size)
+        return rgb_window(np.float32(np.ascontiguousarray(image_array)), window_size)
 
     else:
 
-        return window(np.ascontiguousarray(image_array).astype(np.float32), statistic, window_size,
+        return window(np.float32(np.ascontiguousarray(image_array)), statistic, window_size,
                       target_value, ignore_value, iterations,
-                      np.ascontiguousarray(weights).astype(np.float32),
+                      np.float32(np.ascontiguousarray(weights)),
                       skip_block)
