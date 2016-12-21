@@ -1400,10 +1400,12 @@ cdef np.ndarray[DTYPE_uint8_t, ndim=2] link_window(DTYPE_uint8_t[:, :] edge_imag
     return np.uint8(edge_image)
 
 
-cdef Py_ssize_t max_n_consecuative(Py_ssize_t point1_y, Py_ssize_t point1_x,
-                                   Py_ssize_t point2_y, Py_ssize_t point2_x,
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef Py_ssize_t max_n_consecuative(Py_ssize_t y1, Py_ssize_t x1,
+                                   Py_ssize_t y2, Py_ssize_t x2,
                                    DTYPE_float32_t center_value,
-                                   int half_window, Py_ssize_t rr_shape,
+                                   int half_window, int window_size,
                                    DTYPE_float32_t[:, :] edge_image_block):
 
     """
@@ -1417,21 +1419,41 @@ cdef Py_ssize_t max_n_consecuative(Py_ssize_t point1_y, Py_ssize_t point1_x,
     """
 
     cdef:
-        Py_ssize_t fi
-        Py_ssize_t y2_ = point1_x
-        Py_ssize_t x2_ = point1_y * -1
+        Py_ssize_t fi_, rr_shape_, y3_, x3_, y3, x3, li
+        # Py_ssize_t y3 = point2_x
+        # Py_ssize_t x3 = point2_y * -1
+        # Py_ssize_t y3 = y2
+        # Py_ssize_t x3 = window_size - x2 - 1
         DTYPE_intp_t[:] rr_, cc_
         Py_ssize_t max_consecutive = 0
+        DTYPE_float32_t[:] line_values
+
+    # First, translate the coordinate to the Cartesian plane.
+    y3_ = half_window - y2
+    x3_ = -(half_window - x2)
+
+    # Next, shift the coordinates 90 degrees.
+    y3 = x3_
+    x3 = y3_ * -1
+
+    # Translate back to a Python grid.
+    y3 = int(abs(float(y3 - half_window)))
+    x3 = x3 + half_window
 
     # Find the orthogonal line
     # Note that y1, x1 will always be (0, 0)
-    rr_, cc_ = draw_line(half_window, half_window, y2_, x2_)
+    rr_, cc_ = draw_line(y1, x1, y3, x3)
+
+    rr_shape_ = rr_.shape[0]
+
+    line_values = extract_values_f(edge_image_block, rr_, cc_, rr_shape_)
 
     # Get the the maximum number of consecutive pixels
     #   with values less than the center pixel.
-    for fi in xrange(0, rr_shape):
-        if edge_image_block[rr_[fi], cc_[fi]] >= center_value:
+    for li in xrange(1, rr_shape_):
+        if line_values[li] >= center_value:
             break
+
         max_consecutive += 1
 
     return max_consecutive
@@ -1488,7 +1510,7 @@ cdef tuple _optimal_edge_orientation(DTYPE_float32_t[:, :] edge_image_block, DTY
                 n_opt = rr_shape
 
                 nc_opt = max_n_consecuative(rr[0], cc[0], rr[rr_shape-1], cc[rr_shape-1],
-                                            center_value, half_window, rr_shape,
+                                            center_value, half_window, window_size,
                                             edge_image_block)
 
     for j_ in xrange(0, 2):
@@ -1517,7 +1539,7 @@ cdef tuple _optimal_edge_orientation(DTYPE_float32_t[:, :] edge_image_block, DTY
                                              float(rr[rr_shape-1]), float(cc[rr_shape-1]))
 
                 nc_opt = max_n_consecuative(rr[0], cc[0], rr[rr_shape - 1], cc[rr_shape - 1],
-                                            center_value, half_window, rr_shape,
+                                            center_value, half_window, window_size,
                                             edge_image_block)
 
                 # The number of pixels defining the
@@ -1580,6 +1602,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=2] saliency_window(DTYPE_float32_t[:, :] e
     for i in xrange(0, row_dims):
 
         for j in xrange(0, col_dims):
+
+            if edge_image[i+half_window, j+half_window] == 0:
+                continue
 
             # First, get the optimal edge orientation,
             #   sum of EGM over the optimum line, and
