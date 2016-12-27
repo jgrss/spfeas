@@ -74,7 +74,7 @@ echo $LINE_BREAK1
 echo
 
 # Python libraries
-sudo -H pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict
+sudo -H pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL
 
 # Statsmodels (0.8 is not available from pip)
 git clone https://github.com/statsmodels/statsmodels.git
@@ -89,7 +89,7 @@ if which gdalinfo >/dev/null; then
   echo 'GDAL is already installed'
 else
   brew install gdal2 --with-hdf4 --with-hdf5
-  echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
+  # echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
   brew link --force gdal2
 
   if [ -z ${GDAL_DRIVER_PATH} ]; then
