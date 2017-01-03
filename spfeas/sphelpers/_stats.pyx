@@ -1652,8 +1652,11 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
                     i = image[r, c]
 
                     # compute the location of the offset pixel
-                    row = r + <int>round(sin(angle) * distance)
-                    col = c + <int>round(cos(angle) * distance)
+                    # row = r + <int>round(sin(angle) * distance)
+                    # col = c + <int>round(cos(angle) * distance)
+
+                    row = r + int(round(sin(angle) * distance))
+                    col = c + int(round(cos(angle) * distance))
 
                     # row = r + int(round(sin(angle) * distance))
                     # col = c + int(round(cos(angle) * distance))
