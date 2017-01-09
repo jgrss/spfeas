@@ -210,7 +210,7 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=Fa
     0.2125 R + 0.7154 G + 0.0721 B
 
     Args:
-        i_info (object of rinfo)
+        i_info (object of ropen)
         j_sec (int): Starting column index.
         i_sect (int): Starting row index.
         n_cols (int)
@@ -236,7 +236,7 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
                 n_cols_ = raster_tools.n_rows_cols(j_, 512, i_info.cols)
 
-                im_block = i_info.mparray(bands2open=[1, 2, 3],
+                im_block = i_info.read(bands2open=[1, 2, 3],
                                           i=i_, j=j_,
                                           rows=n_rows_, cols=n_cols_,
                                           d_type='float32')
@@ -260,7 +260,7 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
         print '\nCalculating average RGB ...\n'.format(rgb.upper())
 
-        im_block = i_info.mparray(bands2open=[1, 2, 3],
+        im_block = i_info.read(bands2open=[1, 2, 3],
                                   i=i_sect, j=j_sect,
                                   rows=n_rows, cols=n_cols,
                                   d_type='float32')

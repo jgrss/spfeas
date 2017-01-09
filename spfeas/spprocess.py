@@ -140,7 +140,7 @@ def run(parameter_object):
             for band_p in parameter_object.band_positions:
 
                 # Get image information
-                i_info = raster_tools.rinfo(parameter_object.input_image)
+                i_info = raster_tools.ropen(parameter_object.input_image)
 
                 # Check available cpu memory
                 avilable_space = psutil.virtual_memory().available * 9.53674e-7
@@ -166,8 +166,8 @@ def run(parameter_object):
                             mx = parameter_object.image_max
                             mn = 0
                         else:
-                            mx = i_info.mparray(bands2open=band_p).max()
-                            mn = i_info.mparray(bands2open=band_p).min()
+                            mx = i_info.read(bands2open=band_p).max()
+                            mn = i_info.read(bands2open=band_p).min()
 
                         # mx = i_info.datasource.GetRasterBand(1).ReadAsArray(0, 0).max()
                         # mn = i_info.datasource.GetRasterBand(1).ReadAsArray(0, 0).min()
@@ -319,7 +319,7 @@ def run(parameter_object):
                         # Open the image array.
                         if trigger == 'ndvi':
 
-                            sect_in = i_info.mparray(bands2open=[parameter_object.band_red,
+                            sect_in = i_info.read(bands2open=[parameter_object.band_red,
                                                                  parameter_object.band_nir],
                                                      i=i_sect, j=j_sect,
                                                      rows=numRws, cols=numCols,
@@ -333,7 +333,7 @@ def run(parameter_object):
 
                         elif trigger == 'dmp':
 
-                            sect_in = np.asarray([i_info.mparray(bands2open=dmp_bd,
+                            sect_in = np.asarray([i_info.read(bands2open=dmp_bd,
                                                                  i=i_sect, j=j_sect,
                                                                  rows=numRws, cols=numCols,
                                                                  d_type='float32')
@@ -348,7 +348,7 @@ def run(parameter_object):
 
                         else:
 
-                            sect_in = i_info.mparray(bands2open=band_p,
+                            sect_in = i_info.read(bands2open=band_p,
                                                      i=i_sect, j=j_sect,
                                                      rows=numRws, cols=numCols)
 
@@ -502,7 +502,7 @@ def run(parameter_object):
                                                                                         scale, feature,
                                                                                         parameter_object)
 
-                                    o_info = raster_tools.rinfo(out_img, open2read=False)
+                                    o_info = raster_tools.ropen(out_img, open2read=False)
                                     out_band_obj = o_info.datasource.GetRasterBand(1)
 
                                     # write array to file

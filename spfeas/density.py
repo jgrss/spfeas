@@ -163,12 +163,12 @@ def prep_building_training():
             continue
 
         # Open the features image.
-        f_info = raster_tools.rinfo(features)
+        f_info = raster_tools.ropen(features)
 
         bands = f_info.bands
 
         # Open the feature arrays.
-        fea_arr = f_info.mparray(bands2open=-1, d_type='float32')
+        fea_arr = f_info.read(bands2open=-1, d_type='float32')
 
         f_info.close()
 
@@ -183,9 +183,9 @@ def prep_building_training():
         fea_arr = fea_arr.reshape(dims, samples).T.reshape(samples, dims)
 
         # Open the building density image.
-        i_info = raster_tools.rinfo(bldg_density)
+        i_info = raster_tools.ropen(bldg_density)
 
-        bldg_arr = i_info.mparray(bands2open=1, d_type='float32')
+        bldg_arr = i_info.read(bands2open=1, d_type='float32')
 
         i_info.close()
 
@@ -268,7 +268,7 @@ def buildings2density(overwrite):
         os.makedirs(out_dir)
 
     # get patch vector information
-    vct_info = vector_tools.vinfo(vector_patches)
+    vct_info = vector_tools.vopen(vector_patches)
 
     # get the patch count in the vector file
     n_patches = vct_info.n_feas
@@ -324,11 +324,11 @@ def buildings2density(overwrite):
 
         subprocess.call(com, shell=True)
 
-        o_info = raster_tools.rinfo(fea_patch)
+        o_info = raster_tools.ropen(fea_patch)
         o_info.bands = 1
 
-        t_info = raster_tools.rinfo(temp_rst)
-        t_array = t_info.mparray(d_type='float32')
+        t_info = raster_tools.ropen(temp_rst)
+        t_array = t_info.read(d_type='float32')
 
         t_info.close()
 
@@ -386,13 +386,13 @@ def prep_image_features(overwrite, resample2features=0.):
         os.makedirs(out_dir)
 
     # Get vector information.
-    vct_info = vector_tools.vinfo(vector_patches)
+    vct_info = vector_tools.vopen(vector_patches)
 
     # Get the patch count in the vector file.
     n_patches = vct_info.n_feas
 
     # Get the image feature info.
-    f_info = raster_tools.rinfo(image_features)
+    f_info = raster_tools.ropen(image_features)
 
     com_orig = 'gdalwarp --config GDAL_CACHEMAX 256'
 
@@ -748,14 +748,14 @@ def plot(model_parameters, what2plot='scatter'):
             building_image = os.path.join(buildings_dir, training_file.replace('.txt', '.tif'))
 
             # Open the patch image.
-            i_info = raster_tools.rinfo(patch_image.replace('training_', ''))
+            i_info = raster_tools.ropen(patch_image.replace('training_', ''))
 
-            p_array = i_info.mparray(bands2open=-1, predictions=True)
+            p_array = i_info.read(bands2open=-1, predictions=True)
 
             # Open the buildings images.
-            b_info = raster_tools.rinfo(building_image.replace('training_', ''))
+            b_info = raster_tools.ropen(building_image.replace('training_', ''))
 
-            b_array = b_info.mparray()
+            b_array = b_info.read()
 
             # Get predictions.
             i_info.array = cl.predict_array(p_array)
@@ -939,7 +939,7 @@ def detect(setup=False, out_dir=None, patches=None, buildings=None, features=Non
 
     if setup:
 
-        i_info = raster_tools.rinfo(features)
+        i_info = raster_tools.ropen(features)
 
         density_m = int(window_size / i_info.cellY)
 
