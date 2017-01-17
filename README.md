@@ -15,19 +15,19 @@ Installation
 
 3) On OSX, the following line should print **/usr/local/bin/spfeas**:
 
-```
+```text
 which spfeas
 ```
 
 4) On Windows, the following line should print **C:\<Python path>\Scripts\spfeas**:
 
-```
+```text
 where spfeas
 ```
 
 5) To uninstall SpFeas, type the following line in the terminal
 
-```
+```text
 pip uninstall spfeas
 ```
 
@@ -36,13 +36,13 @@ Usage examples
 
 Print help:
 
-```
+```text
 spfeas -h
 ```
 
 Print examples:
 
-```
+```text
 spfeas -e
 ```
 
@@ -53,5 +53,3 @@ Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/
 Development
 -----------
 For questions or bugs, contact Jordan Graesser (graesser@bu.edu).
-
-
