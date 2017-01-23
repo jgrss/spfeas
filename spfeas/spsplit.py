@@ -118,6 +118,10 @@ def call_mean(block_array_, block_size_, scales_, end_scale_):
     return _stats.feature_mean(block_array_, block_size_, scales_, end_scale_)
 
 
+def call_orb(block_array_, block_size_, scales_, end_scale_):
+    return _stats.feature_orb(block_array_, block_size_, scales_, end_scale_)
+
+
 def call_pantex(block_array_, block_size_, scales_, end_scale_, weighted_):
     return _stats.feature_pantex(block_array_, block_size_, scales_, end_scale_, weighted_)
 
@@ -713,6 +717,15 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
 
         return Parallel(n_jobs=parameter_object.n_jobs,
                         max_nbytes=None)(delayed(call_lsr)(bd_, parameter_object.block,
+                                                           parameter_object.scales,
+                                                           parameter_object.scales[-1]) for bd_ in bd)
+
+    elif parameter_object.trigger == 'orb':
+
+        print '\n  Processing ORB ...'
+
+        return Parallel(n_jobs=parameter_object.n_jobs,
+                        max_nbytes=None)(delayed(call_orb)(bd_, parameter_object.block,
                                                            parameter_object.scales,
                                                            parameter_object.scales[-1]) for bd_ in bd)
 

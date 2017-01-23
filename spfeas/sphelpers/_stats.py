@@ -18,7 +18,7 @@ from cython.parallel import parallel, prange
 from mpglue.stats import _lin_interp
 
 # OpenCV
-try:
+try:    
     import cv2
 except ImportError:
     raise ImportError('OpenCV did not load')
@@ -440,7 +440,7 @@ cdef DTYPE_float32_t _get_mean1d(DTYPE_float32_t[:] block, int cs):
 #
 #     return the_mean, the_var
 
-
+    
 # @cython.boundscheck(False)
 # @cython.wraparound(False)
 # @cython.cdivision(True)
@@ -459,7 +459,7 @@ cdef DTYPE_float32_t _get_mean1d(DTYPE_float32_t[:] block, int cs):
 #
 #     return the_sum / samps
 
-
+    
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -485,7 +485,7 @@ cdef DTYPE_float32_t[:] _get_stats(DTYPE_float32_t[:] block, int samps):
         the_var += val_mean * val_mean
         the_skew += val_mean * val_mean * val_mean
         the_kurtosis += val_mean * val_mean * val_mean * val_mean
-
+        
     the_var /= samps
     the_skew /= pow(the_var, 1.5)
     the_kurtosis /= pow(the_var, 2.)
@@ -494,7 +494,7 @@ cdef DTYPE_float32_t[:] _get_stats(DTYPE_float32_t[:] block, int samps):
     output[1] = the_var
     output[2] = the_skew
     output[3] = the_kurtosis
-
+    
     return output
 
 
@@ -1558,14 +1558,14 @@ cdef inline DTYPE_float64_t get_slope(tuple line):
     return np.degrees(atan(float((line[0][1] - line[1][1])) / float((line[1][0] - line[0][0]))))
 
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)       
 def houghFunc_1(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int minLen, np.ndarray[long, ndim=2] checkList1_2, np.ndarray[long, ndim=2] checkList2_2, \
                         list scs, int i, int j):
-
+    
     cdef np.ndarray[int, ndim=1] line
     cdef DTYPE_float32_t pi = 3.14159265
     cdef DTYPE_float32_t pi2 = 3.14159265 / 2.
-
+    
     if houghIndex == 0:
 
         if checkList1_2[i, j] == 1:
@@ -1579,30 +1579,30 @@ def houghFunc_1(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int m
             return np.mean([ _get_distance(line) for line in cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0] ])	# average line length
         else:
             return 0.
-
+        
     elif houghIndex == 2:
-
+        
         if checkList1_2[i, j] == 1 and checkList2_2[i, j] == 1:
             return np.vstack((cv2.HoughLinesP(edgeArr, 1, pi, minLen, minLineLength=minLen, maxLineGap=2)[0], \
                                     cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0])).shape[0]	# number of lines
         elif checkList1_2[i, j] == 1 and checkList2_2[i, j] != 1:
-            return cv2.HoughLinesP(edgeArr, 1, pi, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]
+            return cv2.HoughLinesP(edgeArr, 1, pi, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]				
         elif checkList1_2[i, j] != 1 and checkList2_2[i, j] == 1:
-            return cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]
+            return cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]				
         else:
             return 0.
-
+        
     else:
         return (float(np.argwhere(edgeArr==255).shape[0]) / float(edgeArr.shape[0]*edgeArr.shape[1])) * 100.	# edge density
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)   
 def houghFunc_2(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int minLen, np.ndarray[long, ndim=3] checkList1_3, np.ndarray[long, ndim=3] checkList2_3, \
                         list scs, int i, int j, int k):
-
+    
     cdef np.ndarray[int, ndim=1] line
     cdef DTYPE_float32_t pi = 3.14159265
-    cdef DTYPE_float32_t pi2 = 3.14159265 / 2.
-
+    cdef DTYPE_float32_t pi2 = 3.14159265 / 2.	
+    
     if houghIndex == 0:
 
         if checkList1_3[scs.index(k), i, j] == 1:
@@ -1616,19 +1616,19 @@ def houghFunc_2(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int m
             return np.mean([ _get_distance(line) for line in cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0] ])	# average horizontal line length
         else:
             return 0.
-
+        
     elif houghIndex == 2:
-
+        
         if checkList1_3[scs.index(k), i, j] == 1 and checkList2_3[scs.index(k), i, j] == 1:
             return np.vstack((cv2.HoughLinesP(edgeArr, 1, pi, minLen, minLineLength=minLen, maxLineGap=2)[0], \
                                     cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0])).shape[0]	# number of lines
         elif checkList1_3[scs.index(k), i, j] == 1 and checkList2_3[scs.index(k), i, j] != 1:
-            return cv2.HoughLinesP(edgeArr, 1, pi, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]
+            return cv2.HoughLinesP(edgeArr, 1, pi, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]				
         elif checkList1_3[scs.index(k), i, j] != 1 and checkList2_3[scs.index(k), i, j] == 1:
-            return cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]
+            return cv2.HoughLinesP(edgeArr, 1, pi2, minLen, minLineLength=minLen, maxLineGap=2)[0].shape[0]				
         else:
             return 0.
-
+        
     else:
         return (float(np.argwhere(edgeArr==255).shape[0]) / float(edgeArr.shape[0]*edgeArr.shape[1])) * 100.	# edge density
 
@@ -1744,7 +1744,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t
 
     return out_list
 
-
+        
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale, int threshold, \
@@ -2002,7 +2002,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                                                          int scales_block, int out_len, bint weighted,
                                                          int rows, int cols, int scale_length,
                                                          int levels=32):
-
+    
     """
     Get the Anisotropic Built-up Presence Index (PanTex)
     """
@@ -2060,7 +2060,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                         con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
                         # con_min = pantex_min(glcm_mat, dists, disp_vect,
                         #                      levels, contrast_weights) * cv2.mean(ch_bd)[0]
-
+                    
                     out_list[pix_ctr] = con_min
 
                     pix_ctr += 1
@@ -2101,7 +2101,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                     out_list[pix_ctr] = con_min
 
                     pix_ctr += 1
-
+            
     return np.float32(out_list)
 
 
@@ -2129,7 +2129,7 @@ def feature_pantex(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, in
                            out_len, weighted, rows, cols, scale_length)
 
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)     
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.ndarray[DTYPE_float64_t, ndim=1] feature_mean_float64(DTYPE_float64_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
@@ -2163,7 +2163,7 @@ cdef np.ndarray[DTYPE_float64_t, ndim=1] feature_mean_float64(DTYPE_float64_t[:,
     return np.asarray(out_list).astype(np.float64)
 
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)       
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
@@ -2199,7 +2199,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
     return np.float32(out_list)
 
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)      
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint16(DTYPE_uint16_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
@@ -2265,8 +2265,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_mean(DTYPE_uint8_t[:, :] chBd,
 
     return np.asarray(out_list).astype(np.float32)
 
-
-@cython.boundscheck(False)
+            
+@cython.boundscheck(False)  
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint(DTYPE_int_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
@@ -2296,10 +2296,10 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint(DTYPE_int_t[:, :] chB
                 out_list[pix_ctr] = _get_mean(np.float32(block_chunk), bcr, bcc)
 
                 pix_ctr += 1
-
+    
     return np.asarray(out_list).astype(np.float32)
 
-
+            
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -2345,56 +2345,56 @@ def feature_mean(np.ndarray chBd, int blk, list scs, int end_scale):
             return feature_mean_uint(chBd, blk, scales_array, out_len, scales_half, scales_block, scale_length)
 
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)   
 def feaCtrFloat64(np.ndarray[DTYPE_float64_t, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
-
-@cython.boundscheck(False)
+    
+@cython.boundscheck(False)   
 def feaCtrFloat32(np.ndarray[DTYPE_float32_t, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)   
 def feaCtr_uint16(np.ndarray[unsigned short, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)   
 def feaCtr_uint8(np.ndarray[unsigned char, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
 
-@cython.boundscheck(False)
+@cython.boundscheck(False)  
 def feaCtr_uint(np.ndarray[int, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
-
-@cython.boundscheck(False)
+    
+@cython.boundscheck(False)   
 def feaCtr(np.ndarray chBd, int blk, list scs):
-
+    
     cdef int rows = chBd.shape[0]
-    cdef int cols = chBd.shape[1]
-
+    cdef int cols = chBd.shape[1]    
+    
     if chBd.dtype == 'float64':
-        return feaCtrFloat64(chBd, blk, scs, rows, cols)
+        return feaCtrFloat64(chBd, blk, scs, rows, cols)	
     elif chBd.dtype == 'float32':
-        return feaCtrFloat32(chBd, blk, scs, rows, cols)
+        return feaCtrFloat32(chBd, blk, scs, rows, cols)		
     elif chBd.dtype == 'uint16':
-        return feaCtr_uint16(chBd, blk, scs, rows, cols)
+        return feaCtr_uint16(chBd, blk, scs, rows, cols)    
     elif chBd.dtype == 'uint8':
         try:
-            return feaCtr_uint8(chBd, blk, scs, rows, cols)
+            return feaCtr_uint8(chBd, blk, scs, rows, cols) 	
         except:
             return feaCtr_uint(chBd, blk, scs, rows, cols)
 

@@ -35,28 +35,30 @@ class SPParameters(object):
         self.features_dict = dict(mean=1, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
                                   lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=5,
                                   evi2=1, ndvi=1,
-                                  objects=1, dmp=1, xy=2, lac=1)
+                                  objects=1, dmp=1, xy=2, lac=1,
+                                  orb=4)
 
         # Set the output bands based on the trigger.
-        self.out_bands_dict = {'mean': len(self.scales) * self.features_dict['mean'],
-                               'pantex': len(self.scales) * self.features_dict['pantex'],
-                               'ctr': len(self.scales) * self.features_dict['ctr'],
-                               'lsr': len(self.scales) * self.features_dict['lsr'],
-                               'hough': len(self.scales) * self.features_dict['hough'],
-                               'hog': len(self.scales) * self.features_dict['hog'],
-                               'lbp': len(self.scales) * self.features_dict['lbp'],
-                               'lbpm': len(self.scales) * self.features_dict['lbpm'],
-                               'gabor': len(self.scales) * self.features_dict['gabor'],
-                               'surf': len(self.scales) * self.features_dict['surf'],
-                               'seg': len(self.scales) * self.features_dict['seg'],
-                               'fourier': len(self.scales) * self.features_dict['fourier'],
-                               'sfs': len(self.scales) * self.features_dict['sfs'],
-                               'evi2': len(self.scales) * self.features_dict['evi2'],
-                               'ndvi': len(self.scales) * self.features_dict['ndvi'],
-                               'objects': len(self.scales) * self.features_dict['objects'],
-                               'dmp': len(self.scales) * self.features_dict['dmp'],
-                               'xy': len(self.scales) * self.features_dict['xy'],
-                               'lac': len(self.scales) * self.features_dict['lac']}
+        self.out_bands_dict = dict(ctr=len(self.scales) * self.features_dict['ctr'],
+                                   dmp=len(self.scales) * self.features_dict['dmp'],
+                                   evi2=len(self.scales) * self.features_dict['evi2'],
+                                   fourier=len(self.scales) * self.features_dict['fourier'],
+                                   gabor=len(self.scales) * self.features_dict['gabor'],
+                                   hog=len(self.scales) * self.features_dict['hog'],
+                                   hough=len(self.scales) * self.features_dict['hough'],
+                                   lac=len(self.scales) * self.features_dict['lac'],
+                                   lbp=len(self.scales) * self.features_dict['lbp'],
+                                   lbpm=len(self.scales) * self.features_dict['lbpm'],
+                                   lsr=len(self.scales) * self.features_dict['lsr'],
+                                   mean=len(self.scales) * self.features_dict['mean'],
+                                   ndvi=len(self.scales) * self.features_dict['ndvi'],
+                                   objects=len(self.scales) * self.features_dict['objects'],
+                                   orb=len(self.scales) * self.features_dict['orb'],
+                                   pantex=len(self.scales) * self.features_dict['pantex'],
+                                   seg=len(self.scales) * self.features_dict['seg'],
+                                   sfs=len(self.scales) * self.features_dict['sfs'],
+                                   surf=len(self.scales) * self.features_dict['surf'],
+                                   xy=len(self.scales) * self.features_dict['xy'])
 
         # Update the feature dictionary for feature neighbors.
         if self.neighbors:
@@ -151,6 +153,7 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local mean (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'ndvi' + Style.RESET_ALL + '    -- NDVI mean (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'pantex' + Style.RESET_ALL + '  -- Built-up presence index (n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (4 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (4)',
                   Fore.GREEN + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
 
@@ -179,7 +182,7 @@ def main():
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
-                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'pantex', 'sfs'])
+                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb', 'pantex', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=20, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',
