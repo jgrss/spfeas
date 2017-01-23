@@ -1,12 +1,65 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import copy
+import time
+import psutil
+import itertools
 
 from mpglue import raster_tools, vrt_builder
 
 import numpy as np
-import numexpr as ne
+# import numexpr as ne
+
+# YAML
+try:
+    import yaml
+except ImportError:
+    raise ImportError('YAML must be installed')
+
+
+def write_log(parameter_object):
+
+    # Setup the log file.
+    if os.path.isfile(parameter_object.log_txt):
+
+        with open(parameter_object.log_txt, 'rb') as log_txt_wr:
+            log_hist = log_txt_wr.readlines()
+
+        starter = log_hist
+
+    else:
+        starter = ''
+
+    with open(parameter_object.log_txt, 'wb') as log_txt_wr:
+
+        log_txt_wr.writelines("""\
+        {}\n
+        =================================================\n
+        Start date & time --- ({})\n
+        =================================================\n
+        Input image: {}\n
+        Output directory: {}\n
+        Bands: {}\n
+        Smoothing: {:d}\n
+        Block size: {:d}\n
+        Scales: {}\n
+        Feature triggers: {}\n
+        SFS stopping threshold: {:d}\n
+        SFS angles: {:d}\n
+        Red band position: {:d}\n
+        NIR band position: {:d}\n
+        {} compute features as neighbors\n
+        {} perform histogram equalization\n
+        {} perform adaptive histogram equalization\n
+        """.format(starter, time.asctime(time.localtime(time.time())), parameter_object.input_image,
+                   parameter_object.output_dir, parameter_object.rgb2write, parameter_object.smooth,
+                   parameter_object.block, ','.join([str(bpos) for bpos in parameter_object.scales]),
+                   ','.join(parameter_object.triggers), parameter_object.sfs_threshold,
+                   parameter_object.sfs_angles, parameter_object.band_red, parameter_object.band_nir,
+                   parameter_object.write_neighbors, parameter_object.write_equalize,
+                   parameter_object.write_equalize_adapt))
 
 
 def parameter_checks(parameter_object):
@@ -43,7 +96,7 @@ def parameter_checks(parameter_object):
             raise OSError('Could not create the output directory.')
 
 
-def scale_fea_check(trigger, feas_dir, band_p, scale, feature, parameter_object):
+def scale_fea_check(parameter_object):
 
     """
     Checks the scale and feature to set the string name.
@@ -52,33 +105,31 @@ def scale_fea_check(trigger, feas_dir, band_p, scale, feature, parameter_object)
         Image name as a string
     """
 
-    band_pos_str = str(band_p)
+    band_pos_str = str(parameter_object.band_position)
 
     if band_pos_str == 'rgb' or band_pos_str == 'bgr':
         band_pos_str = '-{}'.format(band_pos_str)
     else:
         band_pos_str = '-'.join(band_pos_str)
 
-    if feature < 10:
-        feature_str = 'fea00'
-    elif 10 <= feature < 100:
-        feature_str = 'fea0'
-    else:
-        feature_str = 'fea'
+    feature_str = 'fea{:03d}'.format(parameter_object.feature)
 
-    out_img = os.path.join(feas_dir, '{}_{}_bd{}_blk{:d}_sc{:d}_{}{:d}{}'.format(parameter_object.f_base,
-                                                                                 trigger,
-                                                                                 band_pos_str,
-                                                                                 parameter_object.block,
-                                                                                 scale,
-                                                                                 feature_str,
-                                                                                 feature,
-                                                                                 parameter_object.f_ext))
+    out_img = os.path.join(parameter_object.feas_dir,
+                           '{}_{}_bd{}_blk{:d}_sc{:d}_{}{}'.format(parameter_object.f_base,
+                                                                   parameter_object.trigger,
+                                                                   band_pos_str,
+                                                                   parameter_object.block,
+                                                                   parameter_object.scale,
+                                                                   feature_str,
+                                                                   parameter_object.f_ext))
 
     out_img_d_name, out_img_f_name = os.path.split(out_img)
-    out_img_f_base, out_img_f_ext = os.path.splitext(out_img_f_name)
+    out_img_base, out_img_f_ext = os.path.splitext(out_img_f_name)
 
-    return out_img, out_img_f_base
+    parameter_object.update_info(out_img=out_img,
+                                 out_img_base=out_img_base)
+
+    return parameter_object
 
 
 def stack_features(parameter_object, new_feas_list):
@@ -86,6 +137,37 @@ def stack_features(parameter_object, new_feas_list):
     """
     Stack features
     """
+
+    for trigger in parameter_object.triggers:
+
+        parameter_object.update_info(trigger=trigger)
+
+        # Set the output features folder.
+        parameter_object = set_feas_dir(parameter_object)
+
+        for band_p in parameter_object.band_positions:
+
+            parameter_object.update_info(band_position=band_p)
+
+            # Get feature names
+            obds = 1
+            for scale in parameter_object.scales:
+
+                parameter_object.update_info(scale=scale)
+
+                for feature in xrange(1, parameter_object.features_dict[trigger]+1):
+
+                    parameter_object.update_info(feature=feature)
+
+                    parameter_object = scale_fea_check(parameter_object)
+
+                    # skip the feature if it doesn't exist
+                    if not os.path.isfile(parameter_object.out_img):
+                        continue
+
+                    new_feas_list.append(parameter_object.out_img)
+
+                    obds += 1
 
     scs_str = [str(sc) for sc in parameter_object.scales]
     band_pos_str = [str(bp) for bp in parameter_object.band_positions]
@@ -104,25 +186,10 @@ def stack_features(parameter_object, new_feas_list):
 
     with open(fea_list_txt, 'wb') as fea_list_txt_wr:
 
-        fea_list_txt_wr.write('Layer,Name\n')
+        fea_list_txt_wr.write('Layer Name\n')
 
-        # if platform.system() == 'Windows':
-        #
-        #     with open(new_feas_list) as f:
-        #
-        #         fea_ctr = 1
-        #         for line in f:
-        #             fea_list_txt_wr.write('{:d},{}'.format(fea_ctr, line))
-        #             fea_ctr += 1
-        #
-        #     f.close()
-        #
-        # else:
-
-        fea_ctr = 1
-        for fea_name in new_feas_list:
-            fea_list_txt_wr.write('{:d},{}\n'.format(fea_ctr, fea_name))
-            fea_ctr += 1
+        for fea_ctr, fea_name in enumerate(new_feas_list):
+            fea_list_txt_wr.write('{:d} {}\n'.format(fea_ctr+1, fea_name))
 
     # stack features here
     out_vrt = os.path.join(parameter_object.output_dir,
@@ -135,37 +202,31 @@ def stack_features(parameter_object, new_feas_list):
     if os.path.isfile(out_vrt):
         os.remove(out_vrt)
 
-    # create the stack list
-    # if platform.system() == 'Windows':
-    #     com = 'gdalbuildvrt -separate -input_file_list {} {}'.format(new_feas_list, out_vrt)
-    # else:
-    #     com = 'gdalbuildvrt -separate {} {}'.format(out_vrt, ' '.join(new_feas_list))
-    #
-    # print '\nMosaicking {:d} features ...\n'.format(len(new_feas_list))
-    #
-    # subprocess.call(com, shell=True)
-
-    stack_dict = {}
+    stack_dict = dict()
 
     for ni, new_feas in enumerate(new_feas_list):
         stack_dict[str(ni+1)] = [new_feas]
 
     vrt_builder(stack_dict, out_vrt, force_type='float32')
 
-    return out_vrt
+    parameter_object.update_info(out_vrt=out_vrt)
+
+    return parameter_object
 
 
-def set_feas_dir(parameter_object, trigger):
+def set_feas_dir(parameter_object):
 
-    feas_dir = os.path.join(parameter_object.output_dir, trigger)
+    feas_dir = os.path.join(parameter_object.output_dir, parameter_object.trigger)
+
+    parameter_object.update_info(feas_dir=feas_dir)
 
     if not os.path.isdir(feas_dir):
         os.makedirs(feas_dir)
 
     if parameter_object.use_rgb:
-        parameter_object.band_positions = [parameter_object.rgb2write.lower()]
+        parameter_object.update_info(band_positions=[parameter_object.rgb2write.lower()])
 
-    return feas_dir, parameter_object
+    return parameter_object
 
 
 def min_max_func(im, im_min, im_max):
@@ -237,9 +298,9 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=Fa
                 n_cols_ = raster_tools.n_rows_cols(j_, 512, i_info.cols)
 
                 im_block = i_info.read(bands2open=[1, 2, 3],
-                                          i=i_, j=j_,
-                                          rows=n_rows_, cols=n_cols_,
-                                          d_type='float32')
+                                       i=i_, j=j_,
+                                       rows=n_rows_, cols=n_cols_,
+                                       d_type='float32')
 
                 luminosity = get_luminosity(im_block, n_rows_, n_cols_, rgb)
 
@@ -261,29 +322,32 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=Fa
         print '\nCalculating average RGB ...\n'.format(rgb.upper())
 
         im_block = i_info.read(bands2open=[1, 2, 3],
-                                  i=i_sect, j=j_sect,
-                                  rows=n_rows, cols=n_cols,
-                                  d_type='float32')
+                               i=i_sect, j=j_sect,
+                               rows=n_rows, cols=n_cols,
+                               d_type='float32')
 
         luminosity = get_luminosity(im_block, n_rows, n_cols, rgb)
 
         return luminosity, None, None
 
 
-def get_sect_chunk_size(img_info, max_section_size):
+def get_sect_chunk_size(image_info, parameter_object):
 
     # get section and chunk size
-    if img_info.rows <= max_section_size:
-        sect_row_size = copy.copy(img_info.rows)
+    if image_info.rows <= parameter_object.section_size:
+        sect_row_size = copy.copy(image_info.rows)
     else:
-        sect_row_size = max_section_size
+        sect_row_size = parameter_object.section_size
 
-    if img_info.cols <= max_section_size:
-        sect_col_size = copy.copy(img_info.cols)
+    if image_info.cols <= parameter_object.section_size:
+        sect_col_size = copy.copy(image_info.cols)
     else:
-        sect_col_size = max_section_size
+        sect_col_size = parameter_object.section_size
 
-    return sect_row_size, sect_col_size
+    parameter_object.update_info(sect_row_size=sect_row_size,
+                                 sect_col_size=sect_col_size)
+
+    return parameter_object
 
 
 def get_adj_info(meta_info, i_info, parameter_object):
@@ -317,7 +381,7 @@ def get_adj_info(meta_info, i_info, parameter_object):
     return i_info
 
 
-def create_band(meta_info, out_img, parameter_object, out_bands, blocks=True):
+def create_band(meta_info, parameter_object, out_bands, blocks=True):
 
     """
     Args:
@@ -339,7 +403,229 @@ def create_band(meta_info, out_img, parameter_object, out_bands, blocks=True):
 
     i_info.update_info(bands=out_bands, storage='float32')
 
-    out_rst = raster_tools.create_raster(out_img, i_info)
+    out_rst = raster_tools.create_raster(parameter_object.out_img, i_info)
 
     out_rst.close_file()
     out_rst = None
+
+
+def get_stats(image_info, parameter_object):
+
+    # Check available cpu memory
+    available_space = psutil.virtual_memory().available * 9.53674e-7
+
+    rows_and_cols = image_info.rows * image_info.cols
+
+    if (25000000 < rows_and_cols < 64000000) and (available_space > 8000):
+
+        if parameter_object.use_rgb:
+
+            __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
+
+        else:
+
+            if parameter_object.image_max > 0:
+                mx = parameter_object.image_max
+                mn = 0
+            else:
+                mx = image_info.read(bands2open=parameter_object.band_position).max()
+                mn = image_info.read(bands2open=parameter_object.band_position).min()
+
+    else:
+
+        if parameter_object.use_rgb:
+
+            __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
+
+        else:
+
+            if parameter_object.image_max > 0:
+                mx = parameter_object.image_max
+                mn = 0
+            else:
+                mn, mx, __, __ = image_info.get_stats(parameter_object.band_position)
+
+    parameter_object.update_info(min=mn, max=mx)
+
+    return parameter_object
+
+
+def set_status(parameter_object):
+
+    if os.path.isfile(parameter_object.status_dict_txt):
+
+        # open the status dictionary
+        with open(parameter_object.status_dict_txt, 'r') as pf:
+            status_dict = yaml.load(pf)
+
+        # get the feature status
+        try:
+            feature_status = status_dict[parameter_object.out_img_base]
+        except:
+            status_dict[parameter_object.out_img_base] = -999
+            feature_status = -999
+
+    else:
+
+        status_dict = dict()
+
+        # set the layer feature status as non-existent
+        status_dict[parameter_object.out_img_base] = -999
+
+        feature_status = -999
+
+    if parameter_object.reset:
+        feature_status = -999
+
+    parameter_object.update_info(feature_status=feature_status,
+                                 status_dict=status_dict)
+
+    return parameter_object
+
+
+def get_n_sects(image_info, parameter_object):
+
+    n_row_sects = len([i_sect
+                       for i_sect in xrange(0, image_info.rows,
+                                            parameter_object.sect_row_size -
+                                            (parameter_object.scales[-1] - parameter_object.block))])
+
+    n_col_sects = len([j_sect
+                       for j_sect in xrange(0, image_info.cols,
+                                            parameter_object.sect_col_size -
+                                            (parameter_object.scales[-1] -
+                                             parameter_object.block))])
+
+    n_sects = len([j_sect
+                   for (i_sect, j_sect) in
+                   itertools.product(xrange(0, image_info.rows,
+                                            parameter_object.sect_row_size -
+                                            (parameter_object.scales[-1] -
+                                             parameter_object.block)),
+                                     xrange(0, image_info.cols,
+                                            parameter_object.sect_col_size -
+                                            (parameter_object.scales[-1] -
+                                             parameter_object.block)))])
+
+    parameter_object.update_info(n_row_sects=n_row_sects,
+                                 n_col_sects=n_col_sects,
+                                 n_sects=n_sects)
+
+    return parameter_object
+
+
+def pad_array(parameter_object, array_section, n_rows, n_cols):
+
+    # pad left and top
+    if parameter_object.scales[-1] != parameter_object.block:
+
+        pad_len = (parameter_object.scales[-1] / 2) - (parameter_object.block / 2)
+
+        if (parameter_object.i_sect_blk_ctr == 1) and (parameter_object.j_sect_blk_ctr == 1):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (pad_len, 0)), 'wrap')
+                                            for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                                   n_rows + pad_len,
+                                                                                                   n_cols + pad_len)
+
+            else:
+                array_section = np.pad(array_section, ((pad_len, 0), (pad_len, 0)), 'wrap')
+
+        # pad top only
+        elif (parameter_object.i_sect_blk_ctr == 1) and (parameter_object.j_sect_blk_ctr > 1) and \
+                (parameter_object.j_sect_blk_ctr < parameter_object.n_col_sects):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (0, 0)), 'wrap')
+                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                             n_rows + pad_len, n_cols)
+
+            else:
+                array_section = np.pad(array_section, ((pad_len, 0), (0, 0)), 'wrap')
+
+        # pad top and right
+        elif (parameter_object.i_sect_blk_ctr == 1) and (parameter_object.j_sect_blk_ctr == parameter_object.n_col_sects):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (0, pad_len)), 'wrap')
+                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                       n_rows + pad_len,
+                                                                                       n_cols + pad_len)
+
+            else:
+                array_section = np.pad(array_section, ((pad_len, 0), (0, pad_len)), 'wrap')
+
+        # pad left only
+        elif (parameter_object.i_sect_blk_ctr > 1) and (parameter_object.i_sect_blk_ctr < parameter_object.n_row_sects) and \
+                (parameter_object.j_sect_blk_ctr == 1):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (pad_len, 0)), 'wrap')
+                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                       n_rows + pad_len,
+                                                                                       n_cols + pad_len)
+
+            else:
+                array_section = np.pad(array_section, ((0, 0), (pad_len, 0)), 'wrap')
+
+        # pad right only
+        elif (parameter_object.i_sect_blk_ctr > 1) and (parameter_object.i_sect_blk_ctr < parameter_object.n_row_sects) \
+                and (parameter_object.j_sect_blk_ctr == parameter_object.n_col_sects):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((0, 0), (0, pad_len)), 'wrap')
+                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                       n_rows, n_cols + pad_len)
+
+            else:
+                array_section = np.pad(array_section, ((0, 0), (0, pad_len)), 'wrap')
+
+        # pad left and bottom
+        elif (parameter_object.i_sect_blk_ctr == parameter_object.n_row_sects) \
+                and (parameter_object.j_sect_blk_ctr == 1):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((0, pad_len), (pad_len, 0)), 'wrap')
+                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                       n_rows + pad_len,
+                                                                                       n_cols + pad_len)
+
+            else:
+                array_section = np.pad(array_section, ((0, pad_len), (pad_len, 0)), 'wrap')
+
+        # pad bottom only
+        elif (parameter_object.i_sect_blk_ctr == parameter_object.n_row_sects) and (parameter_object.j_sect_blk_ctr > 1) \
+                and (parameter_object.j_sect_blk_ctr < parameter_object.n_col_sects):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((0, pad_len), (0, 0)), 'wrap')
+                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                       n_rows + pad_len, n_cols)
+
+            else:
+                array_section = np.pad(array_section, ((0, pad_len), (0, 0)), 'wrap')
+
+        # pad right and bottom
+        elif (parameter_object.i_sect_blk_ctr == parameter_object.n_row_sects) \
+                and (parameter_object.j_sect_blk_ctr == parameter_object.n_col_sects):
+
+            if parameter_object.trigger == 'dmp':
+
+                array_section = np.asarray([np.pad(array_section[pos], ((0, pad_len), (0, pad_len)), 'wrap')
+                                      for pos in xrange(0,
+                                                        array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                    n_rows + pad_len,
+                                                                                    n_cols + pad_len)
+
+            else:
+                array_section = np.pad(array_section, ((0, pad_len), (0, pad_len)), 'wrap')
+
+    return array_section

@@ -33,7 +33,8 @@ class SPParameters(object):
 
         # Set the features dictionary.
         self.features_dict = dict(mean=1, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
-                                  lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=5, ndvi=1,
+                                  lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=5,
+                                  evi2=1, ndvi=1,
                                   objects=1, dmp=1, xy=2, lac=1)
 
         # Set the output bands based on the trigger.
@@ -50,6 +51,7 @@ class SPParameters(object):
                                'seg': len(self.scales) * self.features_dict['seg'],
                                'fourier': len(self.scales) * self.features_dict['fourier'],
                                'sfs': len(self.scales) * self.features_dict['sfs'],
+                               'evi2': len(self.scales) * self.features_dict['evi2'],
                                'ndvi': len(self.scales) * self.features_dict['ndvi'],
                                'objects': len(self.scales) * self.features_dict['objects'],
                                'dmp': len(self.scales) * self.features_dict['dmp'],
@@ -93,6 +95,11 @@ class SPParameters(object):
         else:
             self.write_equalize_adapt = 'Did NOT'
 
+    def update_info(self, **kwargs):
+
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+
     def run(self):
         spprocess.run(self)
         
@@ -132,6 +139,7 @@ def _options():
 
     text_lines = [Fore.GREEN + Style.BRIGHT + 'ctr' + Style.RESET_ALL + '     -- Copy scale centers',
                   Fore.GREEN + Style.BRIGHT + 'dmp' + Style.RESET_ALL + '     -- Differential morphological profiles (n scales)' + Fore.RED + ' **EXPERIMENTAL**',
+                  Fore.GREEN + Style.BRIGHT + 'evi2' + Style.RESET_ALL + '    -- EVI2 mean (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'fourier' + Style.RESET_ALL + ' -- Fourier transform (n scales x 2)',
                   Fore.GREEN + Style.BRIGHT + 'gabor' + Style.RESET_ALL + '   -- Gabor filter bank (n scales x 2 x kernels(Default=24))',
                   Fore.GREEN + Style.BRIGHT + 'hog' + Style.RESET_ALL + '     -- Histogram of Oriented Gradients (4 (mean,var,skew,kurtosis) x n scales)',
@@ -170,7 +178,7 @@ def main():
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
-                        nargs='+', choices=['dmp', 'fourier', 'gabor', 'hog', 'lac',
+                        nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
                                             'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'pantex', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=20, type=int)
@@ -179,11 +187,11 @@ def main():
     parser.add_argument('-lgp', '--hline-gap', dest='hline_gap', help='The Hough line gap',
                         default=2, type=int)
     parser.add_argument('--weight', dest='weight', help='Whether to weight PanTex by DN', action='store_true')
-    parser.add_argument('-sfs-th', '--sfs-threshold', dest='sfs_threshold', help='The SFS stopping threshold',
+    parser.add_argument('--sfs-th', dest='sfs_threshold', help='The SFS stopping threshold',
                         default=80, type=int)
-    parser.add_argument('-sfs-rs', '--sfs-resample', dest='sfs_resample', help='The SFS resample size',
+    parser.add_argument('--sfs-rs', dest='sfs_resample', help='The SFS resample size',
                         default=0., type=float)
-    parser.add_argument('-sfs-ag', '--sfs-angles', dest='sfs_angles', help='The SFS angles',
+    parser.add_argument('--sfs-ag', dest='sfs_angles', help='The SFS angles',
                         default=8, type=int, choices=[8, 16])
     parser.add_argument('--lac-r', dest='lac_r', help='The lacunarity box r parameter', default=2, type=int)
     parser.add_argument('--smooth', dest='smooth', help='The smoothing kernel size', default=0, type=int)

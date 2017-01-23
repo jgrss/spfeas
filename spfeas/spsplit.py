@@ -3,6 +3,8 @@
 Date Created: 7/2/2013
 """
 
+import os
+import sys
 import itertools
 from joblib import Parallel, delayed
 
@@ -429,7 +431,7 @@ def wrapper(func, *args, **kwargs):
     return wrapped
 
 
-def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, parameter_object):
+def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
 
     """
     Split section into chunks and process features at each scale
@@ -460,10 +462,18 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
     # else:
     #     n_bins = 256
 
-    # Scale the data to an 8-bit range.
-    if trigger != 'dmp':
+    if (parameter_object.trigger == 'pantex') or (parameter_object.trigger == 'lac'):
+        out_d_range = (0, 31)
+    else:
+        out_d_range = (0, 255)
 
-        bd = np.uint8(rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 255)))
+    # Scale the data to byte.
+    bd = np.uint8(rescale_intensity(bd,
+                                    in_range=(parameter_object.min, parameter_object.max),
+                                    out_range=out_d_range))
+
+    # Scale the data to an 8-bit range.
+    if parameter_object.trigger != 'dmp':
 
         # histogram equalization
         if parameter_object.equalize:
@@ -485,7 +495,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
 
         # if bd.dtype != np.uint8:
             # bd = raster_tools.rescale_intensity(bd, 256, maxI=bd.max(), minI=0, dType='i').astype(np.uint8)
-            # bd = rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 255)).astype(np.uint8)
+            # bd = rescale_intensity(bd, in_range=(parameter_object.min, parameter_object.max), out_range=(0, 255)).astype(np.uint8)
 
         # bd = cv2.GaussianBlur(bd, (3,3), 1)
         #bd = cv2.fastNlMeansDenoising(bd, h=smooth, templateWindowSize=7, searchWindowSize=21)
@@ -493,29 +503,29 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
         bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, 5, 5))
 
     # get image gradient and orientation for HoG
-    if trigger == 'hog':
+    if parameter_object.trigger == 'hog':
         grad_img, ori_img = get_mag_ang(bd)
         
     # rescale for GLCM
-    elif (trigger == 'pantex') or (trigger == 'lac'):
-        
-        # rescale to 32 grey scales for GLCM
-        # bd = raster_tools.rescale_intensity(bd, 32, maxI=mx, minI=mn, dType='i').astype(np.uint8)
-        bd = np.uint8(rescale_intensity(bd, in_range=(0, 255), out_range=(0, 31)))
-        # bd = rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 31))
+    # elif (parameter_object.trigger == 'pantex') or (parameter_object.trigger == 'lac'):
+    #
+    #     # rescale to 32 grey scales for GLCM
+    #     # bd = raster_tools.rescale_intensity(bd, 32, maxI=parameter_object.max, minI=parameter_object.min, dType='i').astype(np.uint8)
+    #     # bd = np.uint8(rescale_intensity(bd, in_range=(0, 255), out_range=(0, 31)))
+    #     # bd = rescale_intensity(bd, in_range=(parameter_object.min, parameter_object.max), out_range=(0, 31))
 
-    elif trigger == 'lbp':
+    elif parameter_object.trigger == 'lbp':
         
         if parameter_object.visualize:
             bdOrig = bd.copy()
 
-    elif trigger == 'hough':
+    elif parameter_object.trigger == 'hough':
 
         # rescale to byte for canny
         # if bd.dtype != np.uint8:
 
             # bd = raster_tools.rescale_intensity(bd, 256, maxI=bd.max(), minI=0, dType='i').astype(np.uint8)	# min./max. stretch
-            # bd = rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 255))
+            # bd = rescale_intensity(bd, in_range=(parameter_object.min, parameter_object.max), out_range=(0, 255))
 
         # for display (testing) purposes only
         if parameter_object.visualize:
@@ -541,13 +551,13 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
         # scikits
         # bd 		= canny(bd.astype(np.uint8), sigma=1)#, low_threshold=12, high_threshold=24)	# Scikits implementation of Canny	
 
-    elif trigger == 'dmp':
+    elif parameter_object.trigger == 'dmp':
         bd = get_dmp(bd, section_rows, section_cols)
 
     # test canny and hough lines
     if parameter_object.visualize:
         
-        # if trigger != 'hough':
+        # if parameter_object.trigger != 'hough':
         
            # bd, _	= histEq(bd, numBins=256)	# histogram equalization
            # bd = equalize_hist(bd, nbins=256)
@@ -555,12 +565,12 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
         # for display purposes only
         bdOrig = bd.copy()
 
-        test_plot(bd, bdOrig, trigger, parameter_object)
+        test_plot(bd, bdOrig, parameter_object.trigger, parameter_object)
 
     # split the image array into overlapping chunks where
     # the overlap is determined by the output pixel block size and
     # the maximum scale
-    if trigger == 'hog':
+    if parameter_object.trigger == 'hog':
 
         grad_img = _chunk.chunk_float(grad_img, section_rows, section_cols,
                                       parameter_object.block,
@@ -572,7 +582,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                      parameter_object.chunk_size,
                                      parameter_object.scales[-1])
 
-    # elif trigger == 'ndvi':
+    # elif parameter_object.trigger == 'ndvi':
 
         # bd_4 = bd[0].astype(np.float32)
         # bd_3 = bd[1].astype(np.float32)
@@ -584,7 +594,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
 
         # bd = _chunk.chunk_int(bd, section_rows, section_cols, blk_size, chunk_size, scs[-1])
 
-    elif trigger == 'dmp':
+    elif parameter_object.trigger == 'dmp':
 
         bd = _chunk.chunk_float(bd, section_rows, section_cols,
                                 parameter_object.block, parameter_object.chunk_size, parameter_object.scales[-1])
@@ -594,12 +604,12 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
         bd = _chunk.chunk_int(bd, section_rows, section_cols,
                               parameter_object.block, parameter_object.chunk_size, parameter_object.scales[-1])
 
-    if trigger in ['mean', 'ndvi', 'objects', 'dmp']:
+    if parameter_object.trigger in ['mean', 'ndvi', 'objects', 'dmp', 'evi2']:
 
-        if trigger == 'mean':
+        if parameter_object.trigger == 'mean':
             print '\n  Processing mean ...'
         else:
-            print '\n  Processing mean {} ...'.format(trigger)
+            print '\n  Processing mean {} ...'.format(parameter_object.trigger)
 
         # def mean_wrapper(block, blk_size, scs, n_jobs):
         #     return Parallel(n_jobs=8, max_nbytes=None)(delayed(call_mean)(bd_, blk_size, scs, scs[-1]) \
@@ -613,7 +623,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                             parameter_object.scales,
                                                             parameter_object.scales[-1]) for bd_ in bd)
 
-    elif trigger == 'surf':
+    elif parameter_object.trigger == 'surf':
 
         print '\n  Processing SURF ...'
 
@@ -622,7 +632,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                             parameter_object.scales,
                                                             parameter_object.scales[-1]) for bd_ in bd)
 
-    elif trigger == 'lac':
+    elif parameter_object.trigger == 'lac':
 
         print '\n  Processing lacunarity ...'
 
@@ -632,12 +642,12 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                                   parameter_object.scales[-1],
                                                                   parameter_object.lac_r) for bd_ in bd)
 
-    # elif trigger == 'ctr':
+    # elif parameter_object.trigger == 'ctr':
     #
     #     print '\n  Copying band scales ...'
     #     return pool.map(startCtr, itertools.izip(bd, [blk_size]*len(bd), [scs]*len(bd)))
 
-    elif trigger == 'gabor':
+    elif parameter_object.trigger == 'gabor':
 
         print '\n  Processing Gabor ...'
 
@@ -648,7 +658,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                              parameter_object.scales,
                                                              parameter_object.scales[-1], kernels) for bd_ in bd)
 
-    elif trigger == 'fourier':
+    elif parameter_object.trigger == 'fourier':
 
         print '\n  Processing Fourier ...'
 
@@ -657,7 +667,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                                parameter_object.scales,
                                                                parameter_object.scales[-1]) for bd_ in bd)
 
-    elif trigger == 'hog':
+    elif parameter_object.trigger == 'hog':
 
         print '\n  Processing HoG ...'
 
@@ -667,7 +677,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                            parameter_object.scales[-1])
                                          for gim, oim in itertools.izip(grad_img, ori_img))
 
-    elif trigger == 'hough':
+    elif parameter_object.trigger == 'hough':
 
         print '\n  Processing Hough lines ...'
 
@@ -679,7 +689,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                              parameter_object.hline_min,
                                                              parameter_object.hline_gap) for bd_ in bd)
 
-    elif trigger == 'lbp':
+    elif parameter_object.trigger == 'lbp':
 
         print '\n  Processing LBP ...'
 
@@ -688,7 +698,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                            parameter_object.scales,
                                                            parameter_object.scales[-1]) for bd_ in bd)
 
-    elif trigger == 'lbpm':
+    elif parameter_object.trigger == 'lbpm':
 
         print '\n  Processing LBP ...'
 
@@ -697,7 +707,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                             parameter_object.scales,
                                                             parameter_object.scales[-1]) for bd_ in bd)
 
-    elif trigger == 'lsr':
+    elif parameter_object.trigger == 'lsr':
 
         print '\n  Processing LSR ...'
 
@@ -706,7 +716,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
                                                            parameter_object.scales,
                                                            parameter_object.scales[-1]) for bd_ in bd)
 
-    elif trigger == 'pantex':
+    elif parameter_object.trigger == 'pantex':
 
         print '\n  Processing PanTex ...'
 
@@ -720,7 +730,7 @@ def get_sect_feas(bd, section_rows, section_cols, mn, mx, cell_size, trigger, pa
 
         # tsk	= map(feaPanTex, bd, [blk_size]*len(bd), [scs]*len(bd), [weighted]*len(bd))
 
-    elif trigger == 'sfs':
+    elif parameter_object.trigger == 'sfs':
 
         print '\n  Processing SFS ...'
 

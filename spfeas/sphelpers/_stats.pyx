@@ -113,7 +113,7 @@ cdef DTYPE_float32_t _get_min_f(DTYPE_float32_t[:] in_row, int cols):
         DTYPE_float32_t m = 100000000.
 
     for a in xrange(0, cols):
-
+    # for a in prange(0, cols, nogil=True, num_threads=cols, schedule='static'):
         m = _get_min_sample_f(m, in_row[a])
 
     return m
@@ -731,10 +731,10 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad
                 k_half = k / 2
 
                 ch_grad = grad[i+scales_half-k_half:i+scales_half-k_half+k,
-                          j+scales_half-k_half:j+scales_half-k_half+k]
+                               j+scales_half-k_half:j+scales_half-k_half+k]
 
                 ch_ori = ori[i+scales_half-k_half:i+scales_half-k_half+k,
-                         j+scales_half-k_half:j+scales_half-k_half+k]
+                             j+scales_half-k_half:j+scales_half-k_half+k]
 
                 sts = get_moments(calc_hog(np.array(ch_grad), np.array(ch_ori), pi2, bin_n))
 
