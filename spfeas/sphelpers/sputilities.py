@@ -25,41 +25,32 @@ def write_log(parameter_object):
     if os.path.isfile(parameter_object.log_txt):
 
         with open(parameter_object.log_txt, 'rb') as log_txt_wr:
-            log_hist = log_txt_wr.readlines()
-
-        starter = log_hist
+            starter = log_txt_wr.readlines()
 
     else:
-        starter = ''
+        starter = []
+
+    lines2write = starter + ['\n',
+                             '=================================================\n',
+                             'Start date & time --- ({})\n'.format(time.asctime(time.localtime(time.time()))),
+                             '=================================================\n',
+                             'Input image: {}\n'.format(parameter_object.input_image),
+                             'Output directory: {}\n'.format(parameter_object.output_dir),
+                             'Bands: {}\n'.format(parameter_object.rgb2write),
+                             'Smoothing: {:d}\n'.format(parameter_object.smooth),
+                             'Block size: {:d}\n'.format(parameter_object.block),
+                             'Scales: {}\n'.format(','.join([str(bpos) for bpos in parameter_object.scales])),
+                             'Contextual features: {}\n'.format(','.join(parameter_object.triggers)),
+                             'SFS stopping threshold: {:d}\n'.format(parameter_object.sfs_threshold),
+                             'SFS angles: {:d}\n'.format(parameter_object.sfs_angles),
+                             'Red band position: {:d}\n'.format(parameter_object.band_red),
+                             'NIR band position: {:d}\n'.format(parameter_object.band_nir),
+                             '{} compute features as neighbors\n'.format(parameter_object.write_neighbors),
+                             '{} perform histogram equalization\n'.format(parameter_object.write_equalize),
+                             '{} perform adaptive histogram equalization\n'.format(parameter_object.write_equalize_adapt)]
 
     with open(parameter_object.log_txt, 'wb') as log_txt_wr:
-
-        log_txt_wr.writelines("""\
-        {}\n
-        =================================================\n
-        Start date & time --- ({})\n
-        =================================================\n
-        Input image: {}\n
-        Output directory: {}\n
-        Bands: {}\n
-        Smoothing: {:d}\n
-        Block size: {:d}\n
-        Scales: {}\n
-        Feature triggers: {}\n
-        SFS stopping threshold: {:d}\n
-        SFS angles: {:d}\n
-        Red band position: {:d}\n
-        NIR band position: {:d}\n
-        {} compute features as neighbors\n
-        {} perform histogram equalization\n
-        {} perform adaptive histogram equalization\n
-        """.format(starter, time.asctime(time.localtime(time.time())), parameter_object.input_image,
-                   parameter_object.output_dir, parameter_object.rgb2write, parameter_object.smooth,
-                   parameter_object.block, ','.join([str(bpos) for bpos in parameter_object.scales]),
-                   ','.join(parameter_object.triggers), parameter_object.sfs_threshold,
-                   parameter_object.sfs_angles, parameter_object.band_red, parameter_object.band_nir,
-                   parameter_object.write_neighbors, parameter_object.write_equalize,
-                   parameter_object.write_equalize_adapt))
+        log_txt_wr.writelines(lines2write)
 
 
 def parameter_checks(parameter_object):
@@ -207,7 +198,9 @@ def stack_features(parameter_object, new_feas_list):
     for ni, new_feas in enumerate(new_feas_list):
         stack_dict[str(ni+1)] = [new_feas]
 
-    vrt_builder(stack_dict, out_vrt, force_type='float32')
+    print('Stacking variables ...')
+
+    vrt_builder(stack_dict, out_vrt, force_type='float32', be_quiet=True)
 
     parameter_object.update_info(out_vrt=out_vrt)
 
@@ -286,25 +279,39 @@ def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
         print '\nCalculating image min and max ...\n'
 
-        im_min = 1000000
-        im_max = -1000000
+        im_block = i_info.read(bands2open=[1, 2, 3], d_type='float32')
 
-        for i_ in xrange(0, i_info.rows, 512):
+        luminosity = get_luminosity(im_block, i_info.rows, i_info.cols, rgb)
 
-            n_rows_ = raster_tools.n_rows_cols(i_, 512, i_info.rows)
+        # Randomly sample half of the pixels.
+        ran = np.random.choice(range(i_info.rows*i_info.cols),
+                               size=int((i_info.rows*i_info.cols)*.5),
+                               replace=False)
 
-            for j_ in xrange(0, i_info.cols, 512):
+        d = luminosity.ravel()[ran]
 
-                n_cols_ = raster_tools.n_rows_cols(j_, 512, i_info.cols)
+        im_min = np.percentile(d, 2)
+        im_max = np.percentile(d, 98)
 
-                im_block = i_info.read(bands2open=[1, 2, 3],
-                                       i=i_, j=j_,
-                                       rows=n_rows_, cols=n_cols_,
-                                       d_type='float32')
-
-                luminosity = get_luminosity(im_block, n_rows_, n_cols_, rgb)
-
-                im_min, im_max = min_max_func(luminosity, im_min, im_max)
+        # im_min = 1000000
+        # im_max = -1000000
+        #
+        # for i_ in xrange(0, i_info.rows, 512):
+        #
+        #     n_rows_ = raster_tools.n_rows_cols(i_, 512, i_info.rows)
+        #
+        #     for j_ in xrange(0, i_info.cols, 512):
+        #
+        #         n_cols_ = raster_tools.n_rows_cols(j_, 512, i_info.cols)
+        #
+        #         im_block = i_info.read(bands2open=[1, 2, 3],
+        #                                i=i_, j=j_,
+        #                                rows=n_rows_, cols=n_cols_,
+        #                                d_type='float32')
+        #
+        #         luminosity = get_luminosity(im_block, n_rows_, n_cols_, rgb)
+        #
+        #         im_min, im_max = min_max_func(luminosity, im_min, im_max)
 
         # bp = raster_tools.BlockFunc(min_max_func, [i_info], None, None,
         #                             out_attributes=['im_min', 'im_max'],

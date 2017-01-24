@@ -69,6 +69,15 @@ def run(parameter_object):
                 # Get image information
                 i_info = raster_tools.ropen(parameter_object.input_image)
 
+                # Check if any of the bands are corrupted.
+                i_info.check_corrupted_bands()
+
+                if i_info.corrupted_bands:
+                    print
+                    print('The following bands appear to be corrupted:')
+                    print ', '.join(i_info.corrupted_bands)
+                    sys.exit()
+
                 # Get image statistics.
                 parameter_object = sputilities.get_stats(i_info, parameter_object)
 

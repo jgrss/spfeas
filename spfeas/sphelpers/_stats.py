@@ -1332,6 +1332,7 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs, int end_scale, int
         DTYPE_float32_t[:] out_list
         DTYPE_float32_t[:] nz = np.zeros(84, dtype='float32')
         DTYPE_float32_t[:] nz_mom = np.zeros(4, dtype='float32')
+        DTYPE_uint8_t[:, :] ch_bd_block
         int out_len = 0
         Py_ssize_t pix_ctr = 0
         list key_points
@@ -1349,9 +1350,6 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs, int end_scale, int
     # Initiate ORB detector
     orb = cv2.ORB_create(nfeatures=max_features)
 
-    # Compute ORB keypoints
-    key_points, __ = orb.detectAndCompute(np.uint8(ch_bd), None)
-
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
             for ki in xrange(0, scale_length):
@@ -1360,12 +1358,14 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs, int end_scale, int
 
                 k_half = k / 2
 
+                ch_bd_block = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                    j+scales_half-k_half:j+scales_half-k_half+k]
+
+                # Compute ORB keypoints
+                key_points, __ = orb.detectAndCompute(np.uint8(ch_bd_block), None)
+
                 if key_points:
-
-                    sts = _feature_orb(ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
-                                             j+scales_half-k_half:j+scales_half-k_half+k],
-                                       key_points, j, i, k_half, scales_half, nz.copy())
-
+                    sts = _feature_orb(ch_bd_block, key_points, j, i, k_half, scales_half, nz.copy())
                 else:
                     sts = nz_mom.copy()
 

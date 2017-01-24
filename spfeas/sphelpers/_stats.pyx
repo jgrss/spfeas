@@ -9,7 +9,7 @@ cimport numpy as np
 
 from copy import copy
 
-from libc.stdlib cimport free
+# from libc.stdlib cimport free
 from libc.math cimport pow, atan, sqrt, sin, cos, round
 
 from cython.parallel import parallel, prange
@@ -89,6 +89,11 @@ cdef inline DTYPE_float32_t _get_min_sample_f(DTYPE_float32_t s1, DTYPE_float32_
 
 
 @cython.profile(False)
+cdef inline DTYPE_uint8_t _get_min_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2):
+    return s2 if s2 < s1 else s1
+
+
+@cython.profile(False)
 cdef inline DTYPE_float32_t _get_max_sample(DTYPE_float32_t s1, DTYPE_float32_t s2):
     return s2 if s2 > s1 else s1
 
@@ -96,11 +101,6 @@ cdef inline DTYPE_float32_t _get_max_sample(DTYPE_float32_t s1, DTYPE_float32_t 
 @cython.profile(False)
 cdef inline DTYPE_uint8_t _get_max_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2):
     return s2 if s2 > s1 else s1
-
-
-@cython.profile(False)
-cdef inline DTYPE_uint8_t _get_min_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2):
-    return s2 if s2 < s1 else s1
 
 
 @cython.boundscheck(False)
@@ -537,7 +537,7 @@ cdef DTYPE_float32_t[:] get_moments(DTYPE_float32_t[:] img_arr):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd, int blk,
-                                                        DTYPE_uint8_t[:] scs, int out_len, int scales_half,
+                                                        DTYPE_uint16_t[:] scs, int out_len, int scales_half,
                                                         int scales_block, list kernels, int rows, int cols,
                                                         int scale_length):
 
@@ -550,7 +550,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
 
     cdef:
         Py_ssize_t i, j, ki, kl
-        unsigned int k, k_half
+        DTYPE_uint16_t k, k_half
         DTYPE_uint8_t[:, :] ch_bd
         DTYPE_uint8_t[:, :] ch_bd_gabor
         DTYPE_float32_t[:] sts
@@ -569,7 +569,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
                 k_half = k / 2
 
                 ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
-                        j+scales_half-k_half:j+scales_half-k_half+k]
+                             j+scales_half-k_half:j+scales_half-k_half+k]
 
                 bcr = ch_bd.shape[0]
                 bcc = ch_bd.shape[1]
@@ -585,7 +585,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
                     out_list[pix_ctr] = _get_var_uint8(ch_bd_gabor, bcr, bcc)
                     pix_ctr += 1
 
-    return np.float32(np.asarray(out_list))
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
@@ -599,7 +599,7 @@ def feature_gabor(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
         int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
         int n_kernels = np.asarray(kernels).shape[0]
 
@@ -616,72 +616,9 @@ def feature_gabor(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
 # Histogram of Oriented Gradients
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# cdef np.ndarray[DTYPE_float32_t, ndim=1] feaHoG(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs):
-#
-#     """
-#     Get the Histogram of Oriented Gradients
-#
-#     Returns at each scale
-#     ---------------------
-#     1:	Mean
-#     2:	Variance
-#     3:	Skew
-#     4:	Kurtosis
-#     """
-#
-#     cdef:
-#         Py_ssize_t i, j
-#         int k, the_min, k_half
-#         int rows = chBd.shape[0]
-#         int cols = chBd.shape[1]
-#         int blk_rws, blk_cls
-#         np.ndarray[DTYPE_uint8_t, ndim=2] ch_bd
-#         np.ndarray[DTYPE_float64_t, ndim=1] hogArr
-#         list sts
-#         DTYPE_float64_t st
-#         int scales_half = np.max(scs) / 2
-#         int scales_blk = np.max(scs) - blk
-#         np.ndarray[DTYPE_float32_t, ndim=1] out_list
-#         int out_len = 0
-#         int pix_ctr = 0
-#
-#     for i in xrange(0, rows-scales_blk, blk):
-#         for j in xrange(0, cols-scales_blk, blk):
-#             for k in scs:
-#                 out_len += 4
-#
-#     # set the output list
-#     out_list = np.empty(out_len).astype(np.float32)
-#
-#     for i in xrange(0, rows-scales_blk, blk):
-#         for j in xrange(0, cols-scales_blk, blk):
-#             for k in scs:
-#
-#                 k_half = k / 2
-#
-#                 ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k, j+scales_half-k_half:j+scales_half-k_half+k]
-#
-#                 blk_rws = ch_bd.shape[0]
-#                 blk_cls = ch_bd.shape[1]
-#
-#                 the_min = _get_min_sample_i(blk_rws, blk_cls)
-#
-#                 hogArr = HOG(ch_bd, orientations=8, pixels_per_cell=(the_min, the_min), cells_per_block=(1, 1))
-#
-#                 sts = get_moments(hogArr)
-#
-#                 for st in sts:
-#                     out_list[pix_ctr] = st
-#
-#                     pix_ctr += 1
-#
-#     return out_list
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(np.ndarray[DTYPE_float32_t, ndim=2] mag_chunk,
                                                   np.ndarray[DTYPE_float32_t, ndim=2] ang_chunk,
                                                   DTYPE_float32_t pi2, int bin_n):
@@ -689,7 +626,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(np.ndarray[DTYPE_float32_t, nd
     # quantizing binvalues
     cdef np.ndarray[DTYPE_uint16_t, ndim=2] bins = (bin_n * ang_chunk / pi2).astype(np.uint16)
 
-    return np.bincount(np.array(bins).ravel(), weights=np.array(mag_chunk).ravel(), minlength=bin_n).astype(np.float32)
+    return np.float32(np.bincount(np.array(bins).ravel(), weights=mag_chunk.ravel(), minlength=bin_n))
 
 
 @cython.boundscheck(False)
@@ -697,7 +634,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(np.ndarray[DTYPE_float32_t, nd
 @cython.cdivision(True)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad,
                                                       DTYPE_float32_t[:, :] ori,
-                                                      int blk, DTYPE_uint8_t[:] scs, int end_scale, int scales_half,
+                                                      int blk, DTYPE_uint16_t[:] scs, int end_scale, int scales_half,
                                                       int scales_block, int out_len, int rows, int cols,
                                                       int scale_length):
 
@@ -713,7 +650,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad
 
     cdef:
         Py_ssize_t i, j, ki, sti
-        unsigned int k, k_half
+        DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:, :] ch_grad, ch_ori
         DTYPE_float32_t[:] sts
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
@@ -743,7 +680,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad
 
                     pix_ctr += 1
 
-    return np.asarray(out_list).astype(np.float32)
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
@@ -759,7 +696,7 @@ def feature_hog(np.ndarray[DTYPE_float32_t, ndim=2] grad,
         int out_len = 0
         int rows = grad.shape[0]
         int cols = grad.shape[1]
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
@@ -1225,44 +1162,60 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _check_points(DTYPE_float32_t key_x, DTYPE_float32_t key_y,
-                        Py_ssize_t ki, Py_ssize_t kj,
-                        Py_ssize_t start_y, Py_ssize_t start_x,
-                        Py_ssize_t rr_rows, Py_ssize_t cc_cols,
-                        DTYPE_float32_t[:] hist_, Py_ssize_t lv,
-                        Py_ssize_t grid_counter):
+cdef DTYPE_float32_t[:] _check_points(DTYPE_float32_t key_x, DTYPE_float32_t key_y,
+                                      Py_ssize_t ki, Py_ssize_t kj,
+                                      Py_ssize_t i_, Py_ssize_t j_,
+                                      Py_ssize_t rr_rows, Py_ssize_t cc_cols,
+                                      DTYPE_float32_t[:] hist, Py_ssize_t lv,
+                                      Py_ssize_t grid_counter) nogil:
 
     """
     pts = (x,y)
     """
 
     # Point within the current grid.
-    if (ki+start_y <= key_y < ki+start_y+rr_rows) and (kj+start_x <= key_x < kj+start_x+cc_cols):
-        hist_[lv+grid_counter] += 1
+    if (i_+ki <= key_y < i_+ki+rr_rows) and (j_+kj <= key_x < j_+kj+cc_cols):
+        hist[lv+grid_counter] += 1
+
+    return hist
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef DTYPE_float32_t[:, :] _fill_key_points(list key_point_list):
+
+    cdef:
+        Py_ssize_t n_key_points = len(key_point_list)
+        DTYPE_float32_t[:, :] key_point_array = np.empty((n_key_points, 2), dtype='float32')
+
+    for key_point_index in xrange(0, n_key_points):
+
+        key_x, key_y = key_point_list[key_point_index].pt
+
+        key_point_array[key_point_index, 0] = key_x
+        key_point_array[key_point_index, 1] = key_y
+
+    return key_point_array
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] orb_array,
-                                           list k_pts, Py_ssize_t start_x, Py_ssize_t start_y,
-                                           DTYPE_float32_t[:] hist):
+                                           DTYPE_float32_t[:, :] key_point_array,
+                                           DTYPE_float32_t[:] hist,
+                                           int i, int j):
 
     cdef:
-        Py_ssize_t n_key_points = len(k_pts)
-        Py_ssize_t l_count, lv, y_tiles, x_tiles, ki, kj, key_point_index, grid_counter
+        Py_ssize_t n_key_points = key_point_array.shape[0]
+        Py_ssize_t lv, y_tiles, x_tiles, ki, kj, key_point_index, grid_counter
         Py_ssize_t rr_rows, cc_cols
         DTYPE_uint8_t[:] levels = np.array([2, 4, 8], dtype='uint8')
         Py_ssize_t orb_rows = orb_array.shape[0]
         Py_ssize_t orb_cols = orb_array.shape[1]
-        DTYPE_float32_t key_x, key_y
-        DTYPE_float32_t[:, :] key_point_array = np.empty((n_key_points, 2), dtype='float32')
 
     # Fill the keypoints
-    for key_point_index in xrange(0, n_key_points):
-        key_x, key_y = k_pts[key_point_index].pt
-        key_point_array[key_point_index, 0] = key_x
-        key_point_array[key_point_index, 1] = key_y
+    # key_point_array = _fill_key_points(k_pts)
 
     # hist[0] = n_key_points
 
@@ -1285,12 +1238,11 @@ cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] orb_array,
                 # Iterate over each key point.
                 for key_point_index in xrange(0, n_key_points):
 
-                    _check_points(key_point_array[key_point_index, 0],
-                                  key_point_array[key_point_index, 1],
-                                  ki, kj,
-                                  start_y, start_x,
-                                  rr_rows, cc_cols,
-                                  hist, lv, grid_counter)
+                    hist = _check_points(key_point_array[key_point_index, 0],
+                                         key_point_array[key_point_index, 1],
+                                         ki, kj, i, j,
+                                         rr_rows, cc_cols,
+                                         hist, lv, grid_counter)
 
                 grid_counter += 1
 
@@ -1299,58 +1251,49 @@ cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] orb_array,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t[:] _feature_orb(DTYPE_uint8_t[:, :] orb_array,
-                                     list k_pts, int j, int i, Py_ssize_t k_half,
-                                     int scales_half, DTYPE_float32_t[:] nz):
+cdef DTYPE_float32_t[:] _orb(DTYPE_uint8_t[:, :] orb_array,
+                             DTYPE_float32_t[:, :] k_pts, DTYPE_float32_t[:] nz,
+                             int i, int j):
 
     """
     Get the moments
     """
 
-    cdef:
-        Py_ssize_t start_y = i + scales_half - k_half
-        Py_ssize_t start_x = j + scales_half - k_half
-
-    if k_pts:
-        return get_moments(_pyramid_hist_sift(orb_array, k_pts, start_x, start_y, nz.copy()))
-    else:
-        return nz
+    return get_moments(_pyramid_hist_sift(orb_array, k_pts, nz.copy(), i, j))
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs, int end_scale, int max_features=100):
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk,
+                                                      DTYPE_uint16_t[:] scales_array,
+                                                      int scales_half, int scales_block, int scale_length, int out_len,
+                                                      int rows, int cols, int scales_length, int max_features):
 
     cdef:
-        Py_ssize_t i, j, ki, k, k_half, st
-        int rows = ch_bd.shape[0]
-        int cols = ch_bd.shape[1]
+        Py_ssize_t i, j, ki, st
+        DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:] sts
-        int scales_half = end_scale / 2
-        int scales_block = end_scale - blk
         DTYPE_float32_t[:] out_list
         DTYPE_float32_t[:] nz = np.zeros(84, dtype='float32')
         DTYPE_float32_t[:] nz_mom = np.zeros(4, dtype='float32')
-        int out_len = 0
+        DTYPE_uint8_t[:, :] ch_bd_block
         Py_ssize_t pix_ctr = 0
         list key_points
-        int scale_length = len(scs)
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
-
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
-                out_len += 4
+        DTYPE_float32_t[:, :] key_point_array
 
     # Set the output list
     out_list = np.zeros(out_len, dtype='float32')
 
     # Initiate ORB detector
-    orb = cv2.ORB_create(nfeatures=max_features)
+    orb = cv2.ORB_create(nfeatures=max_features, edgeThreshold=31, patchSize=31, WTA_K=4)
 
     # Compute ORB keypoints
     key_points, __ = orb.detectAndCompute(np.uint8(ch_bd), None)
+
+    # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
+
+    key_point_array = _fill_key_points(key_points)
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -1360,12 +1303,14 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs, int end_scale, int
 
                 k_half = k / 2
 
+                ch_bd_block = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                    j+scales_half-k_half:j+scales_half-k_half+k]
+
+                # # Compute ORB keypoints
+                # key_points, __ = orb.detectAndCompute(np.uint8(ch_bd_block), None)
+
                 if key_points:
-
-                    sts = _feature_orb(ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
-                                             j+scales_half-k_half:j+scales_half-k_half+k],
-                                       key_points, j, i, k_half, scales_half, nz.copy())
-
+                    sts = _orb(ch_bd_block, key_point_array, nz.copy(), i, j)
                 else:
                     sts = nz_mom.copy()
 
@@ -1375,7 +1320,31 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs, int end_scale, int
 
                     pix_ctr += 1
 
-    return out_list
+    return np.float32(out_list)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def feature_orb(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs, int end_scale, int max_features=20000):
+
+    cdef:
+        Py_ssize_t i, j, ki
+        int scales_half = end_scale / 2
+        int scales_block = end_scale - blk
+        int out_len = 0
+        int rows = ch_bd.shape[0]
+        int cols = ch_bd.shape[1]
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
+        int scale_length = scales_array.shape[0]
+
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in xrange(0, scale_length):
+                out_len += 4
+
+    return _feature_orb(ch_bd, blk, scales_array, scales_half, scales_block, scale_length,
+                        out_len, rows, cols, scale_length, max_features)
 
 
 @cython.boundscheck(False)
@@ -1397,7 +1366,6 @@ cdef _set_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int rows, int cols):
 
     # run lBP for each scale
     for scsc in xrange(0, len(p_range)):
-
         lbpBd[scsc] = LBP(chBd, p_range[scsc], Rdict[p_range[scsc]], 'uniform')
 
     return lbpBd, p_range
@@ -1405,11 +1373,12 @@ cdef _set_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int rows, int cols):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef list _feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale):
 
     cdef:
         Py_ssize_t i, j, ki, sti
-        int k, pc, pr_bin_count, k_half
+        int pc, pr_bin_count
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
         np.ndarray[DTYPE_uint8_t, ndim=3] ch_bd
@@ -1417,11 +1386,12 @@ cdef list _feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs
         list p_range
         np.ndarray[DTYPE_uint8_t, ndim=3] lbpBd
         int scales_half = end_scale / 2
-        cdef int scales_block = end_scale - blk
+        int scales_block = end_scale - blk
         np.ndarray[DTYPE_uint8_t, ndim=1] out_list
         int out_len = 0
         int pix_ctr = 0
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        DTYPE_uint16_t k, k_half
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
 
     # get the LBP images
@@ -1462,7 +1432,7 @@ cdef list _feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs
     # out_list[isnan(out_list) | isinf(out_list)] = 0
     out_list[np.isnan(out_list) | np.isinf(out_list)] = 0
 
-    return list(out_list)
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
@@ -1486,7 +1456,7 @@ cdef list _feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list sc
 
     cdef:
         Py_ssize_t i, j, sti, ki
-        int k, pc, k_half
+        int pc
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
         np.ndarray[DTYPE_uint8_t, ndim=3] ch_bd
@@ -1498,7 +1468,8 @@ cdef list _feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list sc
         np.ndarray[DTYPE_float64_t, ndim=1] out_list
         int out_len = 0
         int pix_ctr = 0
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        DTYPE_uint16_t k, k_half
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
 
     # get the LBP images
@@ -1684,13 +1655,16 @@ cdef list _hough_function(list lines_list, np.ndarray[DTYPE_uint8_t, ndim=2] edg
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk,
-                                                        list scs, int scales_half, int scales_block,
+                                                        DTYPE_uint16_t[:] scales_array,
+                                                        int scales_half, int scales_block,
+                                                        int scale_length,
                                                         int out_len, int rows, int cols, int threshold,
                                                         int min_len, int line_gap, int end_scale):
 
     cdef:
-        Py_ssize_t i, j, k
-        int k_half
+        Py_ssize_t i, j, ki
+        DTYPE_uint16_t k, k_half
+        int k_half_end = end_scale / 2
         DTYPE_float32_t pi = 3.14159
         np.ndarray[DTYPE_uint8_t, ndim=2] ch_bd, large_scale
         int pix_ctr = 0
@@ -1712,8 +1686,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t
             lines_list = []
 
             # get the largest scale array
-            large_scale = chBd[i+scales_half-(end_scale/2):i+scales_half-(end_scale/2)+end_scale,
-                          j+scales_half-(end_scale/2):j+scales_half-(end_scale/2)+end_scale]
+            large_scale = chBd[i+scales_half-k_half_end:i+scales_half-k_half_end+end_scale,
+                               j+scales_half-k_half_end:j+scales_half-k_half_end+end_scale]
 
             # get the dimensions for the largest scale
             large_scale_rws = large_scale.shape[0]
@@ -1726,7 +1700,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t
 
             # get the matching dimensions at each scale
             # and get line statistics
-            for k in scs:
+            for ki in xrange(0, scale_length):
+
+                k = scales_array[ki]
 
                 k_half = k / 2
 
@@ -1759,7 +1735,7 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
         int out_len = 0
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
@@ -1767,8 +1743,8 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
             for ki in xrange(0, scale_length):
                 out_len += 4
 
-    return _feature_hough(chBd, blk, scs, scales_half, scales_block, out_len, rows, cols,
-                          threshold, min_len, line_gap, end_scale)
+    return _feature_hough(chBd, blk, scales_array, scales_half, scales_block, scale_length,
+                          out_len, rows, cols, threshold, min_len, line_gap, end_scale)
 
 
 # PanTex
@@ -1808,11 +1784,11 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
                     i = image[r, c]
 
                     # compute the location of the offset pixel
-                    # row = r + <int>round(sin(angle) * distance)
-                    # col = c + <int>round(cos(angle) * distance)
+                    row = r + <int>round(sin(angle) * distance)
+                    col = c + <int>round(cos(angle) * distance)
 
-                    row = r + int(round(sin(angle) * distance))
-                    col = c + int(round(cos(angle) * distance))
+                    # row = r + int(round(sin(angle) * distance))
+                    # col = c + int(round(cos(angle) * distance))
 
                     # row = r + int(round(sin(angle) * distance))
                     # col = c + int(round(cos(angle) * distance))
@@ -1998,7 +1974,7 @@ cdef DTYPE_float32_t[:, :] _set_contrast_weights(int levels):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chBd,
-                                                         int blk, DTYPE_uint8_t[:] scs, int scales_half,
+                                                         int blk, DTYPE_uint16_t[:] scs, int scales_half,
                                                          int scales_block, int out_len, bint weighted,
                                                          int rows, int cols, int scale_length,
                                                          int levels=32):
@@ -2009,7 +1985,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
     cdef:
         Py_ssize_t i, j, ki, block_rows, block_cols
-        DTYPE_uint8_t k, k_half
+        DTYPE_uint16_t k, k_half
         DTYPE_uint8_t[:, :] ch_bd
         DTYPE_float32_t pi = 3.14159265
         DTYPE_float32_t[:, :, :, ::1] glcm_mat
@@ -2111,13 +2087,13 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 def feature_pantex(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale, bint weighted):
 
     cdef:
-        Py_ssize_t i, j, k
+        Py_ssize_t i, j, ki
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
@@ -2132,13 +2108,15 @@ def feature_pantex(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, in
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float64_t, ndim=1] feature_mean_float64(DTYPE_float64_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
+cdef np.ndarray[DTYPE_float64_t, ndim=1] feature_mean_float64(DTYPE_float64_t[:, :] chBd, int blk,
+                                                              DTYPE_uint16_t[:] scs,
                                                               int out_len, int scales_half, int scales_block,
                                                               int scale_length):
 
     cdef:
         int i, j, ki, pix_ctr
-        unsigned int k, bcr, bcc
+        unsigned int bcr, bcc
+        DTYPE_uint16_t k, k_half
         DTYPE_float64_t[:] out_list = np.zeros(out_len, dtype='float64')
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
@@ -2152,7 +2130,11 @@ cdef np.ndarray[DTYPE_float64_t, ndim=1] feature_mean_float64(DTYPE_float64_t[:,
 
                 k = scs[ki]
 
-                block_chunk = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, j+scales_half-(k/2):j+scales_half-(k/2)+k]
+                k_half = k / 2
+
+                block_chunk = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                   j+scales_half-k_half:j+scales_half-k_half+k]
+
                 bcr = block_chunk.shape[0]
                 bcc = block_chunk.shape[1]
 
@@ -2160,19 +2142,20 @@ cdef np.ndarray[DTYPE_float64_t, ndim=1] feature_mean_float64(DTYPE_float64_t[:,
 
                 pix_ctr += 1
 
-    return np.asarray(out_list).astype(np.float64)
+    return np.float64(out_list)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:, :] chBd, int blk, DTYPE_uint16_t[:] scs,
                                                               int out_len, int scales_half, int scales_block,
                                                               int scale_length):
 
     cdef:
         Py_ssize_t i, j, ki, pix_ctr
-        unsigned int k, bcr, bcc
+        unsigned int bcr, bcc
+        DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
@@ -2186,8 +2169,10 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
 
                 k = scs[ki]
 
-                block_chunk = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k,
-                                   j+scales_half-(k/2):j+scales_half-(k/2)+k]
+                k_half = k / 2
+
+                block_chunk = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                   j+scales_half-k_half:j+scales_half-k_half+k]
 
                 bcr = block_chunk.shape[0]
                 bcc = block_chunk.shape[1]
@@ -2202,13 +2187,15 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint16(DTYPE_uint16_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint16(DTYPE_uint16_t[:, :] chBd, int blk,
+                                                             DTYPE_uint16_t[:] scs,
                                                              int out_len, int scales_half, int scales_block,
                                                              int scale_length):
 
     cdef:
         int i, j, ki, pix_ctr
-        unsigned int k, bcr, bcc
+        unsigned int bcr, bcc
+        DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
@@ -2222,7 +2209,11 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint16(DTYPE_uint16_t[:, :
 
                 k = scs[ki]
 
-                block_chunk = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, j+scales_half-(k/2):j+scales_half-(k/2)+k]
+                k_half = k / 2
+
+                block_chunk = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                   j+scales_half-k_half:j+scales_half-k_half+k]
+
                 bcr = block_chunk.shape[0]
                 bcc = block_chunk.shape[1]
 
@@ -2230,18 +2221,19 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint16(DTYPE_uint16_t[:, :
 
                 pix_ctr += 1
 
-    return np.asarray(out_list).astype(np.float32)
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_mean(DTYPE_uint8_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_mean(DTYPE_uint8_t[:, :] chBd, int blk, DTYPE_uint16_t[:] scs,
                                                        int out_len, int scales_half, int scales_block, int scale_length):
 
     cdef:
         int i, j, ki, pix_ctr
-        unsigned int k, bcr, bcc
+        unsigned int bcr, bcc
+        DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
@@ -2255,7 +2247,11 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_mean(DTYPE_uint8_t[:, :] chBd,
 
                 k = scs[ki]
 
-                block_chunk = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, j+scales_half-(k/2):j+scales_half-(k/2)+k]
+                k_half = k / 2
+
+                block_chunk = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                   j+scales_half-k_half:j+scales_half-k_half+k]
+
                 bcr = block_chunk.shape[0]
                 bcc = block_chunk.shape[1]
 
@@ -2263,19 +2259,20 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_mean(DTYPE_uint8_t[:, :] chBd,
 
                 pix_ctr += 1
 
-    return np.asarray(out_list).astype(np.float32)
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint(DTYPE_int_t[:, :] chBd, int blk, DTYPE_uint8_t[:] scs,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint(DTYPE_int_t[:, :] chBd, int blk, DTYPE_uint16_t[:] scs,
                                                            int out_len, int scales_half, int scales_block,
                                                            int scale_length):
 
     cdef:
         int i, j, ki, pix_ctr
-        unsigned int k, bcr, bcc
+        unsigned int bcr, bcc
+        DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
@@ -2289,7 +2286,11 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint(DTYPE_int_t[:, :] chB
 
                 k = scs[ki]
 
-                block_chunk = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, j+scales_half-(k/2):j+scales_half-(k/2)+k]
+                k_half = k / 2
+
+                block_chunk = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                   j+scales_half-k_half:j+scales_half-k_half+k]
+
                 bcr = block_chunk.shape[0]
                 bcc = block_chunk.shape[1]
 
@@ -2297,7 +2298,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_uint(DTYPE_int_t[:, :] chB
 
                 pix_ctr += 1
 
-    return np.asarray(out_list).astype(np.float32)
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
@@ -2312,7 +2313,7 @@ def feature_mean(np.ndarray chBd, int blk, list scs, int end_scale):
         int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
-        DTYPE_uint8_t[:] scales_array = np.array(scs, dtype='uint8')
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
@@ -2352,12 +2353,14 @@ def feaCtrFloat64(np.ndarray[DTYPE_float64_t, ndim=2] chBd, int blk, list scs, i
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
 
+
 @cython.boundscheck(False)
 def feaCtrFloat32(np.ndarray[DTYPE_float32_t, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
+
 
 @cython.boundscheck(False)
 def feaCtr_uint16(np.ndarray[unsigned short, ndim=2] chBd, int blk, list scs, int rows, int cols):
@@ -2366,6 +2369,7 @@ def feaCtr_uint16(np.ndarray[unsigned short, ndim=2] chBd, int blk, list scs, in
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
 
+
 @cython.boundscheck(False)
 def feaCtr_uint8(np.ndarray[unsigned char, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
@@ -2373,12 +2377,14 @@ def feaCtr_uint8(np.ndarray[unsigned char, ndim=2] chBd, int blk, list scs, int 
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
 
+
 @cython.boundscheck(False)
 def feaCtr_uint(np.ndarray[int, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
+
 
 @cython.boundscheck(False)
 def feaCtr(np.ndarray chBd, int blk, list scs):
@@ -2408,8 +2414,8 @@ cdef int max_box_number(DTYPE_uint8_t[:, :] w, int rr_rows, int rr_cols):
         int maxi = _get_max(w, rr_rows, rr_cols)
         int mini = _get_min(w, rr_rows, rr_cols)
 
-        int boxes_max = int(ceil(float(maxi) / min(rr_rows, rr_cols)))
-        int boxes_min = int(ceil(float(mini) / min(rr_rows, rr_cols)))
+        int boxes_max = <int>(ceil(float(maxi) / _get_min_sample_i(rr_rows, rr_cols)))
+        int boxes_min = <int>(ceil(float(mini) / _get_min_sample_i(rr_rows, rr_cols)))
 
     return (boxes_max - boxes_min) + 1
 
@@ -2417,7 +2423,7 @@ cdef int max_box_number(DTYPE_uint8_t[:, :] w, int rr_rows, int rr_cols):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t[:] _div1d(DTYPE_float32_t[:] array1d, int cs, DTYPE_float32_t div_value):
+cdef DTYPE_float32_t[:] _div1d(DTYPE_float32_t[:] array1d, int cs, DTYPE_float32_t div_value) nogil:
 
     cdef:
         Py_ssize_t js
@@ -2515,15 +2521,15 @@ cdef DTYPE_float32_t _lacunarity(DTYPE_uint8_t[:, :] chunk_sub, int r):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef list _feature_lacunarity(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_uint8_t[:] scales, int scales_half,
+cdef list _feature_lacunarity(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_uint16_t[:] scales, int scales_half,
                               int scales_block, int rows, int cols, int r, int out_len, int scale_length):
 
     cdef:
-        Py_ssize_t i, j, k, ki, cr, cc
+        Py_ssize_t i, j, ki, cr, cc
+        DTYPE_uint16_t k, k_half
         Py_ssize_t pixel_counter = 0
         DTYPE_uint8_t[:, :] ch_bd
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
-        int k_half
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -2545,7 +2551,7 @@ cdef list _feature_lacunarity(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_ui
 
                 pixel_counter += 1
 
-    return list(np.asarray(out_list))
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
@@ -2559,7 +2565,7 @@ def feature_lacunarity(np.ndarray chunk_block, int blk, list scales, int end_sca
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         int out_len = 0
-        DTYPE_uint8_t[:] scale_array = np.array(scales, dtype='uint8')
+        DTYPE_uint16_t[:] scale_array = np.array(scales, dtype='uint16')
         int scale_length = scale_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
@@ -2572,6 +2578,7 @@ def feature_lacunarity(np.ndarray chunk_block, int blk, list scales, int end_sca
 
 
 @cython.boundscheck(False)
+@cython.cdivision(True)
 cdef azimuthal_avg(image, center=None):
 
     """
@@ -2628,22 +2635,24 @@ cdef DTYPE_float32_t[:, :] _fourier_transform(DTYPE_uint8_t[:, :] chunk_block):
 
 
 @cython.boundscheck(False)
-cdef list _feature_fourier(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_uint8_t[:] scales, int scales_half,
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef list _feature_fourier(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_uint16_t[:] scales, int scales_half,
                            int scales_block, int rows, int cols, int out_len, int scale_length):
 
     cdef:
-        Py_ssize_t i, j, k, ki, cr, cc
+        Py_ssize_t i, j, ki, cr, cc
+        DTYPE_uint16_t k, k_half
         Py_ssize_t pixel_counter = 0
         DTYPE_uint8_t[:, :] ch_bd
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
-        int k_half
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
             for ki in xrange(0, scale_length):
 
                 k = scales[ki]
-                k_half = (k / 2)
+                k_half = k / 2
 
                 ch_bd = chunk_block[i+scales_half-k_half:i+scales_half-k_half+k,
                                     j+scales_half-k_half:j+scales_half-k_half+k]
@@ -2658,10 +2667,12 @@ cdef list _feature_fourier(DTYPE_uint8_t[:, :] chunk_block, int blk, DTYPE_uint8
                 out_list[pixel_counter] = _get_mean(ch_bd_transform, bcr, bcc)
                 pixel_counter += 1
 
-    return list(np.asarray(out_list))
+    return np.float32(out_list)
 
 
 @cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def feature_fourier(np.ndarray chunk_block, int blk, list scales, int end_scale):
 
     cdef:
@@ -2671,7 +2682,7 @@ def feature_fourier(np.ndarray chunk_block, int blk, list scales, int end_scale)
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         int out_len = 0
-        DTYPE_uint8_t[:] scale_array = np.array(scales, dtype='uint8')
+        DTYPE_uint16_t[:] scale_array = np.array(scales, dtype='uint16')
         int scale_length = scale_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
