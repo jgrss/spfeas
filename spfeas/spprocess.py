@@ -44,6 +44,8 @@ def run(parameter_object):
 
     new_feas_list = []
 
+    n_jobs_orig = parameter_object.n_jobs
+
     if parameter_object.stack_only:
 
         # If prompted, stack features without processing.
@@ -55,6 +57,11 @@ def run(parameter_object):
 
         # Iterate over each feature trigger.
         for trigger in parameter_object.triggers:
+
+            if trigger in []:
+                parameter_object.n_jobs = 1
+            else:
+                parameter_object.n_jobs = copy.copy(n_jobs_orig)
 
             parameter_object.update_info(trigger=trigger)
 

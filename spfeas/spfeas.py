@@ -213,9 +213,9 @@ def main():
     parser.add_argument('--band-nir', dest='band_nir', help='The NIR band position', default=4, type=int)
     parser.add_argument('--neighbors', dest='neighbors', help='Whether to add features as neighbors',
                         action='store_true')
-    parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs', default=1, type=int)
-    parser.add_argument('--sect-size', dest='section_size', help='The section size', default=8000, type=int)
-    parser.add_argument('--chunk-size', dest='chunk_size', help='The section chunk size', default=512, type=int)
+    parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs', default=-1, type=int)
+    parser.add_argument('--sect-size', dest='section_size', help='The section size', default=2560, type=int)
+    parser.add_argument('--chunk-size', dest='chunk_size', help='The section chunk size', default=256, type=int)
     parser.add_argument('--gdal-cache', dest='gdal_cache', help='The GDAL cache size (MB)', default=256, type=int)
     parser.add_argument('--reset', dest='reset', help='Whether to reset section memory', action='store_true')
     parser.add_argument('--options', dest='options', help='Whether to show trigger options', action='store_true')
