@@ -126,12 +126,12 @@ def call_pantex(block_array_, block_size_, scales_, end_scale_, weighted_):
     return _stats.feature_pantex(block_array_, block_size_, scales_, end_scale_, weighted_)
 
 
-def call_sfs(block_array_, block_size_, scales_, end_scale_, cell_size_, sfs_thresh_, n_angles_):
-    return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, cell_size_, sfs_thresh_, n_angles_)
+def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_):
+    return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_)
 
 
-def call_surf(block_array_, block_size_, scales_, end_scale_):
-    return _stats.feature_surf(block_array_, block_size_, scales_, end_scale_)
+# def call_surf(block_array_, block_size_, scales_, end_scale_):
+#     return _stats.feature_surf(block_array_, block_size_, scales_, end_scale_)
 
 # def startCtr(bd_blk_scs):
 #     return feaCtr(*bd_blk_scs)
@@ -627,14 +627,14 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
                                                             parameter_object.scales,
                                                             parameter_object.scales[-1]) for bd_ in bd)
 
-    elif parameter_object.trigger == 'surf':
-
-        print '\n  Processing SURF ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_surf)(bd_, parameter_object.block,
-                                                            parameter_object.scales,
-                                                            parameter_object.scales[-1]) for bd_ in bd)
+    # elif parameter_object.trigger == 'surf':
+    #
+    #     print '\n  Processing SURF ...'
+    #
+    #     return Parallel(n_jobs=parameter_object.n_jobs,
+    #                     max_nbytes=None)(delayed(call_surf)(bd_, parameter_object.block,
+    #                                                         parameter_object.scales,
+    #                                                         parameter_object.scales[-1]) for bd_ in bd)
 
     elif parameter_object.trigger == 'lac':
 
@@ -750,9 +750,8 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
         return Parallel(n_jobs=parameter_object.n_jobs,
                         max_nbytes=None)(delayed(call_sfs)(bd_, parameter_object.block,
                                                            parameter_object.scales,
-                                                           parameter_object.scales[-1], cell_size,
-                                                           parameter_object.sfs_threshold,
-                                                           parameter_object.sfs_angles) for bd_ in bd)
+                                                           parameter_object.scales[-1],
+                                                           parameter_object.sfs_threshold) for bd_ in bd)
 
     else:
         raise NameError('\nThe trigger is not recognized\n')

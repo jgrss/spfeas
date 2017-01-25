@@ -33,7 +33,7 @@ class SPParameters(object):
 
         # Set the features dictionary.
         self.features_dict = dict(mean=1, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
-                                  lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=5,
+                                  lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=3,
                                   evi2=1, ndvi=1,
                                   objects=1, dmp=1, xy=2, lac=1,
                                   orb=4, saliency=1)
@@ -151,11 +151,12 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'lbp' + Style.RESET_ALL + '     -- Local Binary Patterns (59 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbpm' + Style.RESET_ALL + '    -- Local Binary Patterns moments (4 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lsr' + Style.RESET_ALL + '     -- Line support regions (3 x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local mean (n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local inverse distance weighted mean (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'ndvi' + Style.RESET_ALL + '    -- NDVI mean (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'pantex' + Style.RESET_ALL + '  -- Built-up presence index (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (4 x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (4)',
+                  Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (3)',
                   Fore.GREEN + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
 
     for text_line in text_lines:
