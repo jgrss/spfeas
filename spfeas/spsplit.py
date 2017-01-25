@@ -608,7 +608,7 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
         bd = _chunk.chunk_int(bd, section_rows, section_cols,
                               parameter_object.block, parameter_object.chunk_size, parameter_object.scales[-1])
 
-    if parameter_object.trigger in ['mean', 'ndvi', 'objects', 'dmp', 'evi2']:
+    if parameter_object.trigger in ['mean', 'ndvi', 'objects', 'dmp', 'evi2', 'saliency']:
 
         if parameter_object.trigger == 'mean':
             print '\n  Processing mean ...'

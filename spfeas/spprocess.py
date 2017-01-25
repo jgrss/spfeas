@@ -206,12 +206,8 @@ def run(parameter_object):
                                                   rows=n_rows, cols=n_cols,
                                                   d_type='float32')
 
-                            sect_in = sputilities.saliency(sect_in, parameter_object)
-
-                            import matplotlib.pyplot as plt
-                            plt.imshow(sect_in)
-                            plt.show()
-                            sys.exit()
+                            parameter_object.update_info(min=0, max=10000)
+                            sect_in = sputilities.saliency(sect_in)
 
                         elif parameter_object.use_rgb:
 

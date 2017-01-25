@@ -493,22 +493,18 @@ def set_status(parameter_object):
     return parameter_object
 
 
-def saliency(image_section, parameter_object):
+def saliency(image_section):
 
-    import matplotlib.pyplot as plt
+    lidx = [2, 1, 0]
 
     for li, layer in enumerate(image_section):
 
         layer = rescale_intensity(layer,
-                                  in_range=(parameter_object.min,
-                                            parameter_object.max),
-                                  out_range=(0, 255))
+                                  in_range=(np.percentile(layer, 2),
+                                            np.percentile(layer, 98)),
+                                  out_range=(0, 1)).astype(np.float32)
 
-        image_section[li] = cv2.GaussianBlur(np.uint8(layer), ksize=(3, 3), sigmaX=3)
-
-        plt.imshow(image_section[li])
-        plt.show()
-    sys.exit()
+        image_section[lidx[li]] = cv2.GaussianBlur(layer, ksize=(3, 3), sigmaX=3)
 
     # Transpose the image to RGB
     image_section = image_section.transpose(1, 2, 0)
@@ -521,9 +517,9 @@ def saliency(image_section, parameter_object):
     am = image_section[:, :, 1].mean(axis=0).mean()
     bm = image_section[:, :, 2].mean(axis=0).mean()
 
-    return np.uint8(((image_section[:, :, 0] - lm)**2. +
-                     (image_section[:, :, 1] - am)**2. +
-                     (image_section[:, :, 2] - bm)**2.)*255.)
+    return rescale_intensity((image_section[:, :, 0] - lm)**2. +
+                             (image_section[:, :, 1] - am)**2. +
+                             (image_section[:, :, 2] - bm)**2., out_range=(0, 10000)).astype(np.uint16)
 
 
 def get_n_sects(image_info, parameter_object):
