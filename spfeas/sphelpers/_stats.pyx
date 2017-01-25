@@ -2123,9 +2123,9 @@ cdef _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef _check_nans(DTYPE_float32_t[:, :, :, :] glcm_mat_nan,
-                                             DTYPE_float32_t[:] distances,
-                                             DTYPE_float32_t[:] angles,
-                                             int levels):
+                 DTYPE_float32_t[:] distances,
+                 DTYPE_float32_t[:] angles,
+                 int levels):
 
     cdef:
         Py_ssize_t a_idx, d_idx, r, c
