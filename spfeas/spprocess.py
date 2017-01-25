@@ -199,6 +199,20 @@ def run(parameter_object):
                                                   for dmp_bd in xrange(1, i_info.bands+1)]).reshape(i_info.bands,
                                                                                                     n_rows, n_cols)
 
+                        elif parameter_object.trigger == 'saliency':
+
+                            sect_in = i_info.read(bands2open=[1, 2, 3],
+                                                  i=i_sect, j=j_sect,
+                                                  rows=n_rows, cols=n_cols,
+                                                  d_type='float32')
+
+                            sect_in = sputilities.saliency(sect_in, parameter_object)
+
+                            import matplotlib.pyplot as plt
+                            plt.imshow(sect_in)
+                            plt.show()
+                            sys.exit()
+
                         elif parameter_object.use_rgb:
 
                             sect_in, __, __ = sputilities.convert_rgb2gray(i_info,

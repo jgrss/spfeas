@@ -10,6 +10,9 @@ import itertools
 from mpglue import raster_tools, vrt_builder
 
 import numpy as np
+from skimage.color import rgb2rgbcie, rgbcie2rgb
+from skimage.exposure import rescale_intensity
+import cv2
 # import numexpr as ne
 
 # YAML
@@ -488,6 +491,39 @@ def set_status(parameter_object):
                                  status_dict=status_dict)
 
     return parameter_object
+
+
+def saliency(image_section, parameter_object):
+
+    import matplotlib.pyplot as plt
+
+    for li, layer in enumerate(image_section):
+
+        layer = rescale_intensity(layer,
+                                  in_range=(parameter_object.min,
+                                            parameter_object.max),
+                                  out_range=(0, 255))
+
+        image_section[li] = cv2.GaussianBlur(np.uint8(layer), ksize=(3, 3), sigmaX=3)
+
+        plt.imshow(image_section[li])
+        plt.show()
+    sys.exit()
+
+    # Transpose the image to RGB
+    image_section = image_section.transpose(1, 2, 0)
+
+    # Perform RGB to CIE Lab color space conversion
+    image_section = rgb2rgbcie(image_section)
+
+    # Compute Lab average values
+    lm = image_section[:, :, 0].mean(axis=0).mean()
+    am = image_section[:, :, 1].mean(axis=0).mean()
+    bm = image_section[:, :, 2].mean(axis=0).mean()
+
+    return np.uint8(((image_section[:, :, 0] - lm)**2. +
+                     (image_section[:, :, 1] - am)**2. +
+                     (image_section[:, :, 2] - bm)**2.)*255.)
 
 
 def get_n_sects(image_info, parameter_object):

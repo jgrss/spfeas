@@ -36,7 +36,7 @@ class SPParameters(object):
                                   lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=5,
                                   evi2=1, ndvi=1,
                                   objects=1, dmp=1, xy=2, lac=1,
-                                  orb=4)
+                                  orb=4, saliency=1)
 
         # Set the output bands based on the trigger.
         self.out_bands_dict = dict(ctr=len(self.scales) * self.features_dict['ctr'],
@@ -55,6 +55,7 @@ class SPParameters(object):
                                    objects=len(self.scales) * self.features_dict['objects'],
                                    orb=len(self.scales) * self.features_dict['orb'],
                                    pantex=len(self.scales) * self.features_dict['pantex'],
+                                   saliency=len(self.scales) * self.features_dict['saliency'],
                                    seg=len(self.scales) * self.features_dict['seg'],
                                    sfs=len(self.scales) * self.features_dict['sfs'],
                                    surf=len(self.scales) * self.features_dict['surf'],
@@ -182,7 +183,7 @@ def main():
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
-                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb', 'pantex', 'sfs'])
+                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb', 'pantex', 'saliency', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=20, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',

@@ -1,7 +1,5 @@
 Contributors
 ============
 
-.. hlist::
-
-  * Jordan Graesser
-    * Email: jordan.graesser@mail.mcgill.ca
+* Jordan Graesser
+  * graesser@bu.edu
