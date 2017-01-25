@@ -32,11 +32,11 @@ class SPParameters(object):
             setattr(self, k, v)
 
         # Set the features dictionary.
-        self.features_dict = dict(mean=1, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
+        self.features_dict = dict(mean=2, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
                                   lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=3,
-                                  evi2=1, ndvi=1,
-                                  objects=1, dmp=1, xy=2, lac=1,
-                                  orb=4, saliency=1)
+                                  evi2=2, ndvi=2,
+                                  dmp=2, xy=2, lac=1,
+                                  orb=4, saliency=2)
 
         # Set the output bands based on the trigger.
         self.out_bands_dict = dict(ctr=len(self.scales) * self.features_dict['ctr'],
@@ -52,7 +52,6 @@ class SPParameters(object):
                                    lsr=len(self.scales) * self.features_dict['lsr'],
                                    mean=len(self.scales) * self.features_dict['mean'],
                                    ndvi=len(self.scales) * self.features_dict['ndvi'],
-                                   objects=len(self.scales) * self.features_dict['objects'],
                                    orb=len(self.scales) * self.features_dict['orb'],
                                    pantex=len(self.scales) * self.features_dict['pantex'],
                                    saliency=len(self.scales) * self.features_dict['saliency'],
@@ -141,23 +140,23 @@ def _options():
     colorama.init()
 
     text_lines = [Fore.GREEN + Style.BRIGHT + 'ctr' + Style.RESET_ALL + '     -- Copy scale centers',
-                  Fore.GREEN + Style.BRIGHT + 'dmp' + Style.RESET_ALL + '     -- Differential morphological profiles (n scales)' + Fore.RED + ' **EXPERIMENTAL**',
-                  Fore.GREEN + Style.BRIGHT + 'evi2' + Style.RESET_ALL + '    -- EVI2 mean (n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'fourier' + Style.RESET_ALL + ' -- Fourier transform (n scales x 2)',
+                  Fore.GREEN + Style.BRIGHT + 'dmp' + Style.RESET_ALL + '     -- Differential morphological profiles (2 x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'evi2' + Style.RESET_ALL + '    -- EVI2 mean (2 x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'fourier' + Style.RESET_ALL + ' -- Fourier transform (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'gabor' + Style.RESET_ALL + '   -- Gabor filter bank (n scales x 2 x kernels(Default=24))',
                   Fore.GREEN + Style.BRIGHT + 'hog' + Style.RESET_ALL + '     -- Histogram of Oriented Gradients (4 (mean,var,skew,kurtosis) x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'hough' + Style.RESET_ALL + '   -- Local line statistics from Probabilistic Hough Transform (4 x n scales)',
+                  Fore.RED + Style.BRIGHT + 'hough' + Style.RESET_ALL + '   -- Local line statistics from Probabilistic Hough Transform (4 x n scales)' + Fore.RED + ' **Currently out of order**',
                   Fore.GREEN + Style.BRIGHT + 'lac' + Style.RESET_ALL + '     -- Lacunarity (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbp' + Style.RESET_ALL + '     -- Local Binary Patterns (59 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbpm' + Style.RESET_ALL + '    -- Local Binary Patterns moments (4 x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'lsr' + Style.RESET_ALL + '     -- Line support regions (3 x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local inverse distance weighted mean (n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'ndvi' + Style.RESET_ALL + '    -- NDVI mean (n scales)',
+                  Fore.RED + Style.BRIGHT + 'lsr' + Style.RESET_ALL + '     -- Line support regions (3 x n scales)' + Fore.RED + ' **Currently out of order**',
+                  Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local inverse distance weighted mean and variance (2 x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'ndvi' + Style.RESET_ALL + '    -- NDVI mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'pantex' + Style.RESET_ALL + '  -- Built-up presence index (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (4 x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (3)',
-                  Fore.GREEN + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
+                  Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (2 x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (3 x n scales)',
+                  Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
 
     for text_line in text_lines:
         print text_line
@@ -180,24 +179,25 @@ def main():
                         type=int, nargs='+')
     parser.add_argument('--rgb', dest='use_rgb', help='Whether to use the full RGB spectrum in place of -bp',
                         action='store_true')
+    parser.add_argument('--vis-order', dest='vis_order',
+                        help='The visible spectrum (red, green, blue) band order (Only required with -tr saliency)',
+                        default='bgr')
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
                                             'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb', 'pantex', 'saliency', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
-                        default=20, type=int)
+                        default=40, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',
                         default=10, type=int)
     parser.add_argument('-lgp', '--hline-gap', dest='hline_gap', help='The Hough line gap',
                         default=2, type=int)
     parser.add_argument('--weight', dest='weight', help='Whether to weight PanTex by DN', action='store_true')
     parser.add_argument('--sfs-th', dest='sfs_threshold', help='The SFS stopping threshold',
-                        default=80, type=int)
+                        default=20, type=int)
     parser.add_argument('--sfs-rs', dest='sfs_resample', help='The SFS resample size',
                         default=0., type=float)
-    parser.add_argument('--sfs-ag', dest='sfs_angles', help='The SFS angles',
-                        default=8, type=int, choices=[8, 16])
     parser.add_argument('--lac-r', dest='lac_r', help='The lacunarity box r parameter', default=2, type=int)
     parser.add_argument('--smooth', dest='smooth', help='The smoothing kernel size', default=0, type=int)
     parser.add_argument('--image-max', dest='image_max', help='A user-defined image maximum', default=0, type=int)
@@ -232,16 +232,20 @@ def main():
 
     start_time = time.time()
 
-    spatial_features(args.input, args.output, band_positions=args.band_positions, block=args.block,
-                     scales=args.scales, triggers=args.triggers, hline_threshold=args.hline_threshold,
-                     hline_min=args.hline_min, hline_gap=args.hline_gap, weight=args.weight,
-                     sfs_threshold=args.sfs_threshold, sfs_resample=args.sfs_resample, sfs_angles=args.sfs_angles,
+    spatial_features(args.input, args.output, band_positions=args.band_positions,
+                     block=args.block, scales=args.scales, triggers=args.triggers,
+                     hline_threshold=args.hline_threshold, hline_min=args.hline_min,
+                     hline_gap=args.hline_gap, weight=args.weight,
+                     sfs_threshold=args.sfs_threshold, sfs_resample=args.sfs_resample,
                      smooth=args.smooth, equalize=args.equalize, equalize_adapt=args.equalize_adapt,
-                     visualize=args.visualize, convert=args.convert, do_pca=args.pca, use_rgb=args.use_rgb,
-                     stack=args.stack, stack_only=args.stack_only, band_red=args.band_red, band_nir=args.band_nir,
-                     neighbors=args.neighbors, n_jobs=args.n_jobs, reset=args.reset, image_max=args.image_max,
-                     lac_r=args.lac_r, section_size=args.section_size, chunk_size=args.chunk_size,
-                     gdal_cache=args.gdal_cache)
+                     visualize=args.visualize, convert=args.convert, do_pca=args.pca,
+                     use_rgb=args.use_rgb, vis_order=args.vis_order,
+                     stack=args.stack, stack_only=args.stack_only,
+                     band_red=args.band_red, band_nir=args.band_nir,
+                     neighbors=args.neighbors, n_jobs=args.n_jobs,
+                     reset=args.reset, image_max=args.image_max,
+                     lac_r=args.lac_r, section_size=args.section_size,
+                     chunk_size=args.chunk_size, gdal_cache=args.gdal_cache)
 
     print('\nEnd data & time -- (%s)\nTotal processing time -- (%.2gs)\n'
           % (time.asctime(time.localtime(time.time())), (time.time() - start_time)))

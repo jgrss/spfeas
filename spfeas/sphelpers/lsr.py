@@ -73,7 +73,7 @@ def img2_ori_edge(img):
     return edge_ori, edge_mag, deriv_x, deriv_y
 
 
-class binQ():
+class binQ(object):
     
     def __init__(self, data, edgePixs, lsr_thresh, dx, dy, rows, cols):
 
@@ -198,8 +198,7 @@ class binQ():
         # ax = plt.figure().add_subplot(111)
         # ax.imshow(ori, interpolation='nearest')
         # TEST
-        
-        
+
         # loop through dimensions
         # for n in xrange(0, np.prod(bd.shape)):	# num_feas
         for n in xrange(1, num_objs):
@@ -222,9 +221,8 @@ class binQ():
             #
             # ax.plot((x[st], x[ed]), (y[st], y[ed]))
             # TEST
-            
-            
-            a = fftshift(fft(x*y, len(x)))			
+
+            a = fftshift(fft(x*y, len(x)))
             a = np.divide(a, len(x))
 
             idx = np.floor(len(x) / 2) + 1
@@ -258,14 +256,12 @@ class binQ():
 
         lsfim[0] = lsfima
         lsfim[1] = lsfimb
-        
-        
+
         # TEST
         # plt.show()
         # sys.exit()
         # TEST
-        
-        
+
         return lsfim, lsfarr
 
 

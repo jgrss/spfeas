@@ -356,6 +356,30 @@ cdef DTYPE_float32_t _get_weighted_mean(DTYPE_float32_t[:, :] block, DTYPE_float
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef DTYPE_float32_t[:] _get_weighted_mean_var(DTYPE_float32_t[:, :] block,
+                                               DTYPE_float32_t[:, :] weights,
+                                               int rs, int cs,
+                                               DTYPE_float32_t[:] out_values_):
+
+    cdef:
+        Py_ssize_t bi, bj
+        DTYPE_float32_t n_samps = float(rs*cs)
+        DTYPE_float32_t mu = _get_weighted_mean(block, weights, rs, cs)
+        DTYPE_float32_t block_var = 0.
+
+    for bi in xrange(0, rs):
+        for bj in xrange(0, cs):
+            block_var += pow(float(block[bi, bj]) - mu, 2)
+
+    out_values_[0] = mu
+    out_values_[1] = block_var / n_samps
+
+    return out_values_
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
 
     cdef:
@@ -1103,6 +1127,59 @@ cdef DTYPE_uint8_t[:] extract_values(DTYPE_uint8_t[:, :] block, DTYPE_intp_t[:] 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef void _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
+                         int rows_half, int cols_half, DTYPE_float32_t center_mean,
+                         DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values_,
+                         Py_ssize_t t_value, bint is_row):
+
+    cdef:
+        Py_ssize_t ija, rr_shape, lni
+        DTYPE_intp_t[:] rr, cc
+        DTYPE_uint8_t[:] line_values
+        DTYPE_float32_t ph_i
+        DTYPE_float32_t sfs_max, sfs_min, sfs_psi
+
+    # Iterate over every other angle
+    for ija from 0 <= ija < chunk_shape by 2:
+
+        ph_i = 0.
+
+        # Draw a line between the two endpoints.
+        if is_row:
+            rr, cc = draw_line(rows_half, cols_half, ija, t_value)
+        else:
+            rr, cc = draw_line(rows_half, cols_half, t_value, ija)
+
+        rr_shape = rr.shape[0]
+
+        # Extract the values along the line.
+        line_values = extract_values(chunk, rr, cc, rr_shape)
+
+        # Iterate over line values.
+        for lni in xrange(0, rr_shape):
+
+            if ph_i < thresh_hom:
+                ph_i += abs(center_mean - line_values[lni])
+            else:
+                break
+
+        # Get the line statistics
+        sfs_max = _get_max_sample(values_[0], float(lni))
+        sfs_min = _get_min_sample_f(values_[1], float(lni))
+        sfs_psi = float(lni)
+
+        if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
+            values_[0] = sfs_max
+
+        if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
+            values_[1] = sfs_min
+
+        if not npy_isnan(sfs_psi) and not npy_isinf(sfs_psi):
+            values_[2] += sfs_psi
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws, int chunk_cls,
                                         int rows_half, int cols_half, DTYPE_float32_t center_mean,
                                         DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values):
@@ -1112,119 +1189,24 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
         DTYPE_intp_t[:] rr, cc
         DTYPE_uint8_t[:] line_values
         DTYPE_float32_t ph_i
-        DTYPE_float32_t sfs_max = 0.
-        DTYPE_float32_t sfs_min = 999999.
-        DTYPE_float32_t sfs_psi = 0.
 
-    # Iterate over each angle, extract values
-    ja = 0
-    for ia in xrange(0, chunk_rws):
+    values[1] = 999999.
 
-        ph_i = 0.
+    # Rows, 1st column
+    _get_direction(chunk, chunk_rws, rows_half, cols_half,
+                   center_mean, thresh_hom, values, 0, True)
 
-        # Draw a line between the two endpoints.
-        rr, cc = draw_line(rows_half, cols_half, ia, ja)
+    # Rows, last column
+    _get_direction(chunk, chunk_rws, rows_half, cols_half,
+                   center_mean, thresh_hom, values, chunk_cls-1, True)
 
-        rr_shape = rr.shape[0]
+    # Columns, 1st row
+    _get_direction(chunk, chunk_cls, rows_half, cols_half,
+                   center_mean, thresh_hom, values, 0, False)
 
-        # Extract the values along the line.
-        line_values = extract_values(chunk, rr, cc, rr_shape)
-
-        # Iterate over line values.
-        for lni in xrange(0, rr_shape):
-
-            if ph_i < thresh_hom:
-                ph_i += abs(center_mean - line_values[lni])
-            else:
-                break
-
-        sfs_max = _get_max_sample(sfs_max, float(lni))
-        sfs_min = _get_min_sample_f(sfs_min, float(lni))
-        sfs_psi += float(lni)
-
-    ja = chunk_cls - 1
-    for ia in xrange(0, chunk_rws):
-
-        ph_i = 0.
-
-        # Draw a line between the two endpoints.
-        rr, cc = draw_line(rows_half, cols_half, ia, ja)
-
-        rr_shape = rr.shape[0]
-
-        # Extract the values along the line.
-        line_values = extract_values(chunk, rr, cc, rr_shape)
-
-        # Iterate over line values.
-        for lni in xrange(0, rr_shape):
-
-            if ph_i < thresh_hom:
-                ph_i += abs(center_mean - line_values[lni])
-            else:
-                break
-
-        sfs_max = _get_max_sample(sfs_max, float(lni))
-        sfs_min = _get_min_sample_f(sfs_min, float(lni))
-        sfs_psi += float(lni)
-
-    ia = 0
-    for ja in xrange(0, chunk_cls):
-
-        ph_i = 0.
-
-        # Draw a line between the two endpoints.
-        rr, cc = draw_line(rows_half, cols_half, ia, ja)
-
-        rr_shape = rr.shape[0]
-
-        # Extract the values along the line.
-        line_values = extract_values(chunk, rr, cc, rr_shape)
-
-        # Iterate over line values.
-        for lni in xrange(0, rr_shape):
-
-            if ph_i < thresh_hom:
-                ph_i += abs(center_mean - line_values[lni])
-            else:
-                break
-
-        sfs_max = _get_max_sample(sfs_max, float(lni))
-        sfs_min = _get_min_sample_f(sfs_min, float(lni))
-        sfs_psi += float(lni)
-
-    ia = chunk_rws - 1
-    for ja in xrange(0, chunk_cls):
-
-        ph_i = 0.
-
-        # Draw a line between the two endpoints.
-        rr, cc = draw_line(rows_half, cols_half, ia, ja)
-
-        rr_shape = rr.shape[0]
-
-        # Extract the values along the line.
-        line_values = extract_values(chunk, rr, cc, rr_shape)
-    
-        # Iterate over line values.
-        for lni in xrange(0, rr_shape):
-
-            if ph_i < thresh_hom:
-                ph_i += abs(center_mean - line_values[lni])
-            else:
-                break
-
-        sfs_max = _get_max_sample(sfs_max, float(lni))
-        sfs_min = _get_min_sample_f(sfs_min, float(lni))
-        sfs_psi += float(lni)
-
-    if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
-        values[0] = sfs_max
-
-    if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
-        values[1] = sfs_min
-
-    if not npy_isnan(sfs_psi) and not npy_isinf(sfs_psi):
-        values[2] = sfs_psi
+    # Columns, last row
+    _get_direction(chunk, chunk_cls, rows_half, cols_half,
+                   center_mean, thresh_hom, values, chunk_rws-1, False)
 
     return values
 
@@ -1666,7 +1648,8 @@ cdef _set_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int rows, int cols):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef list _feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale):
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd,
+                                                      int blk, list scs, int end_scale):
 
     cdef:
         Py_ssize_t i, j, ki, sti
@@ -1685,6 +1668,7 @@ cdef list _feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs
         DTYPE_uint16_t k, k_half
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
+        np.ndarray[DTYPE_float32_t, ndim=1] out_list_a
 
     # get the LBP images
     lbpBd, p_range = _set_lbp(chBd, rows, cols)
@@ -1721,10 +1705,11 @@ cdef list _feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs
 
                     pix_ctr += 1
 
-    # out_list[isnan(out_list) | isinf(out_list)] = 0
-    out_list[np.isnan(out_list) | np.isinf(out_list)] = 0
+    out_list_a = np.float32(out_list)
 
-    return np.float32(out_list)
+    out_list_a[np.isnan(out_list_a) | np.isinf(out_list_a)] = 0
+
+    return out_list_a
 
 
 @cython.boundscheck(False)
@@ -2423,10 +2408,12 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
                                                               int scale_length):
 
     cdef:
-        Py_ssize_t i, j, ki, pix_ctr
+        Py_ssize_t i, j, ki, pix_ctr, pi
         unsigned int bcr, bcc
         DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
+        DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
+        DTYPE_float32_t[:] out_values
         int rows = ch_bd.shape[0]
         int cols = ch_bd.shape[1]
         DTYPE_float32_t[:, :] block_chunk
@@ -2455,9 +2442,13 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
                 bcr = block_chunk.shape[0]
                 bcc = block_chunk.shape[1]
 
-                out_list[pix_ctr] = _get_weighted_mean(block_chunk, weights_list[ki], bcr, bcc)
+                out_values = _get_weighted_mean_var(block_chunk, weights_list[ki], bcr, bcc, in_zs.copy())
 
-                pix_ctr += 1
+                for pi in xrange(0, 2):
+
+                    out_list[pix_ctr] = out_values[pi]
+
+                    pix_ctr += 1
 
     return np.float32(out_list)
 
@@ -2518,7 +2509,7 @@ def feature_mean(np.ndarray ch_bd, int blk, list scs, int end_scale):
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
             for ki in xrange(0, scale_length):
-                out_len += 1
+                out_len += 2
 
     return feature_mean_float32(np.float32(ch_bd), blk, scales_array, out_len, scales_half,
                                 scales_block, scale_length)

@@ -32,6 +32,7 @@ except:
 # Scikit-image
 try:
     from skimage.exposure import equalize_hist, rescale_intensity, equalize_adapthist
+    from skimage.color import rgb2rgbcie
     from skimage.filters import canny
 except ImportError:
     raise ImportError('Scikits must be installed')
@@ -184,6 +185,53 @@ def get_out_dims(bd, section_rows, section_cols, parameter_object):
     out_cols = int(np.sum(out_cols))
 
     return oR, oC, out_rows, out_cols
+
+
+def saliency(image_section, parameter_object):
+
+    """
+    References:
+        Federico Perazzi, Philipp Krahenbul, Yael Pritch, Alexander Hornung. Saliency Filters. (2012).
+            Contrast Based Filtering for Salient Region Detection. IEEE CVPR, Providence, Rhode Island, USA, June 16-21.
+
+            https://graphics.ethz.ch/~perazzif/saliency_filters/
+
+        Ming-Ming Cheng, Niloy J. Mitra, Xiaolei Huang, Philip H. S. Torr, Shi-Min Hu. (2015).
+            Global Contrast based Salient Region detection. IEEE TPAMI.
+    """
+
+    if parameter_object.vis_order == 'bgr':
+        lidx = [2, 1, 0]
+    else:
+        lidx = [0, 1, 2]
+
+    for li, layer in enumerate(image_section):
+
+        layer = np.float32(rescale_intensity(layer,
+                                             in_range=(np.percentile(layer, 2),
+                                                       np.percentile(layer, 98)),
+                                             out_range=(0, 1)))
+
+        image_section[lidx[li]] = rescale_intensity(cv2.GaussianBlur(layer, ksize=(3, 3), sigmaX=3),
+                                                    in_range=(0, 1),
+                                                    out_range=(-1, 1))
+
+    # Transpose the image to RGB
+    image_section = image_section.transpose(1, 2, 0)
+
+    # Perform RGB to CIE Lab color space conversion
+    image_section = rgb2rgbcie(image_section)
+
+    # Compute Lab average values
+    lm = image_section[:, :, 0].mean(axis=0).mean()
+    am = image_section[:, :, 1].mean(axis=0).mean()
+    bm = image_section[:, :, 2].mean(axis=0).mean()
+
+    return np.uint8(rescale_intensity((image_section[:, :, 0] - lm)**2. +
+                                      (image_section[:, :, 1] - am)**2. +
+                                      (image_section[:, :, 2] - bm)**2.,
+                                      in_range=(-1, 1),
+                                      out_range=(0, 255)))
 
 
 def get_dmp(bd, section_rows, section_cols):
@@ -472,9 +520,12 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
         out_d_range = (0, 255)
 
     # Scale the data to byte.
-    bd = np.uint8(rescale_intensity(bd,
-                                    in_range=(parameter_object.min, parameter_object.max),
-                                    out_range=out_d_range))
+    if bd.dtype != 'uint8':
+
+        bd = np.uint8(rescale_intensity(bd,
+                                        in_range=(parameter_object.min,
+                                                  parameter_object.max),
+                                        out_range=out_d_range))
 
     # Scale the data to an 8-bit range.
     if parameter_object.trigger != 'dmp':
@@ -608,7 +659,7 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
         bd = _chunk.chunk_int(bd, section_rows, section_cols,
                               parameter_object.block, parameter_object.chunk_size, parameter_object.scales[-1])
 
-    if parameter_object.trigger in ['mean', 'ndvi', 'objects', 'dmp', 'evi2', 'saliency']:
+    if parameter_object.trigger in ['mean', 'ndvi', 'dmp', 'evi2', 'saliency']:
 
         if parameter_object.trigger == 'mean':
             print '\n  Processing mean ...'
@@ -715,7 +766,7 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
 
         print '\n  Processing LSR ...'
 
-        return Parallel(n_jobs=parameter_object.n_jobs,
+        return Parallel(n_jobs=1,
                         max_nbytes=None)(delayed(call_lsr)(bd_, parameter_object.block,
                                                            parameter_object.scales,
                                                            parameter_object.scales[-1]) for bd_ in bd)

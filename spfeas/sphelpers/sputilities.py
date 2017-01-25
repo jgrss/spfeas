@@ -10,10 +10,6 @@ import itertools
 from mpglue import raster_tools, vrt_builder
 
 import numpy as np
-from skimage.color import rgb2rgbcie, rgbcie2rgb
-from skimage.exposure import rescale_intensity
-import cv2
-# import numexpr as ne
 
 # YAML
 try:
@@ -45,7 +41,6 @@ def write_log(parameter_object):
                              'Scales: {}\n'.format(','.join([str(bpos) for bpos in parameter_object.scales])),
                              'Contextual features: {}\n'.format(','.join(parameter_object.triggers)),
                              'SFS stopping threshold: {:d}\n'.format(parameter_object.sfs_threshold),
-                             'SFS angles: {:d}\n'.format(parameter_object.sfs_angles),
                              'Red band position: {:d}\n'.format(parameter_object.band_red),
                              'NIR band position: {:d}\n'.format(parameter_object.band_nir),
                              '{} compute features as neighbors\n'.format(parameter_object.write_neighbors),
@@ -491,35 +486,6 @@ def set_status(parameter_object):
                                  status_dict=status_dict)
 
     return parameter_object
-
-
-def saliency(image_section):
-
-    lidx = [2, 1, 0]
-
-    for li, layer in enumerate(image_section):
-
-        layer = rescale_intensity(layer,
-                                  in_range=(np.percentile(layer, 2),
-                                            np.percentile(layer, 98)),
-                                  out_range=(0, 1)).astype(np.float32)
-
-        image_section[lidx[li]] = cv2.GaussianBlur(layer, ksize=(3, 3), sigmaX=3)
-
-    # Transpose the image to RGB
-    image_section = image_section.transpose(1, 2, 0)
-
-    # Perform RGB to CIE Lab color space conversion
-    image_section = rgb2rgbcie(image_section)
-
-    # Compute Lab average values
-    lm = image_section[:, :, 0].mean(axis=0).mean()
-    am = image_section[:, :, 1].mean(axis=0).mean()
-    bm = image_section[:, :, 2].mean(axis=0).mean()
-
-    return rescale_intensity((image_section[:, :, 0] - lm)**2. +
-                             (image_section[:, :, 1] - am)**2. +
-                             (image_section[:, :, 2] - bm)**2., out_range=(0, 10000)).astype(np.uint16)
 
 
 def get_n_sects(image_info, parameter_object):
