@@ -1,4 +1,4 @@
-# cython: profile=True
+# cython: profile=False
 # cython: cdivision=True
 # cython: boundscheck=False
 # cython: wraparound=False
@@ -10,7 +10,7 @@ import numpy as np
 cimport numpy as np
 #from cython.parallel import prange
 
-from libc.math cimport pow, atan2, sqrt
+from libc.math cimport atan2, sqrt, floor
 
 DTYPE_uint8 = np.uint8
 ctypedef np.uint8_t DTYPE_uint8_t
@@ -26,9 +26,6 @@ cdef extern from 'numpy/npy_math.h':
 
 cdef extern from 'numpy/npy_math.h':
     bint npy_isinf(DTYPE_float32_t x)
-
-cdef extern from 'numpy/npy_math.h':
-    DTYPE_float32_t npy_floor(DTYPE_float32_t x)
 
 
 """
@@ -110,7 +107,7 @@ cdef DTYPE_float32_t[:, :, :] _3d_block_division(DTYPE_float32_t[:, :, :] block_
         int rs = block_.shape[1]
         int cs = block_.shape[2]
         DTYPE_float32_t[:, :, :] out_image = block_.copy()
-        DTYPE_float32_t block_sum = sqrt(pow(_get_block_sum3d(block_, ds, rs, cs), 2) + eps)
+        DTYPE_float32_t block_sum = sqrt(pow2(_get_block_sum3d(block_, ds, rs, cs)) + eps)
 
     for x in range(0, ds):
         for y in range(0, rs):
@@ -404,8 +401,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(DTYPE_float32_t[:, :] magnitud
         int cy = pixels_per_cell[1]
         int bx = cells_per_block[0]
         int by_ = cells_per_block[1]
-        int n_cellsx = <int>(npy_floor(sx / cx))  # number of cells in x
-        int n_cellsy = <int>(npy_floor(sy / cy))  # number of cells in y
+        int n_cellsx = int(floor(sx / cx))  # number of cells in x
+        int n_cellsy = int(floor(sy / cy))  # number of cells in y
         DTYPE_float32_t[:, :, :] orientation_histogram = np.zeros((n_cellsy, n_cellsx, orientations), dtype='float32')
         DTYPE_float32_t[:, :, :] block
         DTYPE_float32_t[:, :] hog_image

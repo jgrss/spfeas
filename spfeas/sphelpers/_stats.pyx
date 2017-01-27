@@ -10,7 +10,7 @@ cimport numpy as np
 from copy import copy
 
 # from libc.stdlib cimport free
-from libc.math cimport pow, atan, sqrt, sin, cos, round
+from libc.math cimport pow, atan, sqrt, sin, cos, floor
 
 from cython.parallel import parallel, prange
 # from libc.math cimport isnan, isinf
@@ -75,8 +75,13 @@ cdef extern from 'numpy/npy_math.h':
 cdef extern from 'math.h':
     DTYPE_float32_t ceil(DTYPE_float32_t x)
 
-cdef extern from 'numpy/npy_math.h':
-    DTYPE_float32_t npy_floor(DTYPE_float32_t x)
+# cdef extern from 'numpy/npy_math.h':
+#     DTYPE_float32_t npy_floor(DTYPE_float32_t x)
+
+
+# @cython.profile(False)
+# cdef inline DTYPE_float32_t roundd(DTYPE_float32_t val):
+#     return floor(val + .5)
 
 
 @cython.profile(False)
@@ -1472,7 +1477,7 @@ def fill_key_points(DTYPE_float32_t[:, :] in_block, list key_point_list):
 
         key_x, key_y = key_point_list[key_point_index].pt
 
-        key_point_array[<int>npy_floor(key_y), <int>npy_floor(key_x)] = 255
+        key_point_array[int(floor(key_y)), int(floor(key_x))] = 255
 
     return np.uint8(key_point_array)
 
@@ -1494,8 +1499,8 @@ cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] key_point_array,
     # Iterate over each level
     for lv in range(0, 3):
 
-        y_tiles = <int>npy_floor(orb_rows / levels[lv])
-        x_tiles = <int>npy_floor(orb_cols / levels[lv])
+        y_tiles = int(floor(orb_rows / levels[lv]))
+        x_tiles = int(floor(orb_cols / levels[lv]))
 
         if (y_tiles > 1) and (x_tiles > 1):
 
@@ -1514,8 +1519,8 @@ cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] key_point_array,
     # Iterate over each level
     for lv in range(0, 3):
 
-        y_tiles = <int>npy_floor(orb_rows / levels[lv])
-        x_tiles = <int>npy_floor(orb_cols / levels[lv])
+        y_tiles = int(floor(orb_rows / levels[lv]))
+        x_tiles = int(floor(orb_cols / levels[lv]))
 
         if (y_tiles > 1) and (x_tiles > 1):
 
@@ -2060,8 +2065,8 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
                     i = image[r, c]
 
                     # compute the location of the offset pixel
-                    row = r + <int>round(sin(angle) * distance)
-                    col = c + <int>round(cos(angle) * distance)
+                    row = r + int(round(sin(angle) * distance))
+                    col = c + int(round(cos(angle) * distance))
 
                     # row = r + int(round(sin(angle) * distance))
                     # col = c + int(round(cos(angle) * distance))
@@ -2582,8 +2587,8 @@ cdef int max_box_number(DTYPE_uint8_t[:, :] w, int rr_rows, int rr_cols):
         int maxi = _get_max(w, rr_rows, rr_cols)
         int mini = _get_min(w, rr_rows, rr_cols)
 
-        int boxes_max = <int>(ceil(float(maxi) / _get_min_sample_i(rr_rows, rr_cols)))
-        int boxes_min = <int>(ceil(float(mini) / _get_min_sample_i(rr_rows, rr_cols)))
+        int boxes_max = int(ceil(float(maxi) / _get_min_sample_i(rr_rows, rr_cols)))
+        int boxes_min = int(ceil(float(mini) / _get_min_sample_i(rr_rows, rr_cols)))
 
     return (boxes_max - boxes_min) + 1
 

@@ -208,18 +208,15 @@ def run(parameter_object):
 
                         elif parameter_object.trigger == 'saliency':
 
-                            sect_in = i_info.read(bands2open=[1, 2, 3],
-                                                  i=i_sect, j=j_sect,
-                                                  rows=n_rows, cols=n_cols,
-                                                  d_type='float32')
+                            # parameter_object.update_info(min=0, max=255)
+                            sect_in = spsplit.saliency(i_info, parameter_object,
+                                                       i_sect, j_sect,
+                                                       n_rows, n_cols)
 
-                            parameter_object.update_info(min=0, max=255)
-                            sect_in = spsplit.saliency(sect_in, parameter_object)
-
-                        elif parameter_object.use_rgb:
+                        elif parameter_object.use_rgb and trigger not in ['ndvi', 'evi2', 'dmp', 'saliency']:
 
                             sect_in, __, __ = sputilities.convert_rgb2gray(i_info,
-                                                                           j_sect, i_sect,
+                                                                           i_sect, j_sect,
                                                                            n_rows, n_cols)
 
                         else:

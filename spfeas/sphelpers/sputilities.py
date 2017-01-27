@@ -254,7 +254,7 @@ def get_luminosity(im_block, rows_, cols_, rgb):
     return luminosity / 3.
 
 
-def convert_rgb2gray(i_info, j_sect, i_sect, n_rows, n_cols, rgb='BGR', stats=False):
+def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=False):
 
     """
     Convert RGB to gray scale array

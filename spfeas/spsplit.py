@@ -213,7 +213,7 @@ def get_out_dims(bd, section_rows, section_cols, parameter_object):
     return oR, oC, out_rows, out_cols
 
 
-def saliency(image_section, parameter_object):
+def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
 
     """
     References:
@@ -226,36 +226,49 @@ def saliency(image_section, parameter_object):
             Global Contrast based Salient Region detection. IEEE TPAMI.
     """
 
+    min_max = []
+
+    for lb in [1, 2, 3]:
+
+        sect = i_info.read(bands2open=lb, d_type='float32')
+        min_max.append((np.percentile(sect, 2),
+                        np.percentile(sect, 98)))
+
     if parameter_object.vis_order == 'bgr':
         lidx = [2, 1, 0]
     else:
         lidx = [0, 1, 2]
 
-    for li, layer in enumerate(image_section):
+    layers = i_info.read(bands2open=[1, 2, 3],
+                         i=i_sect, j=j_sect,
+                         rows=n_rows, cols=n_cols,
+                         d_type='float32')
 
-        layer = np.float32(rescale_intensity(layer,
-                                             in_range=(np.percentile(layer, 2),
-                                                       np.percentile(layer, 98)),
+    for li in xrange(0, 3):
+
+        layer = np.float32(rescale_intensity(layers[li],
+                                             in_range=(min_max[li][0],
+                                                       min_max[li][1]),
                                              out_range=(0, 1)))
 
-        image_section[lidx[li]] = rescale_intensity(cv2.GaussianBlur(layer, ksize=(3, 3), sigmaX=3),
-                                                    in_range=(0, 1),
-                                                    out_range=(-1, 1))
+        layers[lidx[li]] = rescale_intensity(cv2.GaussianBlur(layer, ksize=(3, 3), sigmaX=3),
+                                             in_range=(0, 1),
+                                             out_range=(-1, 1))
 
     # Transpose the image to RGB
-    image_section = image_section.transpose(1, 2, 0)
+    layers = layers.transpose(1, 2, 0)
 
     # Perform RGB to CIE Lab color space conversion
-    image_section = rgb2rgbcie(image_section)
+    layers = rgb2rgbcie(layers)
 
     # Compute Lab average values
-    lm = image_section[:, :, 0].mean(axis=0).mean()
-    am = image_section[:, :, 1].mean(axis=0).mean()
-    bm = image_section[:, :, 2].mean(axis=0).mean()
+    lm = layers[:, :, 0].mean(axis=0).mean()
+    am = layers[:, :, 1].mean(axis=0).mean()
+    bm = layers[:, :, 2].mean(axis=0).mean()
 
-    return np.uint8(rescale_intensity((image_section[:, :, 0] - lm)**2. +
-                                      (image_section[:, :, 1] - am)**2. +
-                                      (image_section[:, :, 2] - bm)**2.,
+    return np.uint8(rescale_intensity((layers[:, :, 0] - lm)**2. +
+                                      (layers[:, :, 1] - am)**2. +
+                                      (layers[:, :, 2] - bm)**2.,
                                       in_range=(-1, 1),
                                       out_range=(0, 255)))
 
