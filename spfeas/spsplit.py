@@ -10,6 +10,7 @@ from joblib import Parallel, delayed
 
 from . import spfunctions
 from .paths import get_path
+from .sphelpers import _hog
 
 SPFEAS_PATH = get_path()
 
@@ -83,6 +84,26 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+def get_orb_keypoints(in_block, parameter_object):
+
+    # Compute the ORB keypoints
+    # Initiate ORB detector
+
+    orb = cv2.ORB_create(nfeatures=20000, edgeThreshold=31, patchSize=31, WTA_K=4)
+
+    in_block = np.uint8(rescale_intensity(in_block,
+                                          in_range=(parameter_object.min,
+                                                    parameter_object.max),
+                                          out_range=(0, 255)))
+
+    # Compute ORB keypoints
+    key_points, __ = orb.detectAndCompute(in_block, None)
+
+    # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
+
+    return _stats.fill_key_points(np.float32(in_block), key_points)
+
+
 def call_gabor(block_array_, block_size_, scales_, end_scale_, kernels_):
     return _stats.feature_gabor(block_array_, block_size_, scales_, end_scale_, kernels_)
 
@@ -91,8 +112,13 @@ def call_fourier(block_array_, block_size_, scales_, end_scale_):
     return spfunctions.feature_fourier(block_array_, block_size_, scales_, end_scale_)
 
 
-def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_):
-    return _stats.feature_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_)
+# def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_):
+#     return _stats.feature_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_)
+
+
+def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_, pixels_per_cell_, cells_per_block_):
+    return _hog.feature_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_,
+                            pixels_per_cell_, cells_per_block_)
 
 
 def call_hough(block_array_, block_size_, scales_, end_scale_, threshold_, min_len_, line_gap_):
@@ -384,6 +410,8 @@ def get_mag_ang(img):
     Get image gradient (magnitude) and orientation (angle) from a Sobel operator
     """
 
+    img = np.sqrt(img)
+
     gx = cv2.Sobel(np.float32(img), cv2.CV_32F, 1, 0)
     gy = cv2.Sobel(np.float32(img), cv2.CV_32F, 0, 1)
 
@@ -483,7 +511,7 @@ def wrapper(func, *args, **kwargs):
     return wrapped
 
 
-def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
+def get_sect_feas(bd, section_rows, section_cols, parameter_object):
 
     """
     Split section into chunks and process features at each scale
@@ -637,6 +665,26 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
                                      parameter_object.chunk_size,
                                      parameter_object.scales[-1])
 
+        if min(parameter_object.scales) <= 16:
+
+            parameter_object.update_info(pixels_per_cell=[4, 4],
+                                         cells_per_block=[3, 3])
+
+        elif max(parameter_object.scales) <= 32:
+
+            parameter_object.update_info(pixels_per_cell=[8, 8],
+                                         cells_per_block=[3, 3])
+
+        elif max(parameter_object.scales) <= 64:
+
+            parameter_object.update_info(pixels_per_cell=[16, 16],
+                                         cells_per_block=[3, 3])
+
+        elif max(parameter_object.scales) <= 128:
+
+            parameter_object.update_info(pixels_per_cell=[32, 32],
+                                         cells_per_block=[5, 5])
+
     # elif parameter_object.trigger == 'ndvi':
 
         # bd_4 = bd[0].astype(np.float32)
@@ -729,7 +777,9 @@ def get_sect_feas(bd, section_rows, section_cols, cell_size, parameter_object):
         return Parallel(n_jobs=parameter_object.n_jobs,
                         max_nbytes=None)(delayed(call_hog)(gim, oim, parameter_object.block,
                                                            parameter_object.scales,
-                                                           parameter_object.scales[-1])
+                                                           parameter_object.scales[-1],
+                                                           parameter_object.pixels_per_cell,
+                                                           parameter_object.cells_per_block)
                                          for gim, oim in itertools.izip(grad_img, ori_img))
 
     elif parameter_object.trigger == 'hough':

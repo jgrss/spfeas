@@ -32,11 +32,11 @@ class SPParameters(object):
             setattr(self, k, v)
 
         # Set the features dictionary.
-        self.features_dict = dict(mean=2, pantex=1, ctr=1, lsr=3, hough=4, hog=4, lbp=62,
-                                  lbpm=4, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=3,
+        self.features_dict = dict(mean=2, pantex=1, ctr=1, lsr=3, hough=4, hog=7, lbp=62,
+                                  lbpm=7, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=3,
                                   evi2=2, ndvi=2,
                                   dmp=2, xy=2, lac=1,
-                                  orb=4, saliency=2)
+                                  orb=7, saliency=2)
 
         # Set the output bands based on the trigger.
         self.out_bands_dict = dict(ctr=len(self.scales) * self.features_dict['ctr'],
@@ -144,16 +144,16 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'evi2' + Style.RESET_ALL + '    -- EVI2 mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'fourier' + Style.RESET_ALL + ' -- Fourier transform (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'gabor' + Style.RESET_ALL + '   -- Gabor filter bank (n scales x 2 x kernels(Default=24))',
-                  Fore.GREEN + Style.BRIGHT + 'hog' + Style.RESET_ALL + '     -- Histogram of Oriented Gradients (4 (mean,var,skew,kurtosis) x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'hog' + Style.RESET_ALL + '     -- Histogram of Oriented Gradients (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
                   Fore.RED + Style.BRIGHT + 'hough' + Style.RESET_ALL + '   -- Local line statistics from Probabilistic Hough Transform (4 x n scales)' + Fore.RED + ' **Currently out of order**',
                   Fore.GREEN + Style.BRIGHT + 'lac' + Style.RESET_ALL + '     -- Lacunarity (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbp' + Style.RESET_ALL + '     -- Local Binary Patterns (59 x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'lbpm' + Style.RESET_ALL + '    -- Local Binary Patterns moments (4 x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'lbpm' + Style.RESET_ALL + '    -- Local Binary Patterns moments (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
                   Fore.RED + Style.BRIGHT + 'lsr' + Style.RESET_ALL + '     -- Line support regions (3 x n scales)' + Fore.RED + ' **Currently out of order**',
                   Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local inverse distance weighted mean and variance (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'ndvi' + Style.RESET_ALL + '    -- NDVI mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'pantex' + Style.RESET_ALL + '  -- Built-up presence index (n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (4 x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (3 x n scales)',
                   Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']

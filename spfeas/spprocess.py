@@ -228,6 +228,10 @@ def run(parameter_object):
                                                   i=i_sect, j=j_sect,
                                                   rows=n_rows, cols=n_cols)
 
+                        if parameter_object.trigger == 'orb':
+                            sect_in = spsplit.get_orb_keypoints(sect_in, parameter_object)
+                            parameter_object.update_info(min=0, max=255)
+
                         # pad array here
                         # (top, bottom), (left, right)
                         sect_in = sputilities.pad_array(parameter_object, sect_in, n_rows, n_cols)
@@ -257,12 +261,12 @@ def run(parameter_object):
                             # Split image and compute features.
                             tk = spsplit.get_sect_feas(sect_in,
                                                        l_rows, l_cols,
-                                                       i_info.cellY,
                                                        parameter_object)
 
                             # Reshape list of features into
                             #   <features x rows x columns> array.
-                            out_sect_arr = spreshape.reshape_feas(parameter_object.trigger, tk, oR, oC,
+                            out_sect_arr = spreshape.reshape_feas(parameter_object.trigger,
+                                                                  tk, oR, oC,
                                                                   l_rows, l_cols,
                                                                   out_rows, out_cols,
                                                                   parameter_object)
