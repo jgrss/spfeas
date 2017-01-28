@@ -6,26 +6,29 @@ Date Created: 7/2/2013
 import os
 import sys
 import itertools
+import subprocess
 from joblib import Parallel, delayed
 
 from . import spfunctions
 from .paths import get_path
 from .sphelpers import _hog
 
+from mpglue import raster_tools
+
 SPFEAS_PATH = get_path()
 
 try:
-    from sphelpers import _stats
+    from .sphelpers import _stats
 except:
     raise ImportError('The stats functions did not load')
 
 try:
-    from sphelpers import _chunk
+    from .sphelpers import _chunk
 except:
     raise ImportError('The chunk functions did not load')
 
 try:
-    from sphelpers.gabor_filter_bank import prep_gabor
+    from .sphelpers.gabor_filter_bank import prep_gabor
 except:
     print('\n!!!\nWarning: skimage.filter.gabor_kernel did not load\n \
     Cannot compute Gabor features\n Upgrade to latest scikit-image')
@@ -113,12 +116,11 @@ def call_fourier(block_array_, block_size_, scales_, end_scale_):
 
 
 # def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_):
-#     return _stats.feature_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_)
+#     return _hog.feature_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_)
 
 
-def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_, pixels_per_cell_, cells_per_block_):
-    return _hog.feature_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_,
-                            pixels_per_cell_, cells_per_block_)
+def call_hog(block_array_, block_size_, scales_, end_scale_):
+    return _stats.feature_hog(block_array_, block_size_, scales_, end_scale_)
 
 
 def call_hough(block_array_, block_size_, scales_, end_scale_, threshold_, min_len_, line_gap_):
@@ -213,6 +215,86 @@ def get_out_dims(bd, section_rows, section_cols, parameter_object):
     return oR, oC, out_rows, out_cols
 
 
+def sfs_orfeo(parameter_object):
+
+    com = 'otbcli_SFSTextureExtraction -in {} -channel {:d} -ram 512 ' \
+          '-parameters.spethre {:d} -parameters.spathre {:d} -parameters.nbdir 40 ' \
+          '-out {}'.format(parameter_object.input_image,
+                           int(parameter_object.band_position),
+                           int(parameter_object.sfs_threshold),
+                           int(parameter_object.scales[-1]),
+                           parameter_object.out_img)
+
+    if not os.path.isfile(parameter_object.out_img):
+        subprocess.call(com, shell=True)
+
+    with raster_tools.ropen(parameter_object.out_img) as i_info:
+
+        # 6 layers
+        for bd in xrange(1, i_info.bands+1):
+
+            raster_tools.translate(parameter_object.out_img,
+                                   parameter_object.out_img.replace('.tif', '.vrt'),
+                                   bandList=[bd],
+                                   cell_size=i_info.cellY,
+                                   format='VRT',
+                                   d_type='float32')
+
+            new_image = parameter_object.out_img.replace('fea100', 'fea{:03d}'.format(bd))
+            new_image = new_image.replace('bd{:d}'.format(parameter_object.band_position), 'bd-rgb')
+
+            raster_tools.warp(parameter_object.out_img.replace('.tif', '.vrt'),
+                              new_image,
+                              cell_size=parameter_object.sfs_resample,
+                              resampleAlg='average',
+                              warpMemoryLimit=256,
+                              multithread=True,
+                              creationOptions=['COMPRESS=DEFLATE',
+                                               'BIGTIFF=YES',
+                                               'TILED=YES'])
+
+            os.remove(parameter_object.out_img.replace('.tif', '.vrt'))
+
+    i_info = None
+
+
+def scale_rgb(layers, min_max, lidx):
+
+    layers_c = np.empty(layers.shape, dtype='float32')
+
+    # Rescale and blur.
+    for li in xrange(0, 3):
+
+        layer = layers[li]
+
+        layer = np.float32(rescale_intensity(layer,
+                                             in_range=(min_max[li][0],
+                                                       min_max[li][1]),
+                                             out_range=(0, 1)))
+
+        layers_c[lidx[li]] = rescale_intensity(cv2.GaussianBlur(layer,
+                                                                ksize=(3, 3),
+                                                                sigmaX=3),
+                                               in_range=(0, 1),
+                                               out_range=(-1, 1))
+
+    return layers_c
+
+
+def get_layer_min_max(i_info):
+
+    min_max = []
+
+    for lb in [1, 2, 3]:
+
+        sect = i_info.read(bands2open=lb, d_type='float32')
+
+        min_max.append((np.percentile(sect, 2),
+                        np.percentile(sect, 98)))
+
+    return min_max
+
+
 def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
 
     """
@@ -226,34 +308,22 @@ def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
             Global Contrast based Salient Region detection. IEEE TPAMI.
     """
 
-    min_max = []
-
-    for lb in [1, 2, 3]:
-
-        sect = i_info.read(bands2open=lb, d_type='float32')
-        min_max.append((np.percentile(sect, 2),
-                        np.percentile(sect, 98)))
+    # Read the entire image to get the
+    #   min/max for each band.
+    min_max = get_layer_min_max(i_info)
 
     if parameter_object.vis_order == 'bgr':
         lidx = [2, 1, 0]
     else:
         lidx = [0, 1, 2]
 
+    # Read the section.
     layers = i_info.read(bands2open=[1, 2, 3],
                          i=i_sect, j=j_sect,
                          rows=n_rows, cols=n_cols,
                          d_type='float32')
 
-    for li in xrange(0, 3):
-
-        layer = np.float32(rescale_intensity(layers[li],
-                                             in_range=(min_max[li][0],
-                                                       min_max[li][1]),
-                                             out_range=(0, 1)))
-
-        layers[lidx[li]] = rescale_intensity(cv2.GaussianBlur(layer, ksize=(3, 3), sigmaX=3),
-                                             in_range=(0, 1),
-                                             out_range=(-1, 1))
+    layers = scale_rgb(layers, min_max, lidx)
 
     # Transpose the image to RGB
     layers = layers.transpose(1, 2, 0)
@@ -599,8 +669,8 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
         bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, 5, 5))
 
     # get image gradient and orientation for HoG
-    if parameter_object.trigger == 'hog':
-        grad_img, ori_img = get_mag_ang(bd)
+    # if parameter_object.trigger == 'hog':
+    #     grad_img, ori_img = get_mag_ang(bd)
         
     # rescale for GLCM
     # elif (parameter_object.trigger == 'pantex') or (parameter_object.trigger == 'lac'):
@@ -666,37 +736,17 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
     # split the image array into overlapping chunks where
     # the overlap is determined by the output pixel block size and
     # the maximum scale
-    if parameter_object.trigger == 'hog':
-
-        grad_img = _chunk.chunk_float(grad_img, section_rows, section_cols,
-                                      parameter_object.block,
-                                      parameter_object.chunk_size,
-                                      parameter_object.scales[-1])
-
-        ori_img = _chunk.chunk_float(ori_img, section_rows, section_cols,
-                                     parameter_object.block,
-                                     parameter_object.chunk_size,
-                                     parameter_object.scales[-1])
-
-        if min(parameter_object.scales) <= 16:
-
-            parameter_object.update_info(pixels_per_cell=[4, 4],
-                                         cells_per_block=[3, 3])
-
-        elif max(parameter_object.scales) <= 32:
-
-            parameter_object.update_info(pixels_per_cell=[8, 8],
-                                         cells_per_block=[3, 3])
-
-        elif max(parameter_object.scales) <= 64:
-
-            parameter_object.update_info(pixels_per_cell=[16, 16],
-                                         cells_per_block=[3, 3])
-
-        elif max(parameter_object.scales) <= 128:
-
-            parameter_object.update_info(pixels_per_cell=[32, 32],
-                                         cells_per_block=[5, 5])
+    # if parameter_object.trigger == 'hog':
+    #
+    #     grad_img = _chunk.chunk_float(grad_img, section_rows, section_cols,
+    #                                   parameter_object.block,
+    #                                   parameter_object.chunk_size,
+    #                                   parameter_object.scales[-1])
+    #
+    #     ori_img = _chunk.chunk_float(ori_img, section_rows, section_cols,
+    #                                  parameter_object.block,
+    #                                  parameter_object.chunk_size,
+    #                                  parameter_object.scales[-1])
 
     # elif parameter_object.trigger == 'ndvi':
 
@@ -788,12 +838,15 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
         print '\n  Processing HoG ...'
 
         return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_hog)(gim, oim, parameter_object.block,
+                        max_nbytes=None)(delayed(call_hog)(bd_, parameter_object.block,
                                                            parameter_object.scales,
-                                                           parameter_object.scales[-1],
-                                                           parameter_object.pixels_per_cell,
-                                                           parameter_object.cells_per_block)
-                                         for gim, oim in itertools.izip(grad_img, ori_img))
+                                                           parameter_object.scales[-1]) for bd_ in bd)
+
+        # return Parallel(n_jobs=parameter_object.n_jobs,
+        #                 max_nbytes=None)(delayed(call_hog)(gim, oim, parameter_object.block,
+        #                                                    parameter_object.scales,
+        #                                                    parameter_object.scales[-1])
+        #                                  for gim, oim in itertools.izip(grad_img, ori_img))
 
     elif parameter_object.trigger == 'hough':
 

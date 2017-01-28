@@ -32,11 +32,14 @@ class SPParameters(object):
             setattr(self, k, v)
 
         # Set the features dictionary.
-        self.features_dict = dict(mean=2, pantex=1, ctr=1, lsr=3, hough=4, hog=7, lbp=62,
-                                  lbpm=7, gabor=2 * 8, surf=4, seg=1, fourier=2, sfs=3,
-                                  evi2=2, ndvi=2,
+        self.features_dict = dict(mean=2, pantex=1, ctr=1,
+                                  lsr=3, hough=4, hog=7,
+                                  lbp=62, lbpm=7, gabor=2*8,
+                                  surf=4, seg=1, fourier=2,
+                                  sfs=5, evi2=2, ndvi=2,
                                   dmp=2, xy=2, lac=1,
-                                  orb=7, saliency=2)
+                                  orb=7, saliency=2,
+                                  sfsorf=6)
 
         # Set the output bands based on the trigger.
         self.out_bands_dict = dict(ctr=len(self.scales) * self.features_dict['ctr'],
@@ -57,6 +60,7 @@ class SPParameters(object):
                                    saliency=len(self.scales) * self.features_dict['saliency'],
                                    seg=len(self.scales) * self.features_dict['seg'],
                                    sfs=len(self.scales) * self.features_dict['sfs'],
+                                   sfsorf=len(self.scales) * self.features_dict['sfsorf'],
                                    surf=len(self.scales) * self.features_dict['surf'],
                                    xy=len(self.scales) * self.features_dict['xy'])
 
@@ -155,7 +159,7 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'pantex' + Style.RESET_ALL + '  -- Built-up presence index (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (2 x n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (3 x n scales)',
+                  Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (5 (max,min,mean,w-mean,std) x n scales)',
                   Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
 
     for text_line in text_lines:
@@ -186,7 +190,8 @@ def main():
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
-                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb', 'pantex', 'saliency', 'sfs'])
+                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb',
+                                            'pantex', 'saliency', 'sfs', 'sfsorf'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=40, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',
@@ -195,7 +200,7 @@ def main():
                         default=2, type=int)
     parser.add_argument('--weight', dest='weight', help='Whether to weight PanTex by DN', action='store_true')
     parser.add_argument('--sfs-th', dest='sfs_threshold', help='The SFS stopping threshold',
-                        default=20, type=int)
+                        default=40, type=int)
     parser.add_argument('--sfs-rs', dest='sfs_resample', help='The SFS resample size',
                         default=0., type=float)
     parser.add_argument('--lac-r', dest='lac_r', help='The lacunarity box r parameter', default=2, type=int)

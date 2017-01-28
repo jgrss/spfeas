@@ -10,7 +10,7 @@ cimport numpy as np
 from copy import copy
 
 # from libc.stdlib cimport free
-from libc.math cimport pow, atan, sqrt, sin, cos, floor
+from libc.math cimport atan, sqrt, sin, cos, floor
 
 from cython.parallel import parallel, prange
 # from libc.math cimport isnan, isinf
@@ -83,6 +83,25 @@ cdef extern from 'math.h':
 # cdef inline DTYPE_float32_t roundd(DTYPE_float32_t val):
 #     return floor(val + .5)
 
+@cython.profile(False)
+cdef inline DTYPE_float32_t sqrt_f(DTYPE_float32_t sx) nogil:
+    return sx * .5
+
+
+@cython.profile(False)
+cdef inline DTYPE_float32_t abs_f(DTYPE_float32_t sx) nogil:
+    return sx * -1. if sx < 0 else sx
+
+
+@cython.profile(False)
+cdef inline DTYPE_uint8_t abs_ui(DTYPE_uint8_t sx) nogil:
+    return sx * -1 if sx < 0 else sx
+
+
+@cython.profile(False)
+cdef inline Py_ssize_t abs_s(Py_ssize_t sx) nogil:
+    return sx * -1 if sx < 0 else sx
+
 
 @cython.profile(False)
 cdef inline int n_rows_cols(int pixel_index, int rows_cols, int block_size):
@@ -110,7 +129,7 @@ cdef inline int _get_min_sample_i(int s1, int s2):
 
 
 @cython.profile(False)
-cdef inline DTYPE_float32_t _get_min_sample_f(DTYPE_float32_t s1, DTYPE_float32_t s2):
+cdef inline DTYPE_float32_t _get_min_sample_f(DTYPE_float32_t s1, DTYPE_float32_t s2) nogil:
     return s2 if s2 < s1 else s1
 
 
@@ -280,16 +299,14 @@ cdef DTYPE_float32_t get_sum_1d(DTYPE_float32_t[:] block):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t _get_sum_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
+cdef DTYPE_float32_t _get_sum_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
         Py_ssize_t bi, bj
         DTYPE_float32_t block_sum = 0.
 
-    for bi in xrange(0, rs):
-
-        for bj in xrange(0, cs):
-
+    for bi in range(0, rs):
+        for bj in range(0, cs):
             block_sum += float(block[bi, bj])
 
     return block_sum
@@ -297,18 +314,14 @@ cdef DTYPE_float32_t _get_sum_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t _get_sum(DTYPE_float32_t[:, :] block, int rs, int cs):
+cdef DTYPE_float32_t _get_sum(DTYPE_float32_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
         Py_ssize_t bi, bj
         DTYPE_float32_t block_sum = 0.
 
-    # with nogil, parallel(num_threads=rs):
-
-    for bi in xrange(0, rs):
-
-        for bj in xrange(0, cs):
-
+    for bi in range(0, rs):
+        for bj in range(0, cs):
             block_sum += block[bi, bj]
 
     return block_sum
@@ -335,8 +348,8 @@ cdef DTYPE_float32_t _get_weighted_sum(DTYPE_float32_t[:, :] block, DTYPE_float3
         DTYPE_float32_t block_sum = 0.
         DTYPE_float32_t dv
 
-    for bi in xrange(0, rs):
-        for bj in xrange(0, cs):
+    for bi in range(0, rs):
+        for bj in range(0, cs):
 
             dv = block[bi, bj] / weights[bi, bj]
 
@@ -371,9 +384,11 @@ cdef DTYPE_float32_t[:] _get_weighted_mean_var(DTYPE_float32_t[:, :] block,
         DTYPE_float32_t mu = _get_weighted_mean(block, weights, rs, cs)
         DTYPE_float32_t block_var = 0.
 
-    for bi in xrange(0, rs):
-        for bj in xrange(0, cs):
-            block_var += pow(float(block[bi, bj]) - mu, 2)
+    with nogil:
+
+        for bi in range(0, rs):
+            for bj in range(0, cs):
+                block_var += pow2(float(block[bi, bj]) - mu)
 
     out_values_[0] = mu
     out_values_[1] = block_var / n_samps
@@ -384,12 +399,46 @@ cdef DTYPE_float32_t[:] _get_weighted_mean_var(DTYPE_float32_t[:, :] block,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
+cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
         DTYPE_float32_t n_samps = float(rs*cs)
 
     return _get_sum_uint8(block, rs, cs) / n_samps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef DTYPE_float32_t _get_std_1d(DTYPE_float32_t[:] block, int cs) nogil:
+
+    cdef:
+        Py_ssize_t bj
+        DTYPE_float32_t mu = _get_mean_1d(block, cs)
+        DTYPE_float32_t block_var = 0.
+
+    with nogil:
+
+        for bj in range(0, cs):
+            block_var += pow2(float(block[bj]) - mu)
+
+    return sqrt(block_var / cs)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef DTYPE_float32_t _get_std_1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
+
+    cdef:
+        Py_ssize_t bj
+        DTYPE_float32_t mu = _get_mean_1d_uint8(block, cs)
+        DTYPE_float32_t block_var = 0.
+
+    for bj in range(0, cs):
+        block_var += pow2(float(block[bj]) - mu)
+
+    return sqrt_f(block_var / cs)
 
 
 @cython.boundscheck(False)
@@ -402,9 +451,11 @@ cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs):
         DTYPE_float32_t mu = _get_mean(block, rs, cs)
         DTYPE_float32_t block_var = 0.
 
-    for bi in xrange(0, rs):
-        for bj in xrange(0, cs):
-            block_var += pow(float(block[bi, bj]) - mu, 2)
+    with nogil:
+
+        for bi in range(0, rs):
+            for bj in range(0, cs):
+                block_var += pow2(float(block[bi, bj]) - mu)
 
     return block_var / (rs*cs)
 
@@ -419,9 +470,11 @@ cdef DTYPE_float32_t _get_var_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
         DTYPE_float32_t mu = _get_mean_uint8(block, rs, cs)
         DTYPE_float32_t block_var = 0.
 
-    for bi in xrange(0, rs):
-        for bj in xrange(0, cs):
-            block_var += pow(float(block[bi, bj]) - mu, 2)
+    with nogil:
+
+        for bi in range(0, rs):
+            for bj in range(0, cs):
+                block_var += pow2(float(block[bi, bj]) - mu)
 
     return block_var / (rs*cs)
 
@@ -435,25 +488,23 @@ cdef DTYPE_float32_t _get_std1d(DTYPE_float32_t[:] block, int cs, DTYPE_float32_
         DTYPE_float32_t[:] pow_array = np.zeros(cs, dtype='float32')
 
     # for bj in prange(0, cs, nogil=True, num_threads=cs, schedule='static'):
-    for bj in xrange(0, cs):
-        pow_array[bj] = pow((block[bj] - psi), 2)
+    for bj in range(0, cs):
+        pow_array[bj] = pow2((block[bj] - psi))
 
-    return pow(_get_sum1d(pow_array, cs), .5)
+    return sqrt(_get_sum1d(pow_array, cs))
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t _get_sum1d(DTYPE_float32_t[:] block, int cs):
+cdef DTYPE_float32_t _get_sum1d(DTYPE_float32_t[:] block, int cs) nogil:
 
     cdef:
         Py_ssize_t bj
         DTYPE_float32_t block_sum = block[0]
 
-    with nogil:
-
-        # for bj in prange(0, cs, nogil=True, num_threads=cs, schedule='static'):
-        for bj in xrange(1, cs):
-            block_sum += block[bj]
+    # for bj in prange(0, cs, nogil=True, num_threads=cs, schedule='static'):
+    for bj in range(1, cs):
+        block_sum += block[bj]
 
     return block_sum
 
@@ -461,8 +512,29 @@ cdef DTYPE_float32_t _get_sum1d(DTYPE_float32_t[:] block, int cs):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_mean1d(DTYPE_float32_t[:] block, int cs):
+cdef DTYPE_float32_t _get_mean_1d(DTYPE_float32_t[:] block, int cs) nogil:
     return _get_sum1d(block, cs) / cs
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef DTYPE_float32_t _get_sum1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
+
+    cdef:
+        Py_ssize_t bj
+        DTYPE_uint8_t block_sum = block[0]
+
+    for bj in range(1, cs):
+        block_sum += block[bj]
+
+    return float(block_sum)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef DTYPE_float32_t _get_mean_1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
+    return _get_sum1d_uint8(block, cs) / cs
 
 
 # @cython.boundscheck(False)
@@ -576,8 +648,8 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
         char steep = 0
         Py_ssize_t x = x0
         Py_ssize_t y = y0
-        Py_ssize_t dx = int(abs(float(x1) - float(x0)))
-        Py_ssize_t dy = int(abs(float(y1) - float(y0)))
+        Py_ssize_t dx = abs_s(x1 - x0)
+        Py_ssize_t dy = abs_s(y1 - y0)
         Py_ssize_t sx, sy, d, i
         DTYPE_intp_t[:] rr, cc
 
@@ -600,7 +672,7 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
 
     d = (2 * dy) - dx
 
-    rr = np.zeros(int(dx)+1, dtype='intp')
+    rr = np.zeros(dx+1, dtype='intp')
     cc = rr.copy()
     # rr = clone(template, int(dx)+1, True)
     # cc = clone(template, int(dx)+1, True)
@@ -640,7 +712,7 @@ cdef DTYPE_float32_t[:] _get_stats(DTYPE_float32_t[:] block, int samps):
     """
 
     cdef:
-        DTYPE_float32_t the_mean = _get_mean1d(block, samps)
+        DTYPE_float32_t the_mean = _get_mean_1d(block, samps)
         DTYPE_float32_t the_max = _get_max_f(block, samps)
         Py_ssize_t idx
         DTYPE_float32_t bx = block[0]
@@ -699,25 +771,37 @@ cdef DTYPE_float32_t[:] get_moments(DTYPE_float32_t[:] img_arr):
 
 # Gabor filter bank
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# cdef DTYPE_float32_t[:] gabor_mean_var(np.ndarray[unsigned char, ndim=2] gabor_array):
-#
-#     """
-#     Get mean and variance of Gabor kernel convolution
-#     """
-#
-#     cdef int img_arr_cols = gabor_array.shape[0]
-#
-#     if gabor_array.max() == 0:
-#         return np.array([np.array([[0.]]), np.array([[0.]])], dtype='float32')
-#     else:
-#         return np.array(cv2.meanStdDev(gabor_array), dtype='float32')
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef DTYPE_float32_t[:, :] _convolution(DTYPE_float32_t[:, :] block2convolve,
+                                        DTYPE_float32_t[:, :] gkernel,
+                                        int br, int bc, int knr, int knc):
+
+    cdef:
+        Py_ssize_t bi, bj, bki, bkj
+        DTYPE_float32_t[:, :] out_convolved = np.zeros((br, bc), dtype='float32')
+        DTYPE_float32_t kernel_sum
+
+    with nogil:
+
+        for bi in range(0, br-knr):
+            for bj in range(0, bc-knc):
+
+                kernel_sum = 0.
+
+                for bki in range(0, knr):
+                    for bkj in range(0, knc):
+                        kernel_sum += block2convolve[bi+bki, bj+bkj] * gkernel[bki, bkj]
+
+                out_convolved[bi, bj] = kernel_sum
+
+    return out_convolved
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd, int blk,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] chBd, int blk,
                                                         DTYPE_uint16_t[:] scs, int out_len, int scales_half,
                                                         int scales_block, list kernels, int rows, int cols,
                                                         int scale_length):
@@ -732,13 +816,15 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
     cdef:
         Py_ssize_t i, j, ki, kl
         DTYPE_uint16_t k, k_half
-        DTYPE_uint8_t[:, :] ch_bd
-        DTYPE_uint8_t[:, :] ch_bd_gabor
+        DTYPE_float32_t[:, :] ch_bd
+        DTYPE_float32_t[:, :] ch_bd_gabor
         DTYPE_float32_t[:] sts
         list st
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         int pix_ctr = 0
         int n_kernels = np.asarray(kernels).shape[0]
+        int knr = kernels[0].shape[0]
+        int knc = kernels[0].shape[1]
         int bcr, bcc
 
     for i from 0 <= i < rows-scales_block by blk:
@@ -757,13 +843,13 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
 
                 for kl in xrange(0, n_kernels):
 
-                    # sts = gabor_mean_var(cv2.filter2D(np.array(ch_bd), -1, kernels[kl]))
+                    ch_bd_gabor = _convolution(ch_bd, kernels[kl], bcr, bcc, knr, knc)
+                    # ch_bd_gabor = cv2.filter2D(np.uint8(ch_bd), -1, kernels[kl])
 
-                    ch_bd_gabor = cv2.filter2D(np.uint8(ch_bd), -1, kernels[kl])
-
-                    out_list[pix_ctr] = _get_mean_uint8(ch_bd_gabor, bcr, bcc)
+                    out_list[pix_ctr] = _get_mean(ch_bd_gabor, bcr, bcc)
                     pix_ctr += 1
-                    out_list[pix_ctr] = _get_var_uint8(ch_bd_gabor, bcr, bcc)
+
+                    out_list[pix_ctr] = _get_var(ch_bd_gabor, bcr, bcc)
                     pix_ctr += 1
 
     return np.float32(out_list)
@@ -771,18 +857,26 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_uint8_t[:, :] chBd
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def feature_gabor(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale, list kernels):
+@cython.cdivision(True)
+def feature_gabor(np.ndarray chBd, int blk, list scs, int end_scale, list kernels):
 
     cdef:
         Py_ssize_t i, j, ki, kl
-        unsigned int scales_half = end_scale / 2
-        unsigned int scales_block = end_scale - blk
+        int scales_half = int(end_scale / 2)
+        int scales_block = end_scale - blk
         int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
-        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
-        int scale_length = scales_array.shape[0]
-        int n_kernels = np.asarray(kernels).shape[0]
+        DTYPE_uint16_t[:] scales_array
+        int scale_length
+        int n_kernels = len(kernels)
+
+    if scs[0] < 16:
+        scales_array = np.array(scs[1:], dtype='uint16')
+    else:
+        scales_array = np.array(scs, dtype='uint16')
+
+    scale_length = scales_array.shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -790,7 +884,7 @@ def feature_gabor(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
                 for kl in xrange(0, n_kernels):
                     out_len += 2
 
-    return _feature_gabor(chBd, blk, scales_array, out_len, scales_half,
+    return _feature_gabor(np.float32(chBd), blk, scales_array, out_len, scales_half,
                           scales_block, kernels, rows, cols, scale_length)
 
 
@@ -811,331 +905,88 @@ def feature_gabor(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
 #     return np.float32(np.bincount(np.array(bins).ravel(), weights=mag_chunk.ravel(), minlength=bin_n))
 #
 #
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad,
-#                                                       DTYPE_float32_t[:, :] ori,
-#                                                       int blk, DTYPE_uint16_t[:] scs, int end_scale, int scales_half,
-#                                                       int scales_block, int out_len, int rows, int cols,
-#                                                       int scale_length):
-#
-#     """
-#     Computes the Histogram of Oriented Gradients
-#
-#     At each scale, returns:
-#         1:	Mean
-#         2:	Variance
-#         3:	Skew
-#         4:	Kurtosis
-#     """
-#
-#     cdef:
-#         Py_ssize_t i, j, ki, sti, block_rows, block_cols
-#         DTYPE_uint16_t k, k_half
-#         DTYPE_float32_t[:, :] ch_grad, ch_ori
-#         DTYPE_float32_t[:] sts
-#         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
-#         int pix_ctr = 0
-#         DTYPE_float32_t pi2 = 3.14159 / 2.
-#         bin_n = 9
-#
-#     for i from 0 <= i < rows-scales_block by blk:
-#         for j from 0 <= j < cols-scales_block by blk:
-#             for ki in xrange(0, scale_length):
-#
-#                 k = scs[ki]
-#
-#                 k_half = k / 2
-#
-#                 ch_grad = grad[i+scales_half-k_half:i+scales_half-k_half+k,
-#                                j+scales_half-k_half:j+scales_half-k_half+k]
-#
-#                 ch_ori = ori[i+scales_half-k_half:i+scales_half-k_half+k,
-#                              j+scales_half-k_half:j+scales_half-k_half+k]
-#
-#                 block_rows = ch_grad.shape[0]
-#                 block_cols = ch_grad.shape[1]
-#
-#                 if _get_max_f2d(ch_grad, block_rows, block_cols) > 0:
-#
-#                     sts = get_moments(calc_hog(np.array(ch_grad), np.array(ch_ori), pi2, bin_n,
-#                                                block_rows, block_cols))
-#
-#                     for sti in xrange(0, 6):
-#
-#                         out_list[pix_ctr] = sts[sti]
-#
-#                         pix_ctr += 1
-#
-#                 else:
-#
-#                     for sti in xrange(0, 6):
-#                         pix_ctr += 1
-#
-#     return np.float32(out_list)
-#
-#
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def feature_hog(np.ndarray[DTYPE_float32_t, ndim=2] grad,
-#                 np.ndarray[DTYPE_float32_t, ndim=2] ori,
-#                 int blk, list scs, int end_scale):
-#
-#     cdef:
-#         Py_ssize_t i, j, ki
-#         unsigned int scales_half = end_scale / 2
-#         unsigned int scales_block = end_scale - blk
-#         int out_len = 0
-#         int rows = grad.shape[0]
-#         int cols = grad.shape[1]
-#         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
-#         int scale_length = scales_array.shape[0]
-#
-#     for i from 0 <= i < rows-scales_block by blk:
-#         for j from 0 <= j < cols-scales_block by blk:
-#             for ki in xrange(0, scale_length):
-#                 out_len += 6
-#
-#     return _feature_hog(grad, ori, blk, scales_array, end_scale,
-#                         scales_half, scales_block, out_len, rows, cols, scale_length)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t, ndim=2] chbd,
+                                                      int blk, DTYPE_uint16_t[:] scs, int end_scale, int scales_half,
+                                                      int scales_block, int out_len, int rows, int cols,
+                                                      int scale_length):
+
+    """
+    Computes the Histogram of Oriented Gradients
+
+    At each scale, returns:
+        1:	Mean
+        2:	Variance
+        3:	Skew
+        4:	Kurtosis
+    """
+
+    cdef:
+        Py_ssize_t i, j, ki, sti, block_rows, block_cols
+        DTYPE_uint16_t k, k_half
+        np.ndarray[DTYPE_float32_t, ndim=2] ch_bd
+        DTYPE_float32_t[:] sts
+        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
+        int pix_ctr = 0
+        DTYPE_float32_t pi2 = 3.14159 / 2.
+        bin_n = 9
+
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in xrange(0, scale_length):
+
+                k = scs[ki]
+
+                k_half = k / 2
+
+                ch_bd = chbd[i+scales_half-k_half:i+scales_half-k_half+k,
+                             j+scales_half-k_half:j+scales_half-k_half+k]
+
+                block_rows = ch_bd.shape[0]
+                block_cols = ch_bd.shape[1]
+
+                if _get_max_f2d(ch_bd, block_rows, block_cols) > 0:
+
+                    sts = get_moments(np.float32(HOG(ch_bd,
+                                                     pixels_per_cell=(block_rows, block_cols),
+                                                     cells_per_block=(1, 1))))
+
+                    for sti in xrange(0, 7):
+
+                        out_list[pix_ctr] = sts[sti]
+
+                        pix_ctr += 1
+
+                else:
+                    pix_ctr += 7
+
+    return np.float32(out_list)
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# cdef np.ndarray[long, ndim=1] obscure_angle_indices(np.ndarray[long, ndim=1] arr, str do_m, fl):
-#
-#     cdef int arr_len = len(arr)
-#     cdef int ctr = 2
-#     cdef int s = 0
-#     cdef int t
-#     cdef np.ndarray[DTYPE_uint8_t, ndim=1] l = np.zeros(arr_len).astype(np.uint8)
-#
-#     for t in xrange(0, arr_len):
-#
-#         l[t] = s
-#         if ctr == 2:
-#             s += 1
-#             ctr = 0
-#
-#         ctr += 1
-#
-#     if do_m == 'add':
-#         if fl:
-#             return np.add(arr, l)[::-1]
-#         else:
-#             return np.add(arr, l)
-#     else:
-#         if fl:
-#             return np.subtract(arr, l)[::-1]
-#         else:
-#             return np.subtract(arr, l)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def feature_hog(np.ndarray chbd,
+                int blk, list scs, int end_scale):
 
+    cdef:
+        Py_ssize_t i, j, ki
+        int scales_half = int(end_scale / 2)
+        int scales_block = end_scale - blk
+        int out_len = 0
+        int rows = chbd.shape[0]
+        int cols = chbd.shape[1]
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
+        int scale_length = scales_array.shape[0]
 
-# @cython.boundscheck(False)
-# cdef list get_directions(np.ndarray[DTYPE_uint8_t, ndim=2] chunk, int chunk_rws, int chunk_cls, int rows_half,
-#                          int cols_half, int blk_adj, int n_angles=8):
-#
-#     cdef:
-#         list dir_arrs = []
-#         int ang_pos, pos_min
-#         list x_pos, y_pos
-#
-#     if n_angles == 16:
-#
-#         x_pos = [np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int),
-#                  np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int),
-#                  np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int),
-#                  obscure_angle_indices(np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int), 'sub', False),
-#                  np.array(range(cols_half-blk_adj, cols_half+blk_adj)).astype(int),
-#                  obscure_angle_indices(np.array(range(chunk_cls-cols_half-blk_adj)).astype(int), 'add', True),
-#                  np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                  np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                  np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                  np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                  np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                  obscure_angle_indices(np.array(range(chunk_cls-cols_half-blk_adj)).astype(int), 'add', True),
-#                  np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                  obscure_angle_indices(np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int), 'sub', False),
-#                  np.array(range(cols_half-blk_adj, cols_half+blk_adj)).astype(int),
-#                  np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int),
-#                  np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int)]
-#
-#         y_pos = [np.array(range(rows_half-blk_adj, rows_half+blk_adj)).astype(int),
-#                     obscure_angle_indices(np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int), 'add', False),
-#                     np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                     np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                     np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                     np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                     np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                     obscure_angle_indices(np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int), 'add', False),
-#                     np.array(range(rows_half-blk_adj, rows_half+blk_adj)).astype(int),
-#                     obscure_angle_indices(np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int), 'sub', False),
-#                     np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int),
-#                     np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int),
-#                     np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int),
-#                     np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int),
-#                     np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int),
-#                     obscure_angle_indices(np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int), 'sub', False)]
-#
-#         ang_pos = 0
-#         dir_arrs.append(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1].mean(axis=0).astype(np.float32))
-#
-#         ang_pos = 1
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 2
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 3
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 4
-#         dir_arrs.append(np.flipud(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1]).mean(axis=1).astype(np.float32))
-#
-#         ang_pos = 5
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 6
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 7
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 8
-#         dir_arrs.append(np.fliplr(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1]).mean(axis=0).astype(np.float32))
-#
-#         ang_pos = 9
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 10
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 11
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 12
-#         dir_arrs.append(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1].mean(axis=1).astype(np.float32))
-#
-#         ang_pos = 13
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 14
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 15
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#     else:
-#
-#         x_pos = [np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int),
-#                     np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int),
-#                     np.array(range(cols_half-blk_adj, cols_half+blk_adj)).astype(int),
-#                     np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                     np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                     np.array(range(chunk_cls-cols_half-blk_adj))[::-1].astype(int),
-#                     np.array(range(cols_half-blk_adj, cols_half+blk_adj)).astype(int),
-#                     np.add(np.array(range(chunk_cls-cols_half-blk_adj)), cols_half+1).astype(int)]
-#
-#         y_pos = [np.array(range(rows_half-blk_adj, rows_half+blk_adj)).astype(int),
-#                  np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                  np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                  np.array(range(chunk_rws-rows_half-blk_adj))[::-1].astype(int),
-#                  np.array(range(rows_half-blk_adj, rows_half+blk_adj)).astype(int),
-#                  np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int),
-#                  np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int),
-#                  np.add(np.array(range(chunk_rws-rows_half-blk_adj)), rows_half+1).astype(int)]
-#
-#         ang_pos = 0
-#         dir_arrs.append(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1].mean(axis=0).astype(np.float32))
-#
-#         ang_pos = 1
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 2
-#         dir_arrs.append(np.flipud(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1]).mean(axis=1).astype(np.float32))
-#
-#         ang_pos = 3
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 4
-#         dir_arrs.append(np.fliplr(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1]).mean(axis=0).astype(np.float32))
-#
-#         ang_pos = 5
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#         ang_pos = 6
-#         dir_arrs.append(chunk[y_pos[ang_pos][0]:y_pos[ang_pos][-1]+1, x_pos[ang_pos][0]:x_pos[ang_pos][-1]+1].mean(axis=1).astype(np.float32))
-#
-#         ang_pos = 7
-#         try:
-#             dir_arrs.append(chunk[y_pos[ang_pos], x_pos[ang_pos]].astype(np.float32))
-#         except:
-#             pos_min = np.minimum(len(y_pos[ang_pos]), len(x_pos[ang_pos]))
-#             dir_arrs.append(chunk[y_pos[ang_pos][:pos_min], x_pos[ang_pos][:pos_min]].astype(np.float32))
-#
-#     return dir_arrs
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in xrange(0, scale_length):
+                out_len += 7
 
+    return _feature_hog(np.float32(chbd), blk, scales_array, end_scale,
+                        scales_half, scales_block, out_len, rows, cols, scale_length)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1145,29 +996,34 @@ cdef DTYPE_uint8_t[:] extract_values(DTYPE_uint8_t[:, :] block, DTYPE_intp_t[:] 
         Py_ssize_t fi, fi_, fj_
         DTYPE_uint8_t[:] values = np.zeros(fl, dtype='uint8')
 
-    for fi in xrange(0, fl):
+    with nogil:
 
-        fi_ = rr_[fi]
-        fj_ = cc_[fi]
+        for fi in range(0, fl):
 
-        values[fi] = block[fi_, fj_]
+            fi_ = rr_[fi]
+            fj_ = cc_[fi]
+
+            values[fi] = block[fi_, fj_]
 
     return values
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
+@cython.cdivision(True)
+cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
                          int rows_half, int cols_half, DTYPE_float32_t center_mean,
                          DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values_,
-                         Py_ssize_t t_value, bint is_row):
+                         Py_ssize_t t_value, bint is_row,
+                         DTYPE_float32_t[:] hist_, Py_ssize_t hist_counter):
 
     cdef:
         Py_ssize_t ija, rr_shape, lni
         DTYPE_intp_t[:] rr, cc
         DTYPE_uint8_t[:] line_values
-        DTYPE_float32_t ph_i
-        DTYPE_float32_t sfs_max, sfs_min, sfs_psi
+        DTYPE_float32_t ph_i, line_sd, lni_f
+        DTYPE_float32_t alpha_ = .1
+        DTYPE_float32_t sfs_max, sfs_min, sfs_psi, sfs_w_mean
 
     # Iterate over every other angle
     for ija from 0 <= ija < chunk_shape by 2:
@@ -1185,18 +1041,32 @@ cdef void _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
         # Extract the values along the line.
         line_values = extract_values(chunk, rr, cc, rr_shape)
 
-        # Iterate over line values.
-        for lni in xrange(0, rr_shape):
+        with nogil:
 
-            if ph_i < thresh_hom:
-                ph_i += abs(center_mean - line_values[lni])
-            else:
-                break
+            # Get the standard deviation along the line.
+            line_sd = _get_std_1d_uint8(line_values, rr_shape)
+
+            # Iterate over line values.
+            for lni in range(0, rr_shape):
+
+                if ph_i < thresh_hom:
+                    ph_i += abs_f(center_mean - float(line_values[lni]))
+                else:
+                    break
 
         # Get the line statistics
-        sfs_max = _get_max_sample(values_[0], float(lni))
-        sfs_min = _get_min_sample_f(values_[1], float(lni))
-        sfs_psi = float(lni)
+        lni_f = float(lni)
+
+        sfs_max = _get_max_sample(values_[0], lni_f)
+        sfs_min = _get_min_sample_f(values_[1], lni_f)
+        sfs_psi = lni_f
+        sfs_w_mean = (alpha_ * (lni_f - 1.)) / line_sd
+
+        # Update the histogram with
+        #   the line length.
+        hist_[hist_counter] = lni_f
+
+        hist_counter += 1
 
         if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
             values_[0] = sfs_max
@@ -1207,6 +1077,11 @@ cdef void _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
         if not npy_isnan(sfs_psi) and not npy_isinf(sfs_psi):
             values_[2] += sfs_psi
 
+        if not npy_isnan(sfs_w_mean) and not npy_isinf(sfs_w_mean):
+            values_[3] += sfs_w_mean
+
+    return hist_counter
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1214,29 +1089,68 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
                                         int rows_half, int cols_half, DTYPE_float32_t center_mean,
                                         DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values):
 
+    """
+    Returns:
+        1: Histogram maximum
+        2: Histogram minimum
+        3: PSI: Histogram mean
+        4: Histogram w-mean
+        5: Histogram standard deviation
+    """
+
     cdef:
-        Py_ssize_t ia, ja, rr_shape, lni
+        Py_ssize_t i_, j_, iia_, ija_, ia, ja, rr_shape, lni
         DTYPE_intp_t[:] rr, cc
         DTYPE_uint8_t[:] line_values
         DTYPE_float32_t ph_i
+        DTYPE_float32_t total_count
+        Py_ssize_t hist_length = 0
+        Py_ssize_t hist_counter = 0
+        DTYPE_float32_t[:] hist
+
+    # Get the histogram length.
+    for i_ in range(0, 2):
+        for iia_ from 0 <= iia_ < chunk_rws by 2:
+            hist_length += 1
+
+    for j_ in range(0, 2):
+        for ija_ from 0 <= ija_ < chunk_cls by 2:
+            hist_length += 1
+
+    # Create the histogram
+    hist = np.zeros(hist_length, dtype='float32')
 
     values[1] = 999999.
 
+    # Fill the histogram
+
     # Rows, 1st column
-    _get_direction(chunk, chunk_rws, rows_half, cols_half,
-                   center_mean, thresh_hom, values, 0, True)
+    hist_counter = _get_direction(chunk, chunk_rws, rows_half, cols_half,
+                                  center_mean, thresh_hom, values, 0, True,
+                                  hist, hist_counter)
 
     # Rows, last column
-    _get_direction(chunk, chunk_rws, rows_half, cols_half,
-                   center_mean, thresh_hom, values, chunk_cls-1, True)
+    hist_counter = _get_direction(chunk, chunk_rws, rows_half, cols_half,
+                                  center_mean, thresh_hom, values, chunk_cls-1, True,
+                                  hist, hist_counter)
 
     # Columns, 1st row
-    _get_direction(chunk, chunk_cls, rows_half, cols_half,
-                   center_mean, thresh_hom, values, 0, False)
+    hist_counter = _get_direction(chunk, chunk_cls, rows_half, cols_half,
+                                  center_mean, thresh_hom, values, 0, False,
+                                  hist, hist_counter)
 
     # Columns, last row
-    _get_direction(chunk, chunk_cls, rows_half, cols_half,
-                   center_mean, thresh_hom, values, chunk_rws-1, False)
+    hist_counter = _get_direction(chunk, chunk_cls, rows_half, cols_half,
+                                  center_mean, thresh_hom, values, chunk_rws-1, False,
+                                  hist, hist_counter)
+
+    total_count = _get_sum1d(hist, hist_length)
+
+    values[3] /= total_count # H w-mean
+
+    # Calculate the standard deviation
+    #   of the histogram.
+    values[4] = _get_std_1d(hist, hist_length)
 
     return values
 
@@ -1259,16 +1173,11 @@ cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE
     """
 
     cdef:
-        # dict blk_adjs
         int chunk_rws, chunk_cls, rows_half, cols_half, blk_half
         DTYPE_float32_t ctr_blk_mean, sfs_value
-        DTYPE_float32_t[:] sfs_values = np.zeros(3, dtype='float32')
+        DTYPE_float32_t[:] sfs_values = np.zeros(5, dtype='float32')
         DTYPE_uint8_t[:, :] chunk_block
         Py_ssize_t cbr, cbc
-
-    # block adjustments
-    # blk_adjs = {1: 0, 2: 1, 4: 2, 6: 3, 8: 4, 10: 5, 12: 6, 14: 7, 16: 8}
-    # blk_adj = blk_adjs[blk_size]
 
     # get chunk size
     chunk_rws = chunk.shape[0]
@@ -1281,59 +1190,14 @@ cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE
 
     # get the center block average
     chunk_block = chunk[rows_half-blk_half:rows_half+blk_half, cols_half-blk_half:cols_half+blk_half]
+
     cbr = chunk_block.shape[0]
     cbc = chunk_block.shape[1]
 
     ctr_blk_mean = _get_mean_uint8(chunk_block, cbr, cbc)
 
-    # ctr_blk_mean = cv2.mean(chunk[rows_half-blk_half:rows_half+blk_half,
-    #                         cols_half-blk_half:cols_half+blk_half].astype(np.float32))[0]
-
-    # list for direction lengths
-    # dir_lengths = []
-
-    sfs_values = _get_directions(chunk, chunk_rws, chunk_cls, rows_half, cols_half,
-                                 ctr_blk_mean, thresh_hom, sfs_values)
-
-    # dir_arrs = get_directions(np.uint8(chunk), chunk_rws, chunk_cls, rows_half, cols_half, blk_adj, n_angles)
-
-    # for dir_arr in dir_arrs:
-    #
-    #     PH_i = 0.
-    #
-    #     for sur_ctr in xrange(1, len(dir_arr)+1):
-    #
-    #         if PH_i >= thresh_1:
-    #             break
-    #         else:
-    #
-    #             PH_i += np.abs(ctr_blk_mean - dir_arr[sur_ctr-1])
-    #
-    #     dir_lengths.append(sur_ctr-1.)
-    #
-    # dir_lengths = [dir_l * cell_size for dir_l in dir_lengths]
-    #
-    # # sfs_max = np.max(dir_lengths)
-    # sfs_max = _get_max_f(np.asarray(dir_lengths).astype(np.float32), len(dir_lengths))
-    # # sfs_min = np.min(dir_lengths)
-    # sfs_min = _get_min_f(np.asarray(dir_lengths).astype(np.float32), len(dir_lengths))
-    # # sfs_psi = np.sum(dir_lengths)
-    # sfs_psi = get_sum_1d(np.asarray(dir_lengths).astype(np.float32))
-    # # sfs_mean, sfs_std = cv2.meanStdDev(np.asarray(dir_lengths))
-    # # sfs_mean = np.mean(dir_lengths)
-    # sfs_mean = cv2.mean(np.asarray(dir_lengths).astype(np.float32))[0]
-    # sfs_sd = pow(get_sum_1d(np.asarray([pow((d_l - sfs_psi), 2) for d_l in dir_lengths]).astype(np.float32)), .5)
-    #
-    # sfs_list = [sfs_max, sfs_min, sfs_psi, sfs_mean, sfs_sd]
-
-    # for sf_ in xrange(0, 5):
-    #
-    #     sfs_value = sfs_values[sf_]
-    #
-    #     if not npy_isnan(sfs_value) and not npy_isinf(sfs_value):
-    #         values[sf_] = sfs_value
-
-    return sfs_values
+    return _get_directions(chunk, chunk_rws, chunk_cls, rows_half, cols_half,
+                           ctr_blk_mean, thresh_hom, sfs_values)
 
 
 @cython.boundscheck(False)
@@ -1364,7 +1228,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd,
 
                 sts = _sfs_feas(ch_bd_, blk, thresh_hom)
 
-                for st_ in xrange(0, 3):
+                for st_ in xrange(0, 5):
 
                     out_list[pix_ctr] = sts[st_]
 
@@ -1389,7 +1253,7 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
             for ki in xrange(0, n_scales):
-                out_len += 3
+                out_len += 5
 
     return _feature_sfs(chBd, blk, scs, thresh_hom, scales_half, scales_block, out_len, rows, cols)
 
@@ -1467,7 +1331,7 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
 def fill_key_points(DTYPE_float32_t[:, :] in_block, list key_point_list):
 
     cdef:
-        Py_ssize_t key_point_index
+        Py_ssize_t key_point_index, key_y_idx, key_x_idx
         Py_ssize_t n_key_points = len(key_point_list)
         int brows = in_block.shape[0]
         int bcols = in_block.shape[1]
@@ -1477,7 +1341,10 @@ def fill_key_points(DTYPE_float32_t[:, :] in_block, list key_point_list):
 
         key_x, key_y = key_point_list[key_point_index].pt
 
-        key_point_array[int(floor(key_y)), int(floor(key_x))] = 255
+        key_y_idx = int(floor(key_y))
+        key_x_idx = int(floor(key_x))
+
+        key_point_array[key_y_idx, key_x_idx] = 255
 
     return np.uint8(key_point_array)
 

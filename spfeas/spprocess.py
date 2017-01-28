@@ -80,10 +80,12 @@ def run(parameter_object):
                 i_info.check_corrupted_bands()
 
                 if i_info.corrupted_bands:
+
                     print
                     print('The following bands appear to be corrupted:')
                     print ', '.join(i_info.corrupted_bands)
-                    sys.exit()
+
+                    return
 
                 # Get image statistics.
                 parameter_object = sputilities.get_stats(i_info, parameter_object)
@@ -91,9 +93,22 @@ def run(parameter_object):
                 # Get section and chunk size.
                 parameter_object = sputilities.get_sect_chunk_size(i_info, parameter_object)
 
+                if parameter_object.trigger == 'sfsorf':
+                    parameter_object.update_info(scale=parameter_object.scales[-1],
+                                                 feature=100)
+                    parameter_object = sputilities.scale_fea_check(parameter_object)
+                    spsplit.sfs_orfeo(parameter_object)
+                    if os.path.isfile(parameter_object.out_img):
+                        os.remove(parameter_object.out_img)
+                    continue
+
                 # Create the output feature bands.
                 obds = 1
                 for scale in parameter_object.scales:
+
+                    # TODO: Temporary hack for gabor kernel size above scale size
+                    if (trigger in ['gabor']) and scale < 16:
+                        continue
 
                     parameter_object.update_info(scale=scale)
 
@@ -159,6 +174,10 @@ def run(parameter_object):
 
                         obds = 1
                         for scale in parameter_object.scales:
+
+                            # TODO: Temporary hack for gabor kernel size above scale size
+                            if (trigger in ['gabor']) and scale < 16:
+                                continue
 
                             parameter_object.update_info(scale=scale)
 
@@ -273,6 +292,10 @@ def run(parameter_object):
                             obds = 1
                             for scale in parameter_object.scales:
 
+                                # TODO: Temporary hack for gabor kernel size above scale size
+                                if (trigger in ['gabor']) and scale < 16:
+                                    continue
+
                                 parameter_object.update_info(scale=scale)
 
                                 for feature in xrange(1, parameter_object.features_dict[parameter_object.trigger]+1):
@@ -326,6 +349,10 @@ def run(parameter_object):
                             obds_t = 1
                             for scale in parameter_object.scales:
 
+                                # TODO: Temporary hack for gabor kernel size above scale size
+                                if (trigger in ['gabor']) and scale < 16:
+                                    continue
+
                                 parameter_object.update_info(scale=scale)
 
                                 for feature in xrange(1, parameter_object.features_dict[parameter_object.trigger]+1):
@@ -361,6 +388,10 @@ def run(parameter_object):
 
                 obds = 1
                 for scale in parameter_object.scales:
+
+                    # TODO: Temporary hack for gabor kernel size above scale size
+                    if (trigger in ['gabor']) and scale < 16:
+                        continue
 
                     parameter_object.update_info(scale=scale)
 
@@ -417,7 +448,8 @@ def run(parameter_object):
 
                                 # Replace the block size.
                                 out_img_new = out_img_new.replace('blk{:d}'.format(int(parameter_object.sfs_resample)),
-                                                                  'blk{:d}'.format(parameter_object.block))
+                                                                  'blk{:d}'.format(int(parameter_object.sfs_resample /
+                                                                                       parameter_object.block)))
 
                                 os.remove(parameter_object.out_img)
 

@@ -67,7 +67,7 @@ cdef inline DTYPE_uint8_t _get_max_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2
     return s2 if s2 > s1 else s1
 
 
-cdef inline DTYPE_float32_t _get_max_sample(DTYPE_float32_t s1, DTYPE_float32_t s2):
+cdef inline DTYPE_float32_t _get_max_sample(DTYPE_float32_t s1, DTYPE_float32_t s2) nogil:
     return s2 if s2 > s1 else s1
 
 
@@ -97,24 +97,26 @@ cdef DTYPE_float32_t _get_block_sum3d(DTYPE_float32_t[:, :, :] block_, int ds, i
     return block_sum
 
 
-cdef DTYPE_float32_t[:, :, :] _3d_block_division(DTYPE_float32_t[:, :, :] block_, DTYPE_float32_t eps):
+#cdef void _3d_block_division(DTYPE_float32_t[:, :, :, :, :] normalized_blocks_,
+#                             DTYPE_float32_t[:, :, :] block_,
+#                             DTYPE_float32_t eps,
+#                             Py_ssize_t y, Py_ssize_t x,
+#                             int br_shape, int bc_shape,
+#                             int by_, int bx, int orientations):
 
-    cdef:
-        Py_ssize_t x, y, z
-        int rows = block_.shape[0]
-        int cols = block_.shape[1]
-        int ds = block_.shape[0]
-        int rs = block_.shape[1]
-        int cs = block_.shape[2]
-        DTYPE_float32_t[:, :, :] out_image = block_.copy()
-        DTYPE_float32_t block_sum = sqrt(pow2(_get_block_sum3d(block_, ds, rs, cs)) + eps)
+    #cdef:
+    #    Py_ssize_t qq, rr, ss
+    #    DTYPE_float32_t block_sum = sqrt(pow2(_get_block_sum3d(block_, ds, rs, cs)) + eps)
 
-    for x in range(0, ds):
-        for y in range(0, rs):
-            for z in range(0, cs):
-                out_image[x, y, z] = block_[x, y, z] / block_sum
+    #for qq in range(0, ds):
+    #    for rr in range(0, rs):
+    #        for ss in range(0, cs):
+    #            block_[qq, rr, ss] /= block_sum
 
-    return out_image
+    #for qq in range(0, by_):
+    #    for rr in range(0, bx):
+    #        for ss in range(0, orientations):
+    #            normalized_blocks_[y, x, qq, rr, ss]
 
 
 cdef DTYPE_float32_t cell_hog(DTYPE_float32_t[:, :] magnitude,
@@ -313,9 +315,7 @@ cdef DTYPE_float32_t[:] get_moments(DTYPE_float32_t[:] img_arr):
 cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(DTYPE_float32_t[:, :] magnitude,
                                                   DTYPE_float32_t[:, :] orientation,
                                                   int sy, int sx,
-                                                  int orientations,
-                                                  DTYPE_uint8_t[:] pixels_per_cell,
-                                                  DTYPE_uint8_t[:] cells_per_block):
+                                                  int orientations):
 
     """Extract Histogram of Oriented Gradients (HOG) for a given image.
 
@@ -397,19 +397,20 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(DTYPE_float32_t[:, :] magnitud
         #np.ndarray[DTYPE_float32_t, ndim=2] gx = np.zeros((sy, sx), dtype='float32')
         #np.ndarray[DTYPE_float32_t, ndim=2] gy = np.zeros((sy, sx), dtype='float32')
         DTYPE_float32_t[:, :] empty_block = np.zeros((sy, sx), dtype='float32')
-        int cx = pixels_per_cell[0]
-        int cy = pixels_per_cell[1]
-        int bx = cells_per_block[0]
-        int by_ = cells_per_block[1]
+        int cx = sx
+        int cy = sy
+        int bx = 1
+        int by_ = 1
         int n_cellsx = int(floor(sx / cx))  # number of cells in x
         int n_cellsy = int(floor(sy / cy))  # number of cells in y
         DTYPE_float32_t[:, :, :] orientation_histogram = np.zeros((n_cellsy, n_cellsx, orientations), dtype='float32')
-        DTYPE_float32_t[:, :, :] block
+        np.ndarray[np.float32_t, ndim=3] block
         DTYPE_float32_t[:, :] hog_image
-        DTYPE_float32_t[:, :, :, :, :] normalized_blocks
+        np.ndarray[DTYPE_float32_t, ndim=5] normalized_blocks
         int n_blocksx
         int n_blocksy
         DTYPE_float32_t eps = 1e-5
+        int br_shape, bc_shape
 
     hog_third_stage(cx, cy, bx, by_, sx, sy, n_cellsx, n_cellsy,
                     orientations, orientation_histogram, empty_block,
@@ -420,13 +421,18 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(DTYPE_float32_t[:, :] magnitud
 
     normalized_blocks = np.zeros((n_blocksy, n_blocksx, by_, bx, orientations), dtype='float32')
 
-    for x in range(0, n_blocksx):
+    for y in range(0, n_blocksy):
+        for x in range(0, n_blocksx):
 
-        for y in range(0, n_blocksy):
+            block = np.float32(orientation_histogram[y:y+by_, x:x+bx, :])
 
-            block = orientation_histogram[y:y+by_, x:x+bx, :]
+            normalized_blocks[y, x, :] = block / np.sqrt(block.sum()**2 + eps)
 
-            normalized_blocks[y, x, :] = _3d_block_division(block, eps)
+            #br_shape = y+by_ - y
+            #bc_shape = x+bx - x
+
+            #normalized_blocks[y, x, :] = _3d_block_division(normalized_blocks, block, eps,
+            #                                                y, x, br_shape, bc_shape, by_, bx, orientations)
 
     return np.float32(normalized_blocks).ravel()
 
@@ -437,9 +443,11 @@ cdef DTYPE_float32_t _get_max(DTYPE_float32_t[:, :] block, int rs, int cs):
         Py_ssize_t bi, bj
         DTYPE_float32_t m = -999999.
 
-    for bi in xrange(0, rs):
-        for bj in xrange(0, cs):
-            m = _get_max_sample(m, block[bi, bj])
+    with nogil:
+
+        for bi in xrange(0, rs):
+            for bj in xrange(0, cs):
+                m = _get_max_sample(m, block[bi, bj])
 
     return m
 
@@ -451,9 +459,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad
                                                       int scales_block, int out_len,
                                                       int rows, int cols,
                                                       int scale_length,
-                                                      int orientations,
-                                                      DTYPE_uint8_t[:] pixels_per_cell,
-                                                      DTYPE_uint8_t[:] cells_per_block):
+                                                      int orientations):
 
     """
     Computes the Histogram of Oriented Gradients
@@ -496,9 +502,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad
                                                ch_ori,
                                                block_rows,
                                                block_cols,
-                                               orientations,
-                                               pixels_per_cell,
-                                               cells_per_block))
+                                               orientations))
 
                     for sti in range(0, 7):
 
@@ -514,9 +518,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(DTYPE_float32_t[:, :] grad
 
 def feature_hog(np.ndarray[DTYPE_float32_t, ndim=2] grad,
                 np.ndarray[DTYPE_float32_t, ndim=2] ori,
-                int blk, list scs, int end_scale,
-                list pixels_per_cell=[4, 4],
-                list cells_per_block=[3, 3]):
+                int blk, list scs, int end_scale):
 
     cdef:
         Py_ssize_t i, j, ki
@@ -528,8 +530,6 @@ def feature_hog(np.ndarray[DTYPE_float32_t, ndim=2] grad,
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
         int orientations = 9
-        DTYPE_uint8_t[:] pixels_per_cell_ = np.array(pixels_per_cell, dtype='uint8')
-        DTYPE_uint8_t[:] cells_per_block_ = np.array(cells_per_block, dtype='uint8')
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -539,5 +539,4 @@ def feature_hog(np.ndarray[DTYPE_float32_t, ndim=2] grad,
     return _feature_hog(grad, ori, blk, scales_array, end_scale,
                         scales_half, scales_block, out_len,
                         rows, cols, scale_length,
-                        orientations, pixels_per_cell_,
-                        cells_per_block_)
+                        orientations)

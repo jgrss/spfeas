@@ -11,7 +11,11 @@ Thumbs.db
 *.pyo
 *.pyc
 .idea
-build/
-SpFeas.egg-info/
-dist/
+build
+SpFeas.egg-info
+dist
 .ipynb_checkpoints
+
+# Other
+tests
+spfeas/sphelpers/_hog*
