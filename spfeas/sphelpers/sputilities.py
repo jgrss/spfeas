@@ -233,25 +233,66 @@ def min_max_func(im, im_min, im_max):
     return im_min, im_max
 
 
-def get_luminosity(im_block, rows_, cols_, rgb):
+def get_luminosity(im_block):
 
     """
     Get the pixel-wise average in the visible spectrum
     """
 
-    # coeff_dict = dict(B=.0721, G=.7154, R=.2125)
+    return im_block.mean(axis=0)
 
-    luminosity = np.zeros((rows_, cols_), dtype='float32')
 
-    for band_p, band_l in enumerate(rgb.upper()):
+def get_layer_min_max(i_info, layers=[1, 2, 3], rgb=False, block_size=2048):
 
-        # coeff = coeff_dict[band_l]
+    min_max = []
 
-        luminosity += im_block[band_p]
+    if rgb:
 
-        # luminosity = ne.evaluate('(im_block_ * coeff) + luminosity')
+        layer_min = 999999.
+        layer_max = -999999.
 
-    return luminosity / 3.
+        for i in range(0, i_info.rows, block_size):
+            n_rows = raster_tools.n_rows_cols(i, block_size, i_info.rows)
+
+            for j in range(0, i_info.cols, block_size):
+                n_cols = raster_tools.n_rows_cols(j, block_size, i_info.cols)
+
+                sect = i_info.read(bands2open=layers,
+                                   i=i, j=j,
+                                   rows=n_rows, cols=n_cols,
+                                   d_type='float32')
+
+                sect = get_luminosity(sect)
+
+                layer_min = min(layer_min, np.percentile(sect, 2))
+                layer_max = max(layer_max, np.percentile(sect, 98))
+
+        min_max.append((layer_min, layer_max))
+
+    else:
+
+        for lb in layers:
+
+            layer_min = 999999.
+            layer_max = -999999.
+
+            for i in range(0, i_info.rows, block_size):
+                n_rows = raster_tools.n_rows_cols(i, block_size, i_info.rows)
+
+                for j in range(0, i_info.cols, block_size):
+                    n_cols = raster_tools.n_rows_cols(j, block_size, i_info.cols)
+
+                    sect = i_info.read(bands2open=lb,
+                                       i=i, j=j,
+                                       rows=n_rows, cols=n_cols,
+                                       d_type='float32')
+
+                    layer_min = min(layer_min, np.percentile(sect, 2))
+                    layer_max = max(layer_max, np.percentile(sect, 98))
+
+            min_max.append((layer_min, layer_max))
+
+    return min_max
 
 
 def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=False):
@@ -277,19 +318,10 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
         print '\nCalculating image min and max ...\n'
 
-        im_block = i_info.read(bands2open=[1, 2, 3], d_type='float32')
+        min_max = get_layer_min_max(i_info, rgb=True)
 
-        luminosity = get_luminosity(im_block, i_info.rows, i_info.cols, rgb)
-
-        # Randomly sample half of the pixels.
-        ran = np.random.choice(range(i_info.rows*i_info.cols),
-                               size=int((i_info.rows*i_info.cols)*.5),
-                               replace=False)
-
-        d = luminosity.ravel()[ran]
-
-        im_min = np.percentile(d, 2)
-        im_max = np.percentile(d, 98)
+        im_min = min_max[0][0]
+        im_max = min_max[0][1]
 
         # im_min = 1000000
         # im_max = -1000000
@@ -331,7 +363,7 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
                                rows=n_rows, cols=n_cols,
                                d_type='float32')
 
-        luminosity = get_luminosity(im_block, n_rows, n_cols, rgb)
+        luminosity = get_luminosity(im_block)
 
         return luminosity, None, None
 
@@ -401,17 +433,23 @@ def create_band(meta_info, parameter_object, out_bands, blocks=True):
         None, creates raster as ``out_img``.
     """
 
-    i_info = meta_info.copy()
+    if os.path.isfile(parameter_object.out_img):
+        return True
+    else:
 
-    if blocks:
-        i_info = get_adj_info(meta_info, i_info, parameter_object)
+        i_info = meta_info.copy()
 
-    i_info.update_info(bands=out_bands, storage='float32')
+        if blocks:
+            i_info = get_adj_info(meta_info, i_info, parameter_object)
 
-    out_rst = raster_tools.create_raster(parameter_object.out_img, i_info)
+        i_info.update_info(bands=out_bands, storage='float32')
 
-    out_rst.close_file()
-    out_rst = None
+        out_rst = raster_tools.create_raster(parameter_object.out_img, i_info)
+
+        out_rst.close_file()
+        out_rst = None
+
+        return False
 
 
 def get_stats(image_info, parameter_object):

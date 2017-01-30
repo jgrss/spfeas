@@ -11,7 +11,8 @@ from joblib import Parallel, delayed
 
 from . import spfunctions
 from .paths import get_path
-from .sphelpers import _hog
+from .sphelpers import sputilities
+# from .sphelpers import _hog
 
 from mpglue import raster_tools
 
@@ -281,20 +282,6 @@ def scale_rgb(layers, min_max, lidx):
     return layers_c
 
 
-def get_layer_min_max(i_info):
-
-    min_max = []
-
-    for lb in [1, 2, 3]:
-
-        sect = i_info.read(bands2open=lb, d_type='float32')
-
-        min_max.append((np.percentile(sect, 2),
-                        np.percentile(sect, 98)))
-
-    return min_max
-
-
 def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
 
     """
@@ -310,7 +297,7 @@ def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
 
     # Read the entire image to get the
     #   min/max for each band.
-    min_max = get_layer_min_max(i_info)
+    min_max = sputilities.get_layer_min_max(i_info)
 
     if parameter_object.vis_order == 'bgr':
         lidx = [2, 1, 0]

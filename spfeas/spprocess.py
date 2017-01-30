@@ -119,23 +119,25 @@ def run(parameter_object):
                         parameter_object = sputilities.scale_fea_check(parameter_object)
 
                         # Set the status dictionary.
-                        parameter_object = sputilities.set_status(parameter_object)
+                        # parameter_object = sputilities.set_status(parameter_object)
 
                         new_feas_list.append(parameter_object.out_img)
 
-                        # only create a new feature if the file does not exist
-                        if parameter_object.feature_status == -999:
-
-                            sputilities.create_band(i_info, parameter_object, 1)
-
-                            # set the status as created
-                            parameter_object.status_dict[parameter_object.out_img_base] = 0
-
-                        # Store the status dictionary
-                        with open(parameter_object.status_dict_txt, 'w') as pf:
-
-                            pf.write(yaml.dump(parameter_object.status_dict,
-                                               default_flow_style=False))
+                        # Only create a new feature if the file does not exist
+                        if sputilities.create_band(i_info, parameter_object, 1):
+                            continue
+                        # if parameter_object.feature_status == -999:
+                        #
+                        #     sputilities.create_band(i_info, parameter_object, 1)
+                        #
+                        #     # set the status as created
+                        #     parameter_object.status_dict[parameter_object.out_img_base] = 0
+                        #
+                        # # Store the status dictionary
+                        # with open(parameter_object.status_dict_txt, 'w') as pf:
+                        #
+                        #     pf.write(yaml.dump(parameter_object.status_dict,
+                        #                        default_flow_style=False))
 
                         obds += 1
 
@@ -170,7 +172,7 @@ def run(parameter_object):
                         # processed for all feature scales.
                         ###################################
 
-                        sects_good = True
+                        # sects_good = True
 
                         obds = 1
                         for scale in parameter_object.scales:
@@ -188,17 +190,17 @@ def run(parameter_object):
                                 parameter_object = sputilities.scale_fea_check(parameter_object)
 
                                 # Open the status dictionary.
-                                with open(parameter_object.status_dict_txt, 'r') as pf:
-                                    parameter_object.status_dict = yaml.load(pf)
-
-                                sect_status = parameter_object.status_dict[parameter_object.out_img_base]
+                                # with open(parameter_object.status_dict_txt, 'r') as pf:
+                                #     parameter_object.status_dict = yaml.load(pf)
+                                #
+                                # sect_status = parameter_object.status_dict[parameter_object.out_img_base]
 
                                 obds += 1
 
                                 # If any of the sections are not current,
                                 #   continue with feature extraction.
-                                if sect_status < n_sect:
-                                    sects_good = False
+                                # if sect_status < n_sect:
+                                #     sects_good = False
 
                         # Open the image array.
                         # TODO: add other indices
@@ -267,9 +269,7 @@ def run(parameter_object):
                         # Only extract features if the section hasn't
                         #   been completed or if the section does not
                         #   contain all zeros.
-                        if sects_good or sect_in.max() == 0:
-                            pass
-                        else:
+                        if sect_in.max() > 0:
 
                             # Here we split the current section into
                             #   chunks and process the features.
@@ -362,14 +362,14 @@ def run(parameter_object):
                                     parameter_object = sputilities.scale_fea_check(parameter_object)
 
                                     # open the status dictionary
-                                    with open(parameter_object.status_dict_txt, 'r') as pf:
-                                        parameter_object.status_dict = yaml.load(pf)
+                                    # with open(parameter_object.status_dict_txt, 'r') as pf:
+                                    #     parameter_object.status_dict = yaml.load(pf)
 
-                                    parameter_object.status_dict[parameter_object.out_img_base] = n_sect
+                                    # parameter_object.status_dict[parameter_object.out_img_base] = n_sect
 
                                     # store the status dictionary
-                                    with open(parameter_object.status_dict_txt, 'w') as pf:
-                                        pf.write(yaml.dump(parameter_object.status_dict, default_flow_style=False))
+                                    # with open(parameter_object.status_dict_txt, 'w') as pf:
+                                    #     pf.write(yaml.dump(parameter_object.status_dict, default_flow_style=False))
 
                                     obds_t += 1
 
