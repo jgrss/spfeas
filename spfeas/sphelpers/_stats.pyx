@@ -80,8 +80,9 @@ cdef extern from 'math.h':
 
 
 # @cython.profile(False)
-# cdef inline DTYPE_float32_t roundd(DTYPE_float32_t val):
-#     return floor(val + .5)
+cdef inline DTYPE_float32_t roundd(DTYPE_float32_t val) nogil:
+     return floor(val + .5)
+
 
 @cython.profile(False)
 cdef inline DTYPE_float32_t sqrt_f(DTYPE_float32_t sx) nogil:
@@ -224,16 +225,14 @@ cdef int _get_max(DTYPE_uint8_t[:, :] block, Py_ssize_t rs, Py_ssize_t cs):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t _get_max_f(DTYPE_float32_t[:] in_row, int cols):
+cdef DTYPE_float32_t _get_max_f(DTYPE_float32_t[:] in_row, int cols) nogil:
 
     cdef:
         Py_ssize_t a
         DTYPE_float32_t m = in_row[0]
 
-    with nogil:
-
-        for a in xrange(1, cols):
-            m = _get_max_sample(m, in_row[a])
+    for a in xrange(1, cols):
+        m = _get_max_sample(m, in_row[a])
 
     return m
 
@@ -330,7 +329,7 @@ cdef DTYPE_float32_t _get_sum(DTYPE_float32_t[:, :] block, int rs, int cs) nogil
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_mean(DTYPE_float32_t[:, :] block, int rs, int cs):
+cdef DTYPE_float32_t _get_mean(DTYPE_float32_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
         DTYPE_float32_t n_samps = float(rs*cs)
@@ -444,18 +443,16 @@ cdef DTYPE_float32_t _get_std_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs):
+cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
         Py_ssize_t bi, bj
         DTYPE_float32_t mu = _get_mean(block, rs, cs)
         DTYPE_float32_t block_var = 0.
 
-    with nogil:
-
-        for bi in range(0, rs):
-            for bj in range(0, cs):
-                block_var += pow2(float(block[bi, bj]) - mu)
+    for bi in range(0, rs):
+        for bj in range(0, cs):
+            block_var += pow2(float(block[bi, bj]) - mu)
 
     return block_var / (rs*cs)
 
@@ -672,7 +669,8 @@ cdef DTYPE_uint16_t[:, :] draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1,
 
     d = (2 * dy) - dx
 
-    rc = np.zeros((2, dx+1), dtype='uint16')
+    rc = np.empty((2, dx+1), dtype='uint16')
+    #rc = <double * >malloc((n ** 2) * sizeof(double))
     # cc = rr.copy()
     # rr = clone(template, int(dx)+1, True)
     # cc = clone(template, int(dx)+1, True)
@@ -696,8 +694,8 @@ cdef DTYPE_uint16_t[:, :] draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1,
             x += sx
             d += 2 * dy
 
-    rc[0, dx] = y1
-    rc[1, dx] = x1
+        rc[0, dx] = y1
+        rc[1, dx] = x1
 
     return rc
 
@@ -705,7 +703,7 @@ cdef DTYPE_uint16_t[:, :] draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t[:] _get_stats(DTYPE_float32_t[:] block, int samps):
+cdef void _get_stats(DTYPE_float32_t[:] block, int samps, DTYPE_float32_t[:] output_array) nogil:
 
     """
     Calculate the moments 1-4, skewness, and kurtosis
@@ -721,34 +719,29 @@ cdef DTYPE_float32_t[:] _get_stats(DTYPE_float32_t[:] block, int samps):
         DTYPE_float32_t m2 = pow2(val_dev)      # 2nd moment
         DTYPE_float32_t m3 = pow3(val_dev)      # 3rd moment
         DTYPE_float32_t m4 = pow4(val_dev)      # 4th moment
-        DTYPE_float32_t[:] output = np.empty(7, dtype='float32')
 
-    with nogil:
+    for idx in range(1, samps):
 
-        for idx in range(1, samps):
+        bx = block[idx]
+        val_dev = bx - the_mean
 
-            bx = block[idx]
-            val_dev = bx - the_mean
-
-            m1 += val_dev
-            m2 += pow2(val_dev)
-            m3 += pow3(val_dev)
-            m4 += pow4(val_dev)
+        m1 += val_dev
+        m2 += pow2(val_dev)
+        m3 += pow3(val_dev)
+        m4 += pow4(val_dev)
 
     m1 /= samps
     m2 /= samps
     m3 /= samps
     m4 /= samps
 
-    output[0] = the_max
-    output[1] = m1
-    output[2] = m2
-    output[3] = m3
-    output[4] = m4
-    output[5] = m3 / pow3(sqrt(m2))    # skewness: ratio of 3rd moment and standard dev. cubed
-    output[6] = m4 / pow2(m2)          # kurtosis
-
-    return output
+    output_array[0] = the_max
+    output_array[1] = m1
+    output_array[2] = m2
+    output_array[3] = m3
+    output_array[4] = m4
+    output_array[5] = m3 / pow3(sqrt(m2))    # skewness: ratio of 3rd moment and standard dev. cubed
+    output_array[6] = m4 / pow2(m2)          # kurtosis
 
 
 @cython.boundscheck(False)
@@ -761,12 +754,12 @@ cdef DTYPE_float32_t[:] get_moments(DTYPE_float32_t[:] img_arr):
 
     cdef:
         int img_arr_cols = img_arr.shape[0]
-        DTYPE_float32_t[:] empty_array = np.zeros(img_arr_cols, dtype='float32')
+        DTYPE_float32_t[:] output = np.zeros(7, dtype='float32')
 
-    if _get_max_f(img_arr, img_arr_cols) == 0:
-        return empty_array
-    else:
-        return _get_stats(img_arr, img_arr_cols)
+    if _get_max_f(img_arr, img_arr_cols) != 0:
+        _get_stats(img_arr, img_arr_cols, output)
+
+    return output
 
 
 # Gabor filter bank
@@ -774,29 +767,29 @@ cdef DTYPE_float32_t[:] get_moments(DTYPE_float32_t[:] img_arr):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t[:, :] _convolution(DTYPE_float32_t[:, :] block2convolve,
-                                        DTYPE_float32_t[:, :] gkernel,
-                                        int br, int bc, int knr, int knc):
+cdef void _convolution(DTYPE_float32_t[:, :] block2convolve,
+                       DTYPE_float32_t[:, :] gkernel,
+                       int br, int bc, int knr, int knc,
+                       DTYPE_float32_t[:, :] out_convolved) nogil:
+
+    """"
+    2d convolution of a Gabor kernel over a local window
+    """
 
     cdef:
         Py_ssize_t bi, bj, bki, bkj
-        DTYPE_float32_t[:, :] out_convolved = np.zeros((br, bc), dtype='float32')
         DTYPE_float32_t kernel_sum
 
-    with nogil:
+    for bi in range(0, br-knr):
+        for bj in range(0, bc-knc):
 
-        for bi in range(0, br-knr):
-            for bj in range(0, bc-knc):
+            kernel_sum = 0.
 
-                kernel_sum = 0.
+            for bki in range(0, knr):
+                for bkj in range(0, knc):
+                    kernel_sum += block2convolve[bi+bki, bj+bkj] * gkernel[bki, bkj]
 
-                for bki in range(0, knr):
-                    for bkj in range(0, knc):
-                        kernel_sum += block2convolve[bi+bki, bj+bkj] * gkernel[bki, bkj]
-
-                out_convolved[bi, bj] = kernel_sum
-
-    return out_convolved
+            out_convolved[bi, bj] = kernel_sum
 
 
 @cython.boundscheck(False)
@@ -817,7 +810,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         Py_ssize_t i, j, ki, kl
         DTYPE_uint16_t k, k_half
         DTYPE_float32_t[:, :] ch_bd
-        DTYPE_float32_t[:, :] ch_bd_gabor
+        DTYPE_float32_t[:, :] ch_bd_gabor, ch_bd_gabor_c
         DTYPE_float32_t[:] sts
         list st
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
@@ -825,11 +818,12 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         int n_kernels = np.asarray(kernels).shape[0]
         int knr = kernels[0].shape[0]
         int knc = kernels[0].shape[1]
+        DTYPE_float32_t[:, :] gkernel
         int bcr, bcc
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
+            for ki in range(0, scale_length):
 
                 k = scs[ki]
 
@@ -841,16 +835,22 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
                 bcr = ch_bd.shape[0]
                 bcc = ch_bd.shape[1]
 
-                for kl in xrange(0, n_kernels):
+                ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
 
-                    ch_bd_gabor = _convolution(ch_bd, kernels[kl], bcr, bcc, knr, knc)
-                    # ch_bd_gabor = cv2.filter2D(np.uint8(ch_bd), -1, kernels[kl])
+                for kl in range(0, n_kernels):
 
-                    out_list[pix_ctr] = _get_mean(ch_bd_gabor, bcr, bcc)
-                    pix_ctr += 1
+                    gkernel = kernels[kl]
+                    ch_bd_gabor_c = ch_bd_gabor.copy()
 
-                    out_list[pix_ctr] = _get_var(ch_bd_gabor, bcr, bcc)
-                    pix_ctr += 1
+                    with nogil:
+
+                        _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor_c)
+
+                        out_list[pix_ctr] = _get_mean(ch_bd_gabor_c, bcr, bcc)
+                        pix_ctr += 1
+
+                        out_list[pix_ctr] = _get_var(ch_bd_gabor_c, bcr, bcc)
+                        pix_ctr += 1
 
     return np.float32(out_list)
 
@@ -880,8 +880,8 @@ def feature_gabor(np.ndarray chBd, int blk, list scs, int end_scale, list kernel
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
-                for kl in xrange(0, n_kernels):
+            for ki in range(0, scale_length):
+                for kl in range(0, n_kernels):
                     out_len += 2
 
     return _feature_gabor(np.float32(chBd), blk, scales_array, out_len, scales_half,
@@ -1896,11 +1896,11 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
-                DTYPE_float32_t[:] angles, int levels,
-                DTYPE_float32_t[:, :, :, ::1] out,
-                DTYPE_float32_t[:, :] out_sums,
-                Py_ssize_t rows, Py_ssize_t cols):
+cdef void _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
+                     DTYPE_float32_t[:] angles, int levels,
+                     DTYPE_float32_t[:, :, :, ::1] out,
+                     DTYPE_float32_t[:, :] out_sums,
+                     Py_ssize_t rows, Py_ssize_t cols) nogil:
 
     cdef:
         Py_ssize_t a_idx, d_idx, r, c, row, col
@@ -1911,26 +1911,26 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
     angles_ = angles.shape[0]
     distances_ = distances.shape[0]
 
-    for a_idx in xrange(0, angles_):
+    for a_idx in range(0, angles_):
 
         angle = angles[a_idx]
 
-        for d_idx in xrange(0, distances_):
+        for d_idx in range(0, distances_):
 
             distance = distances[d_idx]
 
             # Iterate over the image to get
             #   the grey-level pairs.
-            for r in xrange(0, rows):
+            for r in range(0, rows):
 
-                for c in xrange(0, cols):
+                for c in range(0, cols):
 
                     # Current row pixel value
                     i = image[r, c]
 
                     # compute the location of the offset pixel
-                    row = r + int(round(sin(angle) * distance))
-                    col = c + int(round(cos(angle) * distance))
+                    row = r + <int>(roundd(sin(angle) * distance))
+                    col = c + <int>(roundd(cos(angle) * distance))
 
                     # row = r + int(round(sin(angle) * distance))
                     # col = c + int(round(cos(angle) * distance))
@@ -1960,10 +1960,10 @@ cdef _glcm_loop(DTYPE_uint8_t[:, :] image, DTYPE_float32_t[:] distances,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
-                DTYPE_float32_t[:, :] Pt_sums, DTYPE_float32_t[:] distances,
-                DTYPE_float32_t[:] angles, int levels,
-                DTYPE_float32_t[:, :, :, :] glcm_normed_):
+cdef void _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
+                     DTYPE_float32_t[:, :] Pt_sums, DTYPE_float32_t[:] distances,
+                     DTYPE_float32_t[:] angles, int levels,
+                     DTYPE_float32_t[:, :, :, :] glcm_normed_) nogil:
 
     cdef:
         Py_ssize_t a_idx, d_idx, r, c
@@ -2029,7 +2029,7 @@ cdef DTYPE_float32_t[:, :, :, ::1] _greycomatrix(DTYPE_uint8_t[:, :] image,
                                                  Py_ssize_t levels, Py_ssize_t rows, Py_ssize_t cols,
                                                  DTYPE_float32_t[:, :, :, ::1] P,
                                                  DTYPE_float32_t[:, :] angle_dist_sums,
-                                                 DTYPE_float32_t[:, :, :, ::1] glcm_normed):
+                                                 DTYPE_float32_t[:, :, :, ::1] glcm_normed) nogil:
 
     # count co-occurences
     _glcm_loop(image, distances, angles, levels, P, angle_dist_sums, rows, cols)
@@ -2037,9 +2037,6 @@ cdef DTYPE_float32_t[:, :, :, ::1] _greycomatrix(DTYPE_uint8_t[:, :] image,
     # Normalize the matrix
     _norm_glcm(P, angle_dist_sums, distances, angles, levels, glcm_normed)
 
-    # glcm_normed = _check_nans(glcm_normed, distances, angles, levels)
-
-    # return np.array(glcm_normed)
     return glcm_normed
 
 
@@ -2048,7 +2045,7 @@ cdef DTYPE_float32_t[:, :, :, ::1] _greycomatrix(DTYPE_uint8_t[:, :] image,
 cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P,
                                     DTYPE_float32_t[:] distances,
                                     DTYPE_float32_t[:] angles, Py_ssize_t levels,
-                                    DTYPE_float32_t[:, :] contrast_array):
+                                    DTYPE_float32_t[:, :] contrast_array) nogil:
 
     cdef:
         Py_ssize_t a_idx, d_idx, r, c
@@ -2059,18 +2056,18 @@ cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P,
     angles_ = angles.shape[0]
     distances_ = distances.shape[0]
 
-    for a_idx in xrange(0, angles_):
+    for a_idx in range(0, angles_):
 
-        for d_idx in xrange(0, distances_):
+        for d_idx in range(0, distances_):
 
             # Sum the contrast for the current angle/distance pair.
             contrast_sum = 0.
 
             # Iterate over the co-occurrence matrix
             #   and get the contrast.
-            for r in xrange(0, levels):
+            for r in range(0, levels):
 
-                for c in xrange(0, levels):
+                for c in range(0, levels):
                     contrast_sum += contrast_array[r, c] * P[r, c, d_idx, a_idx]
 
             # Get the minimum contrast over all angle/distance pairs.
@@ -2130,7 +2127,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
     cdef:
         Py_ssize_t i, j, ki, block_rows, block_cols
-        DTYPE_uint16_t k, k_half
+        DTYPE_uint16_t k
+        int k_half
         DTYPE_uint8_t[:, :] ch_bd
         DTYPE_float32_t pi = 3.14159265
         DTYPE_float32_t[:, :, :, ::1] glcm_mat
@@ -2151,8 +2149,23 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
         DTYPE_float32_t[:, :, :, ::1] glcm_normed_ = np.zeros((levels, levels, dists.shape[0], disp_vect.shape[0]),
                                                               dtype='float32')
+        DTYPE_float32_t[:, :, :, ::1] P_c
+        DTYPE_float32_t[:, :] angle_dist_sums_c
+        DTYPE_float32_t[:, :, :, ::1] glcm_normed_c
+        DTYPE_float32_t[:] mean_var_values
+        list weights_list = []
+        DTYPE_float32_t[:, :] kernel_weight
+        DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
+        DTYPE_float32_t[:] in_zs_c
 
     if weighted:
+
+        for ki in range(0, scale_length):
+            k = scs[ki]
+            k_half = int(k / 2)
+            rs = (scales_half - k_half + k) - (scales_half - k_half)
+            cs = (scales_half - k_half + k) - (scales_half - k_half)
+            weights_list.append(_create_weights(rs, cs))
 
         for i from 0 <= i < rows-scales_block by blk:
             for j from 0 <= j < cols-scales_block by blk:
@@ -2160,7 +2173,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
                     k = scs[ki]
 
-                    k_half = k / 2
+                    k_half = int(k / 2)
 
                     ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
                                  j+scales_half-k_half:j+scales_half-k_half+k]
@@ -2172,17 +2185,24 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                         con_min = 0.
                     else:
 
-                        # glcm_mat = greycomatrix(ch_bd, dists, disp_vect,
-                        #                         levels=32, symmetric=True, normed=True).astype(np.float32)
+                        P_c = P_.copy()
+                        angle_dist_sums_c = angle_dist_sums_.copy()
+                        glcm_normed_c = glcm_normed_.copy()
 
-                        glcm_mat = _greycomatrix(ch_bd, dists, disp_vect, levels, block_rows, block_cols,
-                                                 P_.copy(), angle_dist_sums_.copy(), glcm_normed_.copy())
+                        with nogil:
 
-                        con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
-                        # con_min = pantex_min(glcm_mat, dists, disp_vect,
-                        #                      levels, contrast_weights) * cv2.mean(ch_bd)[0]
+                            glcm_mat = _greycomatrix(ch_bd, dists, disp_vect, levels, block_rows, block_cols,
+                                                     P_c, angle_dist_sums_c, glcm_normed_c)
 
-                    out_list[pix_ctr] = con_min
+                            con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
+
+                    kernel_weight = weights_list[ki]
+                    in_zs_c = in_zs.copy()
+
+                    mean_var_values = _get_weighted_mean_var(np.float32(ch_bd), kernel_weight,
+                                                             block_rows, block_cols, in_zs_c)
+
+                    out_list[pix_ctr] = con_min * mean_var_values[0]
 
                     pix_ctr += 1
 
@@ -2194,7 +2214,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
                     k = scs[ki]
 
-                    k_half = k / 2
+                    k_half = int(k / 2)
 
                     ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
                                  j+scales_half-k_half:j+scales_half-k_half+k]
@@ -2206,19 +2226,17 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                         con_min = 0.
                     else:
 
-                        # glcm_mat = greycomatrix(ch_bd, dists, disp_vect,
-                        #                         levels=32, symmetric=True, normed=True).astype(np.float32)
+                        P_c = P_.copy()
+                        angle_dist_sums_c = angle_dist_sums_.copy()
+                        glcm_normed_c = glcm_normed_.copy()
 
-                        glcm_mat = _greycomatrix(ch_bd, dists, disp_vect, levels, block_rows, block_cols,
-                                                 P_.copy(), angle_dist_sums_.copy(), glcm_normed_.copy())
+                        with nogil:
 
-                        con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
+                            glcm_mat = _greycomatrix(ch_bd, dists, disp_vect, levels, block_rows, block_cols,
+                                                     P_c, angle_dist_sums_c, glcm_normed_c)
 
-                        # print 'finished contrast'
-                        # print con_min
-                        # print
-                        # con_min = pantex_min(glcm_mat, dists, disp_vect, levels, contrast_weights)
-                    # print pix_ctr, out_list.shape[0]
+                            con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
+
                     out_list[pix_ctr] = con_min
 
                     pix_ctr += 1
