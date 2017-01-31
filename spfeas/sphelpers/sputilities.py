@@ -264,8 +264,8 @@ def get_layer_min_max(i_info, layers=[1, 2, 3], rgb=False, block_size=2048):
 
                 sect = get_luminosity(sect)
 
-                layer_min = min(layer_min, np.percentile(sect, 2))
-                layer_max = max(layer_max, np.percentile(sect, 98))
+                layer_min = min(layer_min, np.percentile(sect, 1))
+                layer_max = max(layer_max, np.percentile(sect, 99))
 
         min_max.append((layer_min, layer_max))
 
@@ -287,8 +287,8 @@ def get_layer_min_max(i_info, layers=[1, 2, 3], rgb=False, block_size=2048):
                                        rows=n_rows, cols=n_cols,
                                        d_type='float32')
 
-                    layer_min = min(layer_min, np.percentile(sect, 2))
-                    layer_max = max(layer_max, np.percentile(sect, 98))
+                    layer_min = min(layer_min, np.percentile(sect, 1))
+                    layer_max = max(layer_max, np.percentile(sect, 99))
 
             min_max.append((layer_min, layer_max))
 

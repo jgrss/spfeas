@@ -428,11 +428,11 @@ cdef DTYPE_float32_t _get_std_1d(DTYPE_float32_t[:] block, int cs) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_std_1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
+cdef DTYPE_float32_t _get_std_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
 
     cdef:
         Py_ssize_t bj
-        DTYPE_float32_t mu = _get_mean_1d_uint8(block, cs)
+        DTYPE_float32_t mu = _get_mean_1d_uint16(block, cs)
         DTYPE_float32_t block_var = 0.
 
     for bj in range(0, cs):
@@ -518,11 +518,11 @@ cdef DTYPE_float32_t _get_mean_1d(DTYPE_float32_t[:] block, int cs) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t _get_sum1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
+cdef DTYPE_float32_t _get_sum1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
 
     cdef:
         Py_ssize_t bj
-        DTYPE_uint8_t block_sum = block[0]
+        DTYPE_uint16_t block_sum = block[0]
 
     for bj in range(1, cs):
         block_sum += block[bj]
@@ -533,8 +533,8 @@ cdef DTYPE_float32_t _get_sum1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_mean_1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
-    return _get_sum1d_uint8(block, cs) / cs
+cdef DTYPE_float32_t _get_mean_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
+    return _get_sum1d_uint16(block, cs) / cs
 
 
 # @cython.boundscheck(False)
@@ -600,7 +600,7 @@ cdef DTYPE_float32_t _get_mean_1d_uint8(DTYPE_uint8_t[:] block, int cs) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1):
+cdef DTYPE_uint16_t[:, :] draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1):
 
     """
     Graciously adapated from the Scikit-image team
@@ -651,7 +651,7 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
         Py_ssize_t dx = abs_s(x1 - x0)
         Py_ssize_t dy = abs_s(y1 - y0)
         Py_ssize_t sx, sy, d, i
-        DTYPE_intp_t[:] rr, cc
+        DTYPE_uint16_t[:, :] rc
 
     if (x1 - x) > 0:
         sx = 1
@@ -672,8 +672,8 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
 
     d = (2 * dy) - dx
 
-    rr = np.zeros(dx+1, dtype='intp')
-    cc = rr.copy()
+    rc = np.zeros((2, dx+1), dtype='uint16')
+    # cc = rr.copy()
     # rr = clone(template, int(dx)+1, True)
     # cc = clone(template, int(dx)+1, True)
 
@@ -682,11 +682,11 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
         for i in range(0, dx):
 
             if steep:
-                rr[i] = x
-                cc[i] = y
+                rc[0, i] = x
+                rc[1, i] = y
             else:
-                rr[i] = y
-                cc[i] = x
+                rc[0, i] = y
+                rc[1, i] = x
 
             while d >= 0:
 
@@ -696,10 +696,10 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
             x += sx
             d += 2 * dy
 
-    rr[dx] = y1
-    cc[dx] = x1
+    rc[0, dx] = y1
+    rc[1, dx] = x1
 
-    return rr, cc
+    return rc
 
 
 @cython.boundscheck(False)
@@ -990,22 +990,18 @@ def feature_hog(np.ndarray chbd,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_uint8_t[:] extract_values(DTYPE_uint8_t[:, :] block, DTYPE_intp_t[:] rr_, DTYPE_intp_t[:] cc_, int fl):
+cdef void _extract_values(DTYPE_uint8_t[:, :] block, DTYPE_uint16_t[:] values,
+                          DTYPE_uint16_t[:, :] rc_, int fl) nogil:
 
     cdef:
         Py_ssize_t fi, fi_, fj_
-        DTYPE_uint8_t[:] values = np.zeros(fl, dtype='uint8')
 
-    with nogil:
+    for fi in range(0, fl):
 
-        for fi in range(0, fl):
+        fi_ = rc_[0, fi]
+        fj_ = rc_[1, fi]
 
-            fi_ = rr_[fi]
-            fj_ = cc_[fi]
-
-            values[fi] = block[fi_, fj_]
-
-    return values
+        values[fi] = block[fi_, fj_]
 
 
 @cython.boundscheck(False)
@@ -1018,12 +1014,12 @@ cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
                          DTYPE_float32_t[:] hist_, Py_ssize_t hist_counter):
 
     cdef:
-        Py_ssize_t ija, rr_shape, lni
-        DTYPE_intp_t[:] rr, cc
-        DTYPE_uint8_t[:] line_values
+        Py_ssize_t ija, rc_shape, lni
+        DTYPE_uint16_t[:, :] rc
         DTYPE_float32_t ph_i, line_sd, lni_f
         DTYPE_float32_t alpha_ = .1
         DTYPE_float32_t sfs_max, sfs_min, sfs_psi, sfs_w_mean
+        DTYPE_uint16_t[:] line_values
 
     # Iterate over every other angle
     for ija from 0 <= ija < chunk_shape by 2:
@@ -1032,41 +1028,42 @@ cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
 
         # Draw a line between the two endpoints.
         if is_row:
-            rr, cc = draw_line(rows_half, cols_half, ija, t_value)
+            rc = draw_line(rows_half, cols_half, ija, t_value)
         else:
-            rr, cc = draw_line(rows_half, cols_half, t_value, ija)
+            rc = draw_line(rows_half, cols_half, t_value, ija)
 
-        rr_shape = rr.shape[0]
-
-        # Extract the values along the line.
-        line_values = extract_values(chunk, rr, cc, rr_shape)
+        rc_shape = rc.shape[1]
+        line_values = rc[0].copy()
 
         with nogil:
 
+            # Extract the values along the line.
+            _extract_values(chunk, line_values, rc, rc_shape)
+
             # Get the standard deviation along the line.
-            line_sd = _get_std_1d_uint8(line_values, rr_shape)
+            line_sd = _get_std_1d_uint16(line_values, rc_shape)
 
             # Iterate over line values.
-            for lni in range(0, rr_shape):
+            for lni in range(0, rc_shape):
 
                 if ph_i < thresh_hom:
                     ph_i += abs_f(center_mean - float(line_values[lni]))
                 else:
                     break
 
-        # Get the line statistics
-        lni_f = float(lni)
+            # Get the line statistics
+            lni_f = float(lni)
 
-        sfs_max = _get_max_sample(values_[0], lni_f)
-        sfs_min = _get_min_sample_f(values_[1], lni_f)
-        sfs_psi = lni_f
-        sfs_w_mean = (alpha_ * (lni_f - 1.)) / line_sd
+            sfs_max = _get_max_sample(values_[0], lni_f)
+            sfs_min = _get_min_sample_f(values_[1], lni_f)
+            sfs_psi = lni_f
+            sfs_w_mean = (alpha_ * (lni_f - 1.)) / line_sd
 
-        # Update the histogram with
-        #   the line length.
-        hist_[hist_counter] = lni_f
+            # Update the histogram with
+            #   the line length.
+            hist_[hist_counter] = lni_f
 
-        hist_counter += 1
+            hist_counter += 1
 
         if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
             values_[0] = sfs_max
