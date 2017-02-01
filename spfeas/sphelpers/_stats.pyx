@@ -1066,16 +1066,16 @@ cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
 
             hist_counter += 1
 
-        if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
+        # if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
             values_[0] = sfs_max
 
-        if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
+        # if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
             values_[1] = sfs_min
 
-        if not npy_isnan(sfs_psi) and not npy_isinf(sfs_psi):
+        # if not npy_isnan(sfs_psi) and not npy_isinf(sfs_psi):
             values_[2] += sfs_psi
 
-        if not npy_isnan(sfs_w_mean) and not npy_isinf(sfs_w_mean):
+        # if not npy_isnan(sfs_w_mean) and not npy_isinf(sfs_w_mean):
             values_[3] += sfs_w_mean
 
     return hist_counter
@@ -1083,10 +1083,11 @@ cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws, int chunk_cls,
-                                        int rows_half, int cols_half, DTYPE_float32_t center_mean,
-                                        DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values,
-                                        int skip_factor):
+@cython.cdivision(True)
+cdef void _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws, int chunk_cls,
+                          int rows_half, int cols_half, DTYPE_float32_t center_mean,
+                          DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values,
+                          int skip_factor):
 
     """
     Returns:
@@ -1095,6 +1096,8 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
         3: PSI: Histogram mean
         4: Histogram w-mean
         5: Histogram standard deviation
+        6: Maximum ratio of orthogonal angles
+        7: Minimum ratio of orthogonal angles
     """
 
     cdef:
@@ -1105,17 +1108,19 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
         DTYPE_float32_t total_count
         Py_ssize_t hist_length = 0
         Py_ssize_t hist_counter = 0
+        Py_ssize_t hist_counter_, ofc
         DTYPE_float32_t[:] hist
+        DTYPE_float32_t max_diff, orthog_diff
 
     with nogil:
 
-        # Get the histogram length.
+        # Get the histogram and row and column skip lengths.
         for i_ in range(0, 2):
-            for iia_ from 0 <= iia_ < chunk_rws by 2:
+            for iia_ from 0 <= iia_ < chunk_rws by skip_factor:
                 hist_length += 1
 
         for j_ in range(0, 2):
-            for ija_ from 0 <= ija_ < chunk_cls by 2:
+            for ija_ from 0 <= ija_ < chunk_cls by skip_factor:
                 hist_length += 1
 
     # Create the histogram
@@ -1153,11 +1158,30 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
     #   of the histogram.
     values[4] = _get_std_1d(hist, hist_length)
 
-    return values
+    # Calculate the min orthogonal ratio.
+    max_diff = 0.
+    hist_counter_ = 0
+
+    ofc = (chunk_rws * 2) - 1
+    for iia_ from 0 <= iia_ < chunk_rws by skip_factor:
+        # Ratio of orthogonal angles
+        orthog_diff = abs_f(hist[iia_] - float((ofc - hist_counter_)))
+        max_diff = _get_max_sample(max_diff, orthog_diff)
+        hist_counter_ += 1
+
+    ofc = (chunk_cls * 2) - 1
+    for iia_ from 0 <= iia_ < chunk_cls by skip_factor:
+        # Ratio of orthogonal angles
+        orthog_diff = abs_f(hist[iia_] - float((ofc - hist_counter_)))
+        max_diff = _get_max_sample(max_diff, orthog_diff)
+        hist_counter_ += 1
+
+    values[5] = max_diff
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE_float32_t thresh_hom,
                                   int skip_factor):
 
@@ -1177,7 +1201,7 @@ cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE
     cdef:
         int chunk_rws, chunk_cls, rows_half, cols_half, blk_half
         DTYPE_float32_t ctr_blk_mean, sfs_value
-        DTYPE_float32_t[:] sfs_values = np.zeros(5, dtype='float32')
+        DTYPE_float32_t[:] sfs_values = np.zeros(6, dtype='float32')
         DTYPE_uint8_t[:, :] chunk_block
         Py_ssize_t cbr, cbc
 
@@ -1185,10 +1209,10 @@ cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE
     chunk_rws = chunk.shape[0]
     chunk_cls = chunk.shape[1]
 
-    rows_half = chunk_rws / 2
-    cols_half = chunk_cls / 2
+    rows_half = <int>(chunk_rws / 2)
+    cols_half = <int>(chunk_cls / 2)
 
-    blk_half = blk_size / 2
+    blk_half = <int>(blk_size / 2)
 
     # get the center block average
     chunk_block = chunk[rows_half-blk_half:rows_half+blk_half, cols_half-blk_half:cols_half+blk_half]
@@ -1198,39 +1222,43 @@ cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE
 
     ctr_blk_mean = _get_mean_uint8(chunk_block, cbr, cbc)
 
-    return _get_directions(chunk, chunk_rws, chunk_cls, rows_half, cols_half,
-                           ctr_blk_mean, thresh_hom, sfs_values, skip_factor)
+    _get_directions(chunk, chunk_rws, chunk_cls, rows_half, cols_half,
+                    ctr_blk_mean, thresh_hom, sfs_values, skip_factor)
+
+    return sfs_values
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs,
+@cython.cdivision(True)
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd, int blk,
+                                                      DTYPE_uint16_t[:] scales_array, int n_scales,
                                                       DTYPE_float32_t thresh_hom,
                                                       int scales_half, int scales_block, int out_len,
                                                       int rows, int cols, int skip_factor):
 
     cdef:
-        Py_ssize_t i, j, ki, k, k_half, st_
+        Py_ssize_t i, j, ki, k_half, st_
+        DTYPE_uint16_t k
         DTYPE_uint8_t[:, :] ch_bd_
         DTYPE_float32_t[:] sts
         DTYPE_float32_t[:] out_list = np.empty(out_len, dtype='float32')
         int pix_ctr = 0
-        int n_scales = np.array(scs).shape[0]
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
             for ki in range(0, n_scales):
 
-                k = scs[ki]
+                k = scales_array[ki]
 
-                k_half = k / 2
+                k_half = <int>(k / 2)
 
                 ch_bd_ = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
                                j+scales_half-k_half:j+scales_half-k_half+k]
 
                 sts = _sfs_feas(ch_bd_, blk, thresh_hom, skip_factor)
 
-                for st_ in range(0, 5):
+                for st_ in range(0, 6):
 
                     out_list[pix_ctr] = sts[st_]
 
@@ -1241,26 +1269,29 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale,
                 DTYPE_float32_t thresh_hom, int skip_factor=4):
 
     cdef:
         Py_ssize_t i, j, ki, k
-        int scales_half = end_scale / 2
+        int scales_half = int(end_scale / 2)
         int scales_block = end_scale - blk
         int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
-        int n_scales = np.array(scs).shape[0]
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
+        int n_scales = scales_array.shape[0]
 
     with nogil:
 
         for i from 0 <= i < rows-scales_block by blk:
             for j from 0 <= j < cols-scales_block by blk:
                 for ki in range(0, n_scales):
-                    out_len += 5
+                    out_len += 6
 
-    return _feature_sfs(chBd, blk, scs, thresh_hom, scales_half, scales_block, out_len, rows, cols, skip_factor)
+    return _feature_sfs(chBd, blk, scales_array, n_scales, thresh_hom, scales_half,
+                        scales_block, out_len, rows, cols, skip_factor)
 
 
 # @cython.boundscheck(False)

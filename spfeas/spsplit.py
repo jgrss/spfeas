@@ -156,8 +156,8 @@ def call_pantex(block_array_, block_size_, scales_, end_scale_, weighted_):
     return _stats.feature_pantex(block_array_, block_size_, scales_, end_scale_, weighted_)
 
 
-def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_):
-    return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_)
+def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_skip_):
+    return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, skip_factor=sfs_skip_)
 
 
 # def call_surf(block_array_, block_size_, scales_, end_scale_):
@@ -905,7 +905,8 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
                         max_nbytes=None)(delayed(call_sfs)(bd_, parameter_object.block,
                                                            parameter_object.scales,
                                                            parameter_object.scales[-1],
-                                                           parameter_object.sfs_threshold) for bd_ in bd)
+                                                           parameter_object.sfs_threshold,
+                                                           parameter_object.sfs_skip) for bd_ in bd)
 
     else:
         raise NameError('\nThe trigger is not recognized\n')

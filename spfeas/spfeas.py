@@ -36,7 +36,7 @@ class SPParameters(object):
                                   lsr=3, hough=4, hog=7,
                                   lbp=62, lbpm=7, gabor=2*8,
                                   surf=4, seg=1, fourier=2,
-                                  sfs=5, evi2=2, ndvi=2,
+                                  sfs=6, evi2=2, ndvi=2,
                                   dmp=2, xy=2, lac=1,
                                   orb=7, saliency=2,
                                   sfsorf=6)
@@ -201,6 +201,8 @@ def main():
     parser.add_argument('--weight', dest='weight', help='Whether to weight PanTex by DN', action='store_true')
     parser.add_argument('--sfs-th', dest='sfs_threshold', help='The SFS stopping threshold',
                         default=40, type=int)
+    parser.add_argument('--sfs-skip', dest='sfs_skip', help='The SFS angle skip factor',
+                        default=4, type=int)
     parser.add_argument('--sfs-rs', dest='sfs_resample', help='The SFS resample size',
                         default=0., type=float)
     parser.add_argument('--lac-r', dest='lac_r', help='The lacunarity box r parameter', default=2, type=int)
@@ -241,7 +243,8 @@ def main():
                      block=args.block, scales=args.scales, triggers=args.triggers,
                      hline_threshold=args.hline_threshold, hline_min=args.hline_min,
                      hline_gap=args.hline_gap, weight=args.weight,
-                     sfs_threshold=args.sfs_threshold, sfs_resample=args.sfs_resample,
+                     sfs_threshold=args.sfs_threshold, sfs_skip=args.sfs_skip,
+                     sfs_resample=args.sfs_resample,
                      smooth=args.smooth, equalize=args.equalize, equalize_adapt=args.equalize_adapt,
                      visualize=args.visualize, convert=args.convert, do_pca=args.pca,
                      use_rgb=args.use_rgb, vis_order=args.vis_order,
