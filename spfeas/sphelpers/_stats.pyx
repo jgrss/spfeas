@@ -1008,10 +1008,11 @@ cdef void _extract_values(DTYPE_uint8_t[:, :] block, DTYPE_uint16_t[:] values,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
-                         int rows_half, int cols_half, DTYPE_float32_t center_mean,
-                         DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values_,
-                         Py_ssize_t t_value, bint is_row,
-                         DTYPE_float32_t[:] hist_, Py_ssize_t hist_counter):
+                               int rows_half, int cols_half, DTYPE_float32_t center_mean,
+                               DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values_,
+                               Py_ssize_t t_value, bint is_row,
+                               DTYPE_float32_t[:] hist_, Py_ssize_t hist_counter,
+                               int skip_factor):
 
     cdef:
         Py_ssize_t ija, rc_shape, lni
@@ -1022,7 +1023,7 @@ cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
         DTYPE_uint16_t[:] line_values
 
     # Iterate over every other angle
-    for ija from 0 <= ija < chunk_shape by 2:
+    for ija from 0 <= ija < chunk_shape by skip_factor:
 
         ph_i = 0.
 
@@ -1084,7 +1085,8 @@ cdef Py_ssize_t _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
 @cython.wraparound(False)
 cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws, int chunk_cls,
                                         int rows_half, int cols_half, DTYPE_float32_t center_mean,
-                                        DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values):
+                                        DTYPE_float32_t thresh_hom, DTYPE_float32_t[:] values,
+                                        int skip_factor):
 
     """
     Returns:
@@ -1105,14 +1107,16 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
         Py_ssize_t hist_counter = 0
         DTYPE_float32_t[:] hist
 
-    # Get the histogram length.
-    for i_ in range(0, 2):
-        for iia_ from 0 <= iia_ < chunk_rws by 2:
-            hist_length += 1
+    with nogil:
 
-    for j_ in range(0, 2):
-        for ija_ from 0 <= ija_ < chunk_cls by 2:
-            hist_length += 1
+        # Get the histogram length.
+        for i_ in range(0, 2):
+            for iia_ from 0 <= iia_ < chunk_rws by 2:
+                hist_length += 1
+
+        for j_ in range(0, 2):
+            for ija_ from 0 <= ija_ < chunk_cls by 2:
+                hist_length += 1
 
     # Create the histogram
     hist = np.zeros(hist_length, dtype='float32')
@@ -1124,22 +1128,22 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
     # Rows, 1st column
     hist_counter = _get_direction(chunk, chunk_rws, rows_half, cols_half,
                                   center_mean, thresh_hom, values, 0, True,
-                                  hist, hist_counter)
+                                  hist, hist_counter, skip_factor)
 
     # Rows, last column
     hist_counter = _get_direction(chunk, chunk_rws, rows_half, cols_half,
                                   center_mean, thresh_hom, values, chunk_cls-1, True,
-                                  hist, hist_counter)
+                                  hist, hist_counter, skip_factor)
 
     # Columns, 1st row
     hist_counter = _get_direction(chunk, chunk_cls, rows_half, cols_half,
                                   center_mean, thresh_hom, values, 0, False,
-                                  hist, hist_counter)
+                                  hist, hist_counter, skip_factor)
 
     # Columns, last row
     hist_counter = _get_direction(chunk, chunk_cls, rows_half, cols_half,
                                   center_mean, thresh_hom, values, chunk_rws-1, False,
-                                  hist, hist_counter)
+                                  hist, hist_counter, skip_factor)
 
     total_count = _get_sum1d(hist, hist_length)
 
@@ -1154,7 +1158,8 @@ cdef DTYPE_float32_t[:] _get_directions(DTYPE_uint8_t[:, :] chunk, int chunk_rws
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE_float32_t thresh_hom):
+cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE_float32_t thresh_hom,
+                                  int skip_factor):
 
     """
     Reference:
@@ -1194,7 +1199,7 @@ cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE
     ctr_blk_mean = _get_mean_uint8(chunk_block, cbr, cbc)
 
     return _get_directions(chunk, chunk_rws, chunk_cls, rows_half, cols_half,
-                           ctr_blk_mean, thresh_hom, sfs_values)
+                           ctr_blk_mean, thresh_hom, sfs_values, skip_factor)
 
 
 @cython.boundscheck(False)
@@ -1202,7 +1207,7 @@ cdef DTYPE_float32_t[:] _sfs_feas(DTYPE_uint8_t[:, :] chunk, int blk_size, DTYPE
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd, int blk, list scs,
                                                       DTYPE_float32_t thresh_hom,
                                                       int scales_half, int scales_block, int out_len,
-                                                      int rows, int cols):
+                                                      int rows, int cols, int skip_factor):
 
     cdef:
         Py_ssize_t i, j, ki, k, k_half, st_
@@ -1214,7 +1219,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd,
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, n_scales):
+            for ki in range(0, n_scales):
 
                 k = scs[ki]
 
@@ -1223,9 +1228,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd,
                 ch_bd_ = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
                                j+scales_half-k_half:j+scales_half-k_half+k]
 
-                sts = _sfs_feas(ch_bd_, blk, thresh_hom)
+                sts = _sfs_feas(ch_bd_, blk, thresh_hom, skip_factor)
 
-                for st_ in xrange(0, 5):
+                for st_ in range(0, 5):
 
                     out_list[pix_ctr] = sts[st_]
 
@@ -1236,7 +1241,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale, DTYPE_float32_t thresh_hom):
+def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale,
+                DTYPE_float32_t thresh_hom, int skip_factor=4):
 
     cdef:
         Py_ssize_t i, j, ki, k
@@ -1247,12 +1253,14 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
         int cols = chBd.shape[1]
         int n_scales = np.array(scs).shape[0]
 
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, n_scales):
-                out_len += 5
+    with nogil:
 
-    return _feature_sfs(chBd, blk, scs, thresh_hom, scales_half, scales_block, out_len, rows, cols)
+        for i from 0 <= i < rows-scales_block by blk:
+            for j from 0 <= j < cols-scales_block by blk:
+                for ki in range(0, n_scales):
+                    out_len += 5
+
+    return _feature_sfs(chBd, blk, scs, thresh_hom, scales_half, scales_block, out_len, rows, cols, skip_factor)
 
 
 # @cython.boundscheck(False)
