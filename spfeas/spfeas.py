@@ -153,11 +153,11 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'lac' + Style.RESET_ALL + '     -- Lacunarity (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbp' + Style.RESET_ALL + '     -- Local Binary Patterns (59 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbpm' + Style.RESET_ALL + '    -- Local Binary Patterns moments (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
-                  Fore.RED + Style.BRIGHT + 'lsr' + Style.RESET_ALL + '     -- Line support regions (3 x n scales)' + Fore.RED + ' **Currently out of order**',
+                  Fore.GREEN + Style.BRIGHT + 'lsr' + Style.RESET_ALL + '     -- Line support regions (3 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local inverse distance weighted mean and variance (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'ndvi' + Style.RESET_ALL + '    -- NDVI mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'pantex' + Style.RESET_ALL + '  -- Built-up presence index (n scales)',
-                  Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
+                  Fore.RED + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)' + Fore.RED + ' **Currently out of order**',
                   Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (5 (max,min,mean,w-mean,std) x n scales)',
                   Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
@@ -190,8 +190,8 @@ def main():
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
-                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb',
-                                            'pantex', 'saliency', 'sfs', 'sfsorf'])
+                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi',
+                                            'pantex', 'saliency', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=40, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',

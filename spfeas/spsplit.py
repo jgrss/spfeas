@@ -472,22 +472,6 @@ def get_dmp(bd, section_rows, section_cols):
     # bd = rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 255))
     # bd = raster_tools.rescale_intensity(bd, 256, maxI=mx, minI=mn, dType='i').astype(np.uint8)
     # bd = rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 255))
-    
-
-def get_mag_ang(img):
-
-    """
-    Get image gradient (magnitude) and orientation (angle) from a Sobel operator
-    """
-
-    img = np.sqrt(img)
-
-    gx = cv2.Sobel(np.float32(img), cv2.CV_32F, 1, 0)
-    gy = cv2.Sobel(np.float32(img), cv2.CV_32F, 0, 1)
-
-    grad, ori = cv2.cartToPolar(gx, gy)
-
-    return grad, ori
 
 
 def getDist(line):

@@ -49,7 +49,89 @@ pi2 = pi / 2.
 
 # list of descriptive statistics functions
 desc_stats = [nanmean, nanvar, skew, kurtosis]
-# desc_stats = [get_mean, get_var, skew, kurtosis]
+
+
+def get_kernels():
+
+    # Robert's
+    roberts_filter_y_1 = np.array([[0, -1],
+                                   [1, 0]], dtype='float32')
+
+    roberts_filter_x_1 = np.array([[0, 1],
+                                   [-1, 0]], dtype='float32')
+
+    roberts_filter_y_2 = np.array([[-1, 0],
+                                   [0, 1]], dtype='float32')
+
+    roberts_filter_x_2 = np.array([[1, 0],
+                                   [0, -1]], dtype='float32')
+
+    roberts_filter_y_3 = np.array([[-1, -1],
+                                   [1, 1]], dtype='float32')
+
+    roberts_filter_x_3 = np.array([[1, 1],
+                                   [-1, -1]], dtype='float32')
+
+    roberts_filter_y_4 = np.array([[-1, 1],
+                                   [-1, 1]], dtype='float32')
+
+    roberts_filter_x_4 = np.array([[1, -1],
+                                   [1, -1]], dtype='float32')
+
+    return [[roberts_filter_y_1, roberts_filter_x_1], [roberts_filter_y_2, roberts_filter_x_2],
+            [roberts_filter_y_3, roberts_filter_x_3], [roberts_filter_y_4, roberts_filter_x_4]]
+
+
+def get_mag_ang(img):
+
+    """
+    Gets image gradient (magnitude) and orientation (angle)
+
+    Args:
+        img
+
+    Returns:
+        Gradient, orientation
+    """
+
+    img = np.sqrt(img)
+
+    # kernels = get_kernels()
+    #
+    # mag = np.zeros(img.shape, dtype='float32')
+    # ang = np.zeros(img.shape, dtype='float32')
+    #
+    # for kernel_filter in kernels:
+    #
+    #     gx = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[1], borderType=cv2.BORDER_CONSTANT)
+    #     gy = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[0], borderType=cv2.BORDER_CONSTANT)
+
+    gx = cv2.Sobel(np.float32(img), cv2.CV_32F, 1, 0)
+    gy = cv2.Sobel(np.float32(img), cv2.CV_32F, 0, 1)
+
+    mag, ang = cv2.cartToPolar(gx, gy)
+
+    # mag += mag_
+    # ang += ang_
+
+    # mag /= len(kernels)
+    # ang /= len(kernels)
+
+    return mag, ang, gx, gy
+
+
+def grad_mag(ch_bd):
+
+    # normalize
+    mu_ = ch_bd.mean()
+    std_ = ch_bd.std()
+    ch_bd = np.divide(np.subtract(ch_bd, mu_), std_)
+
+    ch_bd[np.isnan(ch_bd)] = 0
+    ch_bd += abs(ch_bd.min())
+
+    # compute gradient orientation and magnitude
+    return get_mag_ang(ch_bd)
 
 
 def azimuthal_avg(image, center=None):
@@ -242,25 +324,36 @@ def feaLBP(chBd, blk, scs):
     return list(out_list)
 
 
-def feature_lsr(chBd, blk, scs, end_scale):
+def feature_lsr(ch_bd, blk, scs, end_scale):
 
-    rows, cols = chBd.shape
+    rows, cols = ch_bd.shape
     out_list = []
+    scales_half = end_scale / 2
 
-    edge_ori, edge_mag, deriv_x, deriv_y = lsr.grad_mag(chBd)
+    edge_mag, edge_ori, deriv_x, deriv_y = grad_mag(ch_bd)
     
     for i in xrange(0, rows-(end_scale-blk), blk):
         for j in xrange(0, cols-(end_scale-blk), blk):
             for k in scs:
 
-                edoim_s = edge_ori[i+(end_scale/2)-(k/2):i+(end_scale/2)-(k/2)+k, j+(end_scale/2)-(k/2):j+(end_scale/2)-(k/2)+k]
-                edmim_s = edge_mag[i+(end_scale/2)-(k/2):i+(end_scale/2)-(k/2)+k, j+(end_scale/2)-(k/2):j+(end_scale/2)-(k/2)+k]
-                dx_s = deriv_x[i+(end_scale/2)-(k/2):i+(end_scale/2)-(k/2)+k, j+(end_scale/2)-(k/2):j+(end_scale/2)-(k/2)+k]
-                dy_s = deriv_y[i+(end_scale/2)-(k/2):i+(end_scale/2)-(k/2)+k, j+(end_scale/2)-(k/2):j+(end_scale/2)-(k/2)+k]
+                k_half = k / 2
+
+                edoim_s = edge_ori[i+scales_half-k_half:i+scales_half-k_half+k,
+                                   j+scales_half-k_half:j+scales_half-k_half+k]
+
+                edmim_s = edge_mag[i+scales_half-k_half:i+scales_half-k_half+k,
+                                   j+scales_half-k_half:j+scales_half-k_half+k]
+
+                dx_s = deriv_x[i+scales_half-k_half:i+scales_half-k_half+k,
+                               j+scales_half-k_half:j+scales_half-k_half+k]
+
+                dy_s = deriv_y[i+scales_half-k_half:i+scales_half-k_half+k,
+                               j+scales_half-k_half:j+scales_half-k_half+k]
     
-                sts = lsr._feature_lsr(edoim_s, edmim_s, dx_s, dy_s)
+                sts = lsr.feature_lsr(edoim_s, edmim_s, dx_s, dy_s)
                 
-                [out_list.append(st) for st in sts]
+                for st in sts:
+                    out_list.append(st)
             
     return out_list
 
