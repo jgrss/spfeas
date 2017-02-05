@@ -191,7 +191,7 @@ def main():
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
                                             'lbp', 'lbpm', 'lsr', 'mean', 'ndvi',
-                                            'pantex', 'orb', 'saliency', 'sfs'])
+                                            'pantex', 'saliency', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=40, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',
