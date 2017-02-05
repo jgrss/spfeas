@@ -6,7 +6,12 @@ Adapted from Anil Cheriyadat's MATLAB code
 import sys
 
 from . import _lsr
-from skimage.measure import label as lab_img
+
+try:
+    from skimage.measure import label as lab_img
+    from skimage.morphology import remove_small_objects, skeletonize
+except ImportError:
+    raise ImportError('Scikit-image must be installed')
 
 try:
     import pyfftw
@@ -25,11 +30,6 @@ try:
 except ImportError:
     raise ImportError('NumPy must be installed')
 
-# try:
-#     import numexpr as ne
-# except:
-#     raise ImportError('Numexpr must be installed')
-    
 try:
     import cv2
 except ImportError:
@@ -39,11 +39,6 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     raise ImportError('Matplotlib must be installed')
-
-old_settings = np.seterr(all='ignore')
-
-import warnings
-warnings.filterwarnings("ignore")
 
 
 def get_edge_pixels(ori_img, mag_img, mag_thresh):
@@ -57,27 +52,6 @@ def get_edge_pixels(ori_img, mag_img, mag_thresh):
     ori_img[(ori_img < 0)] += 360.
     
     return ori_img.ravel()[edge_pixs], edge_pixs
-
-
-# def img2_ori_edge(img):
-#
-#     cy = np.array([[-1, -1],
-#                    [1, 1]], dtype='float32')
-#
-#     cx = np.array([[-1, 1],
-#                    [-1, 1]], dtype='float32')
-#
-#     # compute gradient derivatives
-#     deriv_x = cv2.filter2D(img, -1, cx, borderType=cv2.BORDER_CONSTANT)
-#     deriv_y = cv2.filter2D(img, -1, cy, borderType=cv2.BORDER_CONSTANT)
-#
-#     # compute gradient angle
-#     edge_ori = (180. / pi) * np.arctan2(deriv_y, (deriv_x + 1e-5))
-#
-#     # compute gradient magnitude
-#     edge_mag = np.sqrt(np.add(np.power(deriv_x, 2.), np.power(deriv_y, 2.)))
-#
-#     return edge_ori, edge_mag, deriv_x, deriv_y
 
 
 class BinQ(object):
@@ -104,20 +78,25 @@ class BinQ(object):
                 edge_img = np.zeros(rows*cols, dtype='float32')
                 edge_img[edgePixs[0][curr_bin[0]]] = 1
 
+                # plt.subplot(121)
+                # plt.imshow(edge_img.reshape(rows, cols))
+                # plt.subplot(122)
+                # plt.imshow(np.uint8(skeletonize(edge_img.copy().reshape(rows, cols))))
+                # plt.show()
+                # sys.exit()
+
                 # Extract LSR by grouping pixels with similar orientations
                 lsfim1, lsfarr = self.generate_regions(edge_img.reshape(rows, cols),
                                                        lsr_thresh, lsfim1, lsfarr, dx, dy, rows, cols)
-
-                # lsfim1, lsfarr = _lineSupport.generate_regions(edge_img, lsr_thresh, lsfim1, lsfarr, dx, dy, rows, cols)
-                
 
         # Here we divide them into bins with bin boundaries as    
         # ... 22.5,67.5,112.5,157.5,202.5,247.5,292.5,337.5,22.5    
         binidx = np.searchsorted(list(np.linspace(22.5, 360, num=np.floor((360-22.5)/45.))), data)
         
         lsfim2 = np.zeros((2, rows, cols), dtype='float32')
-        
-        for k in xrange(1, len(list(np.linspace(22.5, 360, num=np.floor((360-22.5)/45.))))): # the range is for 22.5, ..n, 337.5, by 45
+
+        # the range is for 22.5, ..n, 337.5, by 45
+        for k in xrange(1, len(list(np.linspace(22.5, 360, num=np.floor((360-22.5)/45.))))):
         
             curr_bin = np.where(binidx == k)
             
@@ -129,8 +108,7 @@ class BinQ(object):
                 # Extract LSR by grouping pixels with similar orientations
                 lsfim2, lsfarr = self.generate_regions(edge_img.reshape(rows, cols), lsr_thresh, lsfim2,
                                                        lsfarr, dx, dy, rows, cols)
-                # lsfim2, lsfarr = _lineSupport.generate_regions(edge_img, lsr_thresh, lsfim2, lsfarr, dx, dy, rows, cols)
-        
+
         edge_img = np.zeros(rows*cols, dtype='float32')
                 
         binidx = np.searchsorted([337.5, 360], data)
@@ -145,40 +123,12 @@ class BinQ(object):
         
         # Extract LSR by grouping pixels with similar orientations
         lsfim2, lsfarr = self.generate_regions(edge_img, lsr_thresh, lsfim2, lsfarr, dx, dy, rows, cols)
-        # lsfim2, lsfarr = _lineSupport.generate_regions(edge_img, lsr_thresh, lsfim2, lsfarr, dx, dy, rows, cols)
-        
+
         lsfarr = lsfarr[1:, :]	    # first row was a dummy
 
         if lsfarr.shape[0] > 0:
 
-            # Cython code here
             lsfarr = _lsr.get_features(lsfarr, lsfim1, lsfim2, rows, cols)
-            
-            # for i in xrange(0, rows):
-            #
-            #     for j in xrange(0, cols):
-            #
-            #         lsfim1_1 = lsfim1[0, i, j]	    # max should equal lsfarr rows
-            #         lsfim2_1 = lsfim2[0, i, j]
-            #
-            #         if lsfim1_1 > 0:
-            #             lsfim1_1 -= 1
-            #
-            #         if lsfim2_1 > 0:
-            #             lsfim2_1 -= 1
-            #
-            #         if not lsfim1_1 and lsfim2_1:
-            #             continue
-            #
-            #         lsfim1_2 = lsfim1[1, i, j]	    # lengths
-            #         lsfim2_2 = lsfim2[1, i, j]
-            #
-            #         if lsfim1_2 > lsfim2_2:
-            #             lsfarr[int(lsfim1_1), 5] += 1
-            #             lsfarr[int(lsfim2_1), 5] -= 1
-            #         else:
-            #             lsfarr[int(lsfim1_1), 5] -= 1
-            #             lsfarr[int(lsfim2_1), 5] += 1
 
             self.lsfarr = lsfarr[(lsfarr[:, 5] > 0)][:, :5]
 
@@ -190,10 +140,17 @@ class BinQ(object):
         
     def generate_regions(self, edge_img, lsr_thresh, lsfim, lsfarr, dx, dy, rows, cols):
 
-        # boundaries labeled
+        # Create independent edges
+        __, edge_img = cv2.threshold(np.uint8(skeletonize(np.uint8(edge_img))), 0, 1, cv2.THRESH_BINARY_INV)
+        edge_img = cv2.distanceTransform(edge_img, cv2.DIST_L1, 3)
+        edge_img = np.where(edge_img == 2, 1, 0)
+
+        # Label the edges
         ori, num_objs = lab_img(edge_img, connectivity=1, return_num=True)
-        # bd = find_boundaries(edge_img)	# binary boundaries
-        # bd = mark_boundaries(edge_img, bd)
+
+        # plt.imshow(ori)
+        # plt.show()
+        # sys.exit()
 
         if lsfim.max() == 0:
             lsfima = np.zeros((rows, cols), dtype='float32')
@@ -209,7 +166,6 @@ class BinQ(object):
         # ax.imshow(ori, interpolation='nearest')
         # TEST
 
-        # for n in xrange(0, np.prod(bd.shape)):	# num_feas
         for n in xrange(1, num_objs):
         
             bidx = np.where(ori == n)
@@ -246,14 +202,8 @@ class BinQ(object):
             lmx = a[idx].real
             lmy = a[idx].imag								
 
-            # a_idx_p = a[idx+1]
-            # a_idx_m = a[idx-1]
-
             llen = 2 * (np.abs(a[idx+1]) + np.abs(a[idx-1]))
             lorn = (np.arctan2(a[idx+1].imag, a[idx+1].real) + np.arctan2(a[idx-1].imag, a[idx-1].real)) / 2.
-
-            # llen = abs(ne.evaluate('2. * (abs(a_idx_p) + abs(a_idx_m))'))
-            # lorn = abs(ne.evaluate('(arctan2(a_idx_p.imag, a_idx_p.real) + arctan2(a_idx_m.imag, a_idx_m.real)) / 2.'))
             lcon = np.max(np.maximum(abs(dx[bidx]), abs(dy[bidx])))
 
             cnt += 1
@@ -265,6 +215,7 @@ class BinQ(object):
             cl_list = [llen, lmx, lmy, lorn, lcon, 0]
 
             lsfarr_row = np.zeros(6, dtype='float32')
+
             for cl in xrange(0, 6):
                 lsfarr_row[cl] = cl_list[cl]
             
@@ -291,18 +242,18 @@ def feature_lsr(orientation, magnitude, x_deriv, y_deriv):
 
     rows, cols = x_deriv.shape
 
-    # threshold magnitude
-    data, edge_pixs = get_edge_pixels(orientation, magnitude, .5)
+    # Threshold the edge magnitude
+    data, edge_pixels = get_edge_pixels(orientation, magnitude, .5)
 
     # quantize gradient orientations
-    obj = BinQ(data, edge_pixs, 5, x_deriv, y_deriv, rows, cols)   # any LSR below 5 pixels can be ignored
+    obj = BinQ(data, edge_pixels, 5, x_deriv, y_deriv, rows, cols)   # any LSR below 5 pixels can be ignored
     
     lsfarr = obj.lsfarr
 
-    bin_count = np.searchsorted(range(5, 200+4, 4), lsfarr[:, 0]).astype(np.float32)
+    bin_count = np.float32(np.searchsorted(range(5, 200+4, 4), lsfarr[:, 0]))
     lenpmf = bin_count / bin_count.sum()
 
-    bin_count = np.searchsorted(list(np.linspace(0, 10, num=np.floor(10./.5))), lsfarr[:,4]).astype(np.float32)
+    bin_count = np.float32(np.searchsorted(list(np.linspace(0, 10, num=np.floor(10./.5))), lsfarr[:,4]))
 
     contrastpmf = bin_count / bin_count.sum()
 

@@ -157,7 +157,7 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'mean' + Style.RESET_ALL + '    -- Local inverse distance weighted mean and variance (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'ndvi' + Style.RESET_ALL + '    -- NDVI mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'pantex' + Style.RESET_ALL + '  -- Built-up presence index (n scales)',
-                  Fore.RED + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)' + Fore.RED + ' **Currently out of order**',
+                  Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (5 (max,min,mean,w-mean,std) x n scales)',
                   Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
@@ -191,7 +191,7 @@ def main():
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
                                             'lbp', 'lbpm', 'lsr', 'mean', 'ndvi',
-                                            'pantex', 'saliency', 'sfs'])
+                                            'pantex', 'orb', 'saliency', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=40, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',
@@ -212,7 +212,6 @@ def main():
     parser.add_argument('--equalize-adapt', dest='equalize_adapt',
                         help='Whether to do adaptive histogram equalization', action='store_true')
     parser.add_argument('--visualize', dest='visualize', help='Whether to visualize', action='store_true')
-    parser.add_argument('--pca', dest='pca', help='Whether to run PCA', action='store_true')
     parser.add_argument('--convert', dest='convert', help='Whether to convert the feature stack', action='store_true')
     parser.add_argument('--stack', dest='stack', help='Whether to stack features', action='store_true')
     parser.add_argument('--stack-only', dest='stack_only', help='Whether to only stack features', action='store_true')
@@ -246,7 +245,7 @@ def main():
                      sfs_threshold=args.sfs_threshold, sfs_skip=args.sfs_skip,
                      sfs_resample=args.sfs_resample,
                      smooth=args.smooth, equalize=args.equalize, equalize_adapt=args.equalize_adapt,
-                     visualize=args.visualize, convert=args.convert, do_pca=args.pca,
+                     visualize=args.visualize, convert=args.convert,
                      use_rgb=args.use_rgb, vis_order=args.vis_order,
                      stack=args.stack, stack_only=args.stack_only,
                      band_red=args.band_red, band_nir=args.band_nir,

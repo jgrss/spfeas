@@ -105,7 +105,7 @@ cdef inline Py_ssize_t abs_s(Py_ssize_t sx) nogil:
 
 
 @cython.profile(False)
-cdef inline int n_rows_cols(int pixel_index, int rows_cols, int block_size):
+cdef inline int n_rows_cols(int pixel_index, int rows_cols, int block_size) nogil:
     return rows_cols if pixel_index + rows_cols < block_size else block_size - pixel_index
 
 
@@ -1389,7 +1389,7 @@ def fill_key_points(DTYPE_float32_t[:, :] in_block, list key_point_list):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] key_point_array,
-                                           DTYPE_uint8_t[:] levels,
+                                           DTYPE_float32_t[:] levels,
                                            int orb_rows, int orb_cols):
 
     cdef:
@@ -1399,53 +1399,57 @@ cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] key_point_array,
         Py_ssize_t counter = 0
         DTYPE_uint8_t[:, :] kblock
 
-    # Iterate over each level
-    for lv in range(0, 3):
+    with nogil:
 
-        y_tiles = int(floor(orb_rows / levels[lv]))
-        x_tiles = int(floor(orb_cols / levels[lv]))
+        # Iterate over each level
+        for lv in range(0, 3):
 
-        if (y_tiles > 1) and (x_tiles > 1):
+            y_tiles = <int>(floor(orb_rows / levels[lv]))
+            x_tiles = <int>(floor(orb_cols / levels[lv]))
 
-            for ki from 0 <= ki < orb_rows by y_tiles:
-                rr_rows = n_rows_cols(ki, y_tiles, orb_rows)
-                if rr_rows > 1:
-                    for kj from 0 <= kj < orb_cols by x_tiles:
-                        cc_cols = n_rows_cols(kj, x_tiles, orb_cols)
-                        if cc_cols > 1:
-                            counter += 1
+            if (y_tiles > 1) and (x_tiles > 1):
+
+                for ki from 0 <= ki < orb_rows-1 by y_tiles:
+                    rr_rows = n_rows_cols(ki, y_tiles, orb_rows)
+                    if rr_rows > 1:
+                        for kj from 0 <= kj < orb_cols-1 by x_tiles:
+                            cc_cols = n_rows_cols(kj, x_tiles, orb_cols)
+                            if cc_cols > 1:
+                                counter += 1
 
     hist = np.zeros(counter, dtype='float32')
 
-    grid_counter = 0
+    with nogil:
 
-    # Iterate over each level
-    for lv in range(0, 3):
+        grid_counter = 0
 
-        y_tiles = int(floor(orb_rows / levels[lv]))
-        x_tiles = int(floor(orb_cols / levels[lv]))
+        # Iterate over each level
+        for lv in range(0, 3):
 
-        if (y_tiles > 1) and (x_tiles > 1):
+            y_tiles = <int>(floor(orb_rows / levels[lv]))
+            x_tiles = <int>(floor(orb_cols / levels[lv]))
 
-            for ki from 0 <= ki < orb_rows by y_tiles:
+            if (y_tiles > 1) and (x_tiles > 1):
 
-                rr_rows = n_rows_cols(ki, y_tiles, orb_rows)
+                for ki from 0 <= ki < orb_rows-1 by y_tiles:
 
-                if rr_rows > 1:
+                    rr_rows = n_rows_cols(ki, y_tiles, orb_rows)
 
-                    for kj from 0 <= kj < orb_cols by x_tiles:
+                    if rr_rows > 1:
 
-                        cc_cols = n_rows_cols(kj, x_tiles, orb_cols)
+                        for kj from 0 <= kj < orb_cols-1 by x_tiles:
 
-                        if cc_cols > 1:
+                            cc_cols = n_rows_cols(kj, x_tiles, orb_cols)
 
-                            # Get the keypoint block
-                            kblock = key_point_array[ki:ki+rr_rows, kj:kj+cc_cols]
+                            if cc_cols > 1:
 
-                            # Enter the keypoint sum into the histogram
-                            hist[grid_counter] += _get_sum_uint8(kblock, rr_rows, cc_cols)
+                                # Get the keypoint block
+                                kblock = key_point_array[ki:ki+rr_rows, kj:kj+cc_cols]
 
-                            grid_counter += 1
+                                # Enter the keypoint sum into the histogram
+                                hist[grid_counter] += _get_sum_uint8(kblock, rr_rows, cc_cols)
+
+                                grid_counter += 1
 
     return hist
 
@@ -1453,24 +1457,23 @@ cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] key_point_array,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
-                                                      int blk,
-                                                      DTYPE_uint16_t[:] scales_array,
-                                                      int scales_half, int scales_block,
-                                                      int scale_length, int out_len,
-                                                      int rows, int cols, int scales_length):
+cdef DTYPE_float32_t[:] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
+                                     int blk,
+                                     DTYPE_uint16_t[:] scales_array,
+                                     int scales_half, int scales_block,
+                                     int scale_length, int out_len,
+                                     int rows, int cols, int scales_length):
 
     cdef:
         Py_ssize_t i, j, ki, st
-        DTYPE_uint16_t k, k_half
+        DTYPE_uint16_t k
+        int k_half
         DTYPE_float32_t[:] sts
-        DTYPE_float32_t[:] out_list
-        DTYPE_uint8_t[:] levels = np.array([2, 4, 8], dtype='uint8')
+        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
+        DTYPE_float32_t[:] levels = np.array([2, 4, 8], dtype='float32')
         Py_ssize_t pix_ctr = 0
         int block_rows, block_cols
-
-    # Set the output list
-    out_list = np.zeros(out_len, dtype='float32')
+        DTYPE_uint8_t[:, :] ch_bd_sub
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -1478,17 +1481,17 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
 
                 k = scales_array[ki]
 
-                k_half = k / 2
+                k_half = <int>(k / 2)
 
-                ch_bd = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
-                              j+scales_half-k_half:j+scales_half-k_half+k]
+                ch_bd_sub = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                  j+scales_half-k_half:j+scales_half-k_half+k]
 
-                block_rows = ch_bd.shape[0]
-                block_cols = ch_bd.shape[1]
+                block_rows = ch_bd_sub.shape[0]
+                block_cols = ch_bd_sub.shape[1]
 
-                if _get_max(ch_bd, block_rows, block_cols) > 0:
+                if _get_max(ch_bd_sub, block_rows, block_cols) > 0:
 
-                    sts = get_moments(_pyramid_hist_sift(ch_bd, levels, block_rows, block_cols))
+                    sts = get_moments(_pyramid_hist_sift(ch_bd_sub, levels, block_rows, block_cols))
 
                     for st in range(0, 7):
 
@@ -1499,7 +1502,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
                 else:
                     pix_ctr += 7
 
-    return np.float32(out_list)
+    return out_list
 
 
 @cython.boundscheck(False)
@@ -1518,14 +1521,16 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd,
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
 
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in range(0, scale_length):
-                out_len += 7
+    with nogil:
 
-    return _feature_orb(ch_bd, blk, scales_array,
-                        scales_half, scales_block, scale_length,
-                        out_len, rows, cols, scale_length)
+        for i from 0 <= i < rows-scales_block by blk:
+            for j from 0 <= j < cols-scales_block by blk:
+                for ki in range(0, scale_length):
+                    out_len += 7
+
+    return np.float32(_feature_orb(ch_bd, blk, scales_array,
+                                   scales_half, scales_block, scale_length,
+                                   out_len, rows, cols, scale_length))
 
 
 @cython.boundscheck(False)
@@ -1589,11 +1594,11 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(np.ndarray[DTYPE_uint8_t, 
                 out_len += pr_bin_count
 
     # set the output list
-    out_list = np.empty(out_len).astype(np.uint8)
+    out_list = np.empty(out_len, dtype='uint8')
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
+            for ki in range(0, scale_length):
 
                 k = scales_array[ki]
 
@@ -1606,7 +1611,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(np.ndarray[DTYPE_uint8_t, 
                 sts = np.concatenate([np.bincount(ch_bd[p_range.index(pc)].flat, minlength=pc+2)
                                       for pc in p_range]).astype(np.uint8)
 
-                for sti in xrange(0, 4):
+                for sti in range(0, 4):
 
                     out_list[pix_ctr] = sts[sti]
 

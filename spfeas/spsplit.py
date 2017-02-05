@@ -5,7 +5,6 @@ Date Created: 7/2/2013
 
 import os
 import sys
-import itertools
 import subprocess
 from joblib import Parallel, delayed
 
