@@ -2,37 +2,13 @@ REM pip needs to be installed
 where /q pip
 
 IF NOT ERRORLEVEL 1 (
-
     REM Install compiled wheels that do not pip install
-    pip install --no-cache-dir numpy‑1.12.0rc2+mkl‑cp27‑cp27m‑win_amd64.whl numexpr‑2.6.1‑cp27‑cp27m‑win_amd64.whl scikit_image‑0.12.3‑cp27‑cp27m‑win_amd64.whl scipy‑0.18.1‑cp27‑cp27m‑win_amd64.whl tables‑3.3.0‑cp27‑cp27m‑win_amd64.whl Bottleneck‑1.2.0‑cp27‑cp27m‑win_amd64.whl GDAL‑2.1.2‑cp27‑cp27m‑win_amd64.whl statsmodels‑0.8.0rc1‑cp27‑cp27m‑win_amd64.whl
+    pip install --upgrade --no-cache-dir numpy-1.12.0+mkl-cp27-cp27m-win_amd64.whl numexpr-2.6.2-cp27-cp27m-win_amd64.whl scikit_image-0.12.3-cp27-cp27m-win_amd64.whl scipy-0.18.1-cp27-cp27m-win_amd64.whl tables-3.3.0-cp27-cp27m-win_amd64.whl Bottleneck-1.2.0-cp27-cp27m-win_amd64.whl GDAL-2.1.3-cp27-cp27m-win_amd64.whl statsmodels-0.8.0rc1-cp27-cp27m-win_amd64.whl scikit_learn-0.18.1-cp27-cp27m-win_amd64.whl opencv_python-3.1.0-cp27-cp27m-win_amd64.whl Cython-0.25.2-cp27-cp27m-win_amd64.whl pandas-0.19.2-cp27-cp27m-win_amd64.whl
 
-    pip install --no-cache-dir beautifulsoup4 retrying six xmltodict colorama cython joblib matplotlib opencv-python pandas psutil PySAL PyYAML scikit-learn 
+    pip install --upgrade --no-cache-dir beautifulsoup4 retrying six xmltodict colorama joblib matplotlib psutil PySAL PyYAML
 
-    REM Uninstall MpGlue if it already exists 
-    where /q classify
-    IF NOT ERRORLEVEL 1 (
-        pip uninstall mpglue
-      )
-
-    where /q git
-    IF NOT ERRORLEVEL 1 (
-        pip install git+https://github.com/jgrss/mpglue.git
-    ) ELSE (
-        pip install MpGlue-0.0.5.tar.gz
-    )
-
-    REM Uninstall SpFeas if it already exists
-    where /q spfeas
-    IF NOT ERRORLEVEL 1 (
-        pip uninstall spfeas
-      ) 
-
-    where /q git
-    IF NOT ERRORLEVEL 1 (
-        pip install git+https://github.com/jgrss/spfeas.git     
-    ) ELSE (
-        pip install SpFeas-0.0.3-x64.tar.gz
-    )
+    pip install --upgrade --no-cache-dir MpGlue-0.1.0.tar.gz
+    pip install --upgrade --no-cache-dir SpFeas-0.1.0.tar.gz
 
     REM Check if SpFeas installed correctly
     where /q spfeas
@@ -44,4 +20,4 @@ IF NOT ERRORLEVEL 1 (
 
   ) ELSE (
     ECHO.Download get-pip.py from https://pip.pypa.io/en/latest/installing/
-  )
+)
