@@ -10,6 +10,7 @@ import itertools
 from .sphelpers import sputilities
 from . import spsplit
 from .sphelpers import spreshape
+from .spfunctions import get_mag_avg
 
 from mpglue import raster_tools, VegIndicesEquations
 
@@ -234,7 +235,16 @@ def run(parameter_object):
                                                        i_sect, j_sect,
                                                        n_rows, n_cols)
 
-                        elif parameter_object.use_rgb and trigger not in ['ndvi', 'evi2', 'dmp', 'saliency']:
+                        elif parameter_object.trigger == 'grad':
+
+                            sect_in, __, __ = sputilities.convert_rgb2gray(i_info,
+                                                                           i_sect, j_sect,
+                                                                           n_rows, n_cols)
+
+                            sect_in = get_mag_avg(sect_in)
+                            parameter_object.update_info(min=0, max=255)
+
+                        elif parameter_object.use_rgb and trigger not in ['grad', 'ndvi', 'evi2', 'dmp', 'saliency']:
 
                             sect_in, __, __ = sputilities.convert_rgb2gray(i_info,
                                                                            i_sect, j_sect,
@@ -257,13 +267,12 @@ def run(parameter_object):
                         if parameter_object.trigger == 'dmp':
 
                             l_rows, l_cols = sect_in[0].shape
-
-                            oR, oC, out_rows, out_cols = spsplit.get_out_dims(np.uint8(sect_in[0]), l_rows, l_cols,
+                            oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows, l_cols,
                                                                               parameter_object)
                         else:
-                            l_rows, l_cols = sect_in.shape
 
-                            oR, oC, out_rows, out_cols = spsplit.get_out_dims(np.uint8(sect_in), l_rows, l_cols,
+                            l_rows, l_cols = sect_in.shape
+                            oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows, l_cols,
                                                                               parameter_object)
 
                         # Only extract features if the section hasn't

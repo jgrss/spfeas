@@ -23,11 +23,6 @@ except:
     raise ImportError('The stats functions did not load')
 
 try:
-    from .sphelpers import _chunk
-except:
-    raise ImportError('The chunk functions did not load')
-
-try:
     from .sphelpers.gabor_filter_bank import prep_gabor
 except:
     print('\n!!!\nWarning: skimage.filter.gabor_kernel did not load\n \
@@ -87,26 +82,6 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def get_orb_keypoints(in_block, parameter_object):
-
-    # Compute the ORB keypoints
-    # Initiate ORB detector
-
-    orb = cv2.ORB_create(nfeatures=20000, edgeThreshold=31, patchSize=31, WTA_K=4)
-
-    in_block = np.uint8(rescale_intensity(in_block,
-                                          in_range=(parameter_object.min,
-                                                    parameter_object.max),
-                                          out_range=(0, 255)))
-
-    # Compute ORB keypoints
-    key_points, __ = orb.detectAndCompute(in_block, None)
-
-    # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
-
-    return _stats.fill_key_points(np.float32(in_block), key_points)
-
-
 def call_gabor(block_array_, block_size_, scales_, end_scale_, kernels_):
     return _stats.feature_gabor(block_array_, block_size_, scales_, end_scale_, kernels_)
 
@@ -159,6 +134,32 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_sk
     return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, skip_factor=sfs_skip_)
 
 
+def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs):
+
+    if trigger_ in ['dmp', 'evi2', 'grad', 'mean', 'ndvi', 'saliency']:
+        return call_mean(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'fourier':
+        return call_fourier(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'gabor':
+        return call_gabor(block_array_, block_size_, scales_, end_scale_, kwargs['kernels'])
+    elif trigger_ == 'hog':
+        return call_hog(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'lbp':
+        return call_lbp(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'lbpm':
+        return call_lbpm(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'lac':
+        return call_lacunarity(block_array_, block_size_, scales_, end_scale_, kwargs['lac_r'])
+    elif trigger_ == 'lsr':
+        return call_lsr(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'orb':
+        return call_orb(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'pantex':
+        return call_pantex(block_array_, block_size_, scales_, end_scale_, kwargs['weight'])
+    elif trigger_ == 'sfs':
+        return call_sfs(block_array_, block_size_, scales_, end_scale_, kwargs['sfs_thresh'], kwargs['sfs_skip'])
+
+
 # def call_surf(block_array_, block_size_, scales_, end_scale_):
 #     return _stats.feature_surf(block_array_, block_size_, scales_, end_scale_)
 
@@ -166,28 +167,67 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_sk
 #     return feaCtr(*bd_blk_scs)
 
 
-def getOutRows(in_bd, blk, scs):
-    
-    rows, cols = in_bd.shape
-    
-    return len([i for i in xrange(0, rows-(scs[-1]-blk), blk)])
+def get_orb_keypoints(in_block, parameter_object):
+
+    # Compute the ORB keypoints
+    # Initiate ORB detector
+
+    orb = cv2.ORB_create(nfeatures=20000, edgeThreshold=31, patchSize=31, WTA_K=4)
+
+    in_block = np.uint8(rescale_intensity(in_block,
+                                          in_range=(parameter_object.min,
+                                                    parameter_object.max),
+                                          out_range=(0, 255)))
+
+    # Compute ORB keypoints
+    key_points, __ = orb.detectAndCompute(in_block, None)
+
+    # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
+
+    return _stats.fill_key_points(np.float32(in_block), key_points)
 
 
-def getOutCols(in_bd, blk, scs):
-    
-    rows, cols = in_bd.shape
+def get_out_rows(in_bd, blk, end_scale):
 
-    return len([j for j in xrange(0, cols-(scs[-1]-blk), blk)])
+    rows = in_bd[1] - in_bd[0]
+
+    return len([i for i in xrange(0, rows-(end_scale-blk), blk)])
 
 
-def get_out_dims(bd, section_rows, section_cols, parameter_object):
+def get_out_cols(in_bd, blk, end_scale):
 
-    bd = _chunk.chunk_int(bd, section_rows, section_cols,
-                          parameter_object.block, parameter_object.chunk_size, parameter_object.scales[-1])
+    cols = in_bd[3] - in_bd[2]
+
+    return len([j for j in xrange(0, cols-(end_scale-blk), blk)])
+
+
+def chunk_index(rows, cols, block_size, chunk_size, scale):
+
+    index_list = []
+
+    for i in xrange(0, rows, chunk_size - (scale - block_size)):
+
+        n_rows = raster_tools.n_rows_cols(i, chunk_size, rows)
+
+        for j in xrange(0, cols, chunk_size - (scale - block_size)):
+
+            n_cols = raster_tools.n_rows_cols(j, chunk_size, cols)
+
+            index_list.append((i, i+n_rows, j, j+n_cols))
+
+    return index_list
+
+
+def get_out_dims(section_rows, section_cols, parameter_object):
+
+    bd_idx = chunk_index(section_rows, section_cols,
+                         parameter_object.block,
+                         parameter_object.chunk_size,
+                         parameter_object.scales[-1])
 
     # get the number of output row and columns for each chunk
-    oR = map(getOutRows, bd, [parameter_object.block]*len(bd), [parameter_object.scales]*len(bd))
-    oC = map(getOutCols, bd, [parameter_object.block]*len(bd), [parameter_object.scales]*len(bd))
+    oR = map(get_out_rows, bd_idx, [parameter_object.block]*len(bd_idx), [parameter_object.scales[-1]]*len(bd_idx))
+    oC = map(get_out_cols, bd_idx, [parameter_object.block]*len(bd_idx), [parameter_object.scales[-1]]*len(bd_idx))
 
     # get the output section row and column size
     iR, jR = 0, 0
@@ -730,34 +770,56 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
 
         # bd = _chunk.chunk_int(bd, section_rows, section_cols, blk_size, chunk_size, scs[-1])
 
-    elif parameter_object.trigger == 'dmp':
+    chunk_iters = chunk_index(section_rows, section_cols,
+                              parameter_object.block,
+                              parameter_object.chunk_size,
+                              parameter_object.scales[-1])
 
-        bd = _chunk.chunk_float(bd, section_rows, section_cols,
-                                parameter_object.block, parameter_object.chunk_size, parameter_object.scales[-1])
+    func_dict = dict(dmp=dict(name='Differential Morphological Profiles',
+                              args=dict()),
+                     evi2=dict(name='Two-band Enhanced Vegetation Index',
+                               args=dict()),
+                     fourier=dict(name='Fourier transfrom',
+                                  args=dict()),
+                     gabor=dict(name='Gabor filters',
+                                args=dict(kernels=prep_gabor(n_orientations=32, sigmas=[1, 2, 4]))),
+                     grad=dict(name='Gradient magnitude',
+                               args=dict()),
+                     hog=dict(name='Histogram of Oriented Gradients',
+                              args=dict()),
+                     lac=dict(name='Lacunarity',
+                              args=dict(lac_r=parameter_object.lac_r)),
+                     lbp=dict(name='Local Binary Patterns',
+                              args=dict()),
+                     lbpm=dict(name='Local Binary Patterns moments',
+                               args=dict()),
+                     lsr=dict(name='Line support regions',
+                              args=dict()),
+                     mean=dict(name='Mean',
+                               args=dict()),
+                     ndvi=dict(name='Normalized Difference Vegetation Index',
+                               args=dict()),
+                     pantex=dict(name='PanTex',
+                                 args=dict(weight=parameter_object.weight)),
+                     orb=dict(name='Oriented BRIEF key points',
+                              args=dict()),
+                     saliency=dict(name='Image saliency',
+                                   args=dict()),
+                     sfs=dict(name='Structural Feature Sets',
+                              args=dict(sfs_threshold=parameter_object.sfs_threshold,
+                                        sfs_skip=parameter_object.sfs_skip)))
 
-    else:
+    print '\n Processing {} ...'.format(func_dict[parameter_object.trigger]['name'])
 
-        bd = _chunk.chunk_int(bd, section_rows, section_cols,
-                              parameter_object.block, parameter_object.chunk_size, parameter_object.scales[-1])
+    other_args = func_dict[parameter_object.trigger]['args']
 
-    if parameter_object.trigger in ['mean', 'ndvi', 'dmp', 'evi2', 'saliency']:
-
-        if parameter_object.trigger == 'mean':
-            print '\n  Processing mean ...'
-        else:
-            print '\n  Processing mean {} ...'.format(parameter_object.trigger)
-
-        # def mean_wrapper(block, blk_size, scs, n_jobs):
-        #     return Parallel(n_jobs=8, max_nbytes=None)(delayed(call_mean)(bd_, blk_size, scs, scs[-1]) \
-        #                                                    for bd_ in block)
-        #
-        # wrapped = wrapper(mean_wrapper, bd, blk_size, scs, n_jobs)
-        # print 'Time: %f' % timeit.timeit(wrapped, number=1)
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_mean)(bd_, parameter_object.block,
-                                                            parameter_object.scales,
-                                                            parameter_object.scales[-1]) for bd_ in bd)
+    return Parallel(n_jobs=parameter_object.n_jobs,
+                    max_nbytes=None)(delayed(call_func)(bd[chi[0]:chi[1], chi[2]:chi[3]],
+                                                        parameter_object.block,
+                                                        parameter_object.scales,
+                                                        parameter_object.scales[-1],
+                                                        parameter_object.trigger,
+                                                        **other_args) for chi in chunk_iters)
 
     # elif parameter_object.trigger == 'surf':
     #
@@ -768,128 +830,19 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
     #                                                         parameter_object.scales,
     #                                                         parameter_object.scales[-1]) for bd_ in bd)
 
-    elif parameter_object.trigger == 'lac':
-
-        print '\n  Processing lacunarity ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_lacunarity)(bd_, parameter_object.block,
-                                                                  parameter_object.scales,
-                                                                  parameter_object.scales[-1],
-                                                                  parameter_object.lac_r) for bd_ in bd)
-
     # elif parameter_object.trigger == 'ctr':
     #
     #     print '\n  Copying band scales ...'
     #     return pool.map(startCtr, itertools.izip(bd, [blk_size]*len(bd), [scs]*len(bd)))
 
-    elif parameter_object.trigger == 'gabor':
-
-        print '\n  Processing Gabor ...'
-
-        kernels = prep_gabor(n_orientations=32, sigmas=[1, 2, 4])
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_gabor)(bd_, parameter_object.block,
-                                                             parameter_object.scales,
-                                                             parameter_object.scales[-1], kernels) for bd_ in bd)
-
-    elif parameter_object.trigger == 'fourier':
-
-        print '\n  Processing Fourier ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_fourier)(bd_, parameter_object.block,
-                                                               parameter_object.scales,
-                                                               parameter_object.scales[-1]) for bd_ in bd)
-
-    elif parameter_object.trigger == 'hog':
-
-        print '\n  Processing HoG ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_hog)(bd_, parameter_object.block,
-                                                           parameter_object.scales,
-                                                           parameter_object.scales[-1]) for bd_ in bd)
-
-        # return Parallel(n_jobs=parameter_object.n_jobs,
-        #                 max_nbytes=None)(delayed(call_hog)(gim, oim, parameter_object.block,
-        #                                                    parameter_object.scales,
-        #                                                    parameter_object.scales[-1])
-        #                                  for gim, oim in itertools.izip(grad_img, ori_img))
-
-    elif parameter_object.trigger == 'hough':
-
-        print '\n  Processing Hough lines ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_hough)(bd_, parameter_object.block,
-                                                             parameter_object.scales,
-                                                             parameter_object.scales[-1],
-                                                             parameter_object.hline_threshold,
-                                                             parameter_object.hline_min,
-                                                             parameter_object.hline_gap) for bd_ in bd)
-
-    elif parameter_object.trigger == 'lbp':
-
-        print '\n  Processing LBP ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_lbp)(bd_, parameter_object.block,
-                                                           parameter_object.scales,
-                                                           parameter_object.scales[-1]) for bd_ in bd)
-
-    elif parameter_object.trigger == 'lbpm':
-
-        print '\n  Processing LBP ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_lbpm)(bd_, parameter_object.block,
-                                                            parameter_object.scales,
-                                                            parameter_object.scales[-1]) for bd_ in bd)
-
-    elif parameter_object.trigger == 'lsr':
-
-        print '\n  Processing LSR ...'
-
-        return Parallel(n_jobs=1,
-                        max_nbytes=None)(delayed(call_lsr)(bd_, parameter_object.block,
-                                                           parameter_object.scales,
-                                                           parameter_object.scales[-1]) for bd_ in bd)
-
-    elif parameter_object.trigger == 'orb':
-
-        print '\n  Processing ORB ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_orb)(bd_, parameter_object.block,
-                                                           parameter_object.scales,
-                                                           parameter_object.scales[-1]) for bd_ in bd)
-
-    elif parameter_object.trigger == 'pantex':
-
-        print '\n  Processing PanTex ...'
-
-        # return pool.map(startPanTex, itertools.izip(bd, [blk_size]*len(bd), [scs]*len(bd), [weighted]*len(bd)))
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_pantex)(bd_, parameter_object.block,
-                                                              parameter_object.scales,
-                                                              parameter_object.scales[-1],
-                                                              parameter_object.weight) for bd_ in bd)
-
-        # tsk	= map(feaPanTex, bd, [blk_size]*len(bd), [scs]*len(bd), [weighted]*len(bd))
-
-    elif parameter_object.trigger == 'sfs':
-
-        print '\n  Processing SFS ...'
-
-        return Parallel(n_jobs=parameter_object.n_jobs,
-                        max_nbytes=None)(delayed(call_sfs)(bd_, parameter_object.block,
-                                                           parameter_object.scales,
-                                                           parameter_object.scales[-1],
-                                                           parameter_object.sfs_threshold,
-                                                           parameter_object.sfs_skip) for bd_ in bd)
-
-    else:
-        raise NameError('\nThe trigger is not recognized\n')
+    # elif parameter_object.trigger == 'hough':
+    #
+    #     print '\n  Processing Hough lines ...'
+    #
+    #     return Parallel(n_jobs=parameter_object.n_jobs,
+    #                     max_nbytes=None)(delayed(call_hough)(bd_, parameter_object.block,
+    #                                                          parameter_object.scales,
+    #                                                          parameter_object.scales[-1],
+    #                                                          parameter_object.hline_threshold,
+    #                                                          parameter_object.hline_min,
+    #                                                          parameter_object.hline_gap) for bd_ in bd)

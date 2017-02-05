@@ -33,7 +33,7 @@ class SPParameters(object):
 
         # Set the features dictionary.
         self.features_dict = dict(mean=2, pantex=1, ctr=1,
-                                  lsr=3, hough=4, hog=7,
+                                  lsr=3, grad=2, hough=4, hog=7,
                                   lbp=62, lbpm=7, gabor=2*8,
                                   surf=4, seg=1, fourier=2,
                                   sfs=6, evi2=2, ndvi=2,
@@ -42,27 +42,28 @@ class SPParameters(object):
                                   sfsorf=6)
 
         # Set the output bands based on the trigger.
-        self.out_bands_dict = dict(ctr=len(self.scales) * self.features_dict['ctr'],
-                                   dmp=len(self.scales) * self.features_dict['dmp'],
-                                   evi2=len(self.scales) * self.features_dict['evi2'],
-                                   fourier=len(self.scales) * self.features_dict['fourier'],
-                                   gabor=len(self.scales) * self.features_dict['gabor'],
-                                   hog=len(self.scales) * self.features_dict['hog'],
-                                   hough=len(self.scales) * self.features_dict['hough'],
-                                   lac=len(self.scales) * self.features_dict['lac'],
-                                   lbp=len(self.scales) * self.features_dict['lbp'],
-                                   lbpm=len(self.scales) * self.features_dict['lbpm'],
-                                   lsr=len(self.scales) * self.features_dict['lsr'],
-                                   mean=len(self.scales) * self.features_dict['mean'],
-                                   ndvi=len(self.scales) * self.features_dict['ndvi'],
-                                   orb=len(self.scales) * self.features_dict['orb'],
-                                   pantex=len(self.scales) * self.features_dict['pantex'],
-                                   saliency=len(self.scales) * self.features_dict['saliency'],
-                                   seg=len(self.scales) * self.features_dict['seg'],
-                                   sfs=len(self.scales) * self.features_dict['sfs'],
-                                   sfsorf=len(self.scales) * self.features_dict['sfsorf'],
-                                   surf=len(self.scales) * self.features_dict['surf'],
-                                   xy=len(self.scales) * self.features_dict['xy'])
+        self.out_bands_dict = dict(ctr=len(self.scales)*self.features_dict['ctr'],
+                                   dmp=len(self.scales)*self.features_dict['dmp'],
+                                   evi2=len(self.scales)*self.features_dict['evi2'],
+                                   fourier=len(self.scales)*self.features_dict['fourier'],
+                                   gabor=len(self.scales)*self.features_dict['gabor'],
+                                   grad=len(self.scales)*self.features_dict['grad'],
+                                   hog=len(self.scales)*self.features_dict['hog'],
+                                   hough=len(self.scales)*self.features_dict['hough'],
+                                   lac=len(self.scales)*self.features_dict['lac'],
+                                   lbp=len(self.scales)*self.features_dict['lbp'],
+                                   lbpm=len(self.scales)*self.features_dict['lbpm'],
+                                   lsr=len(self.scales)*self.features_dict['lsr'],
+                                   mean=len(self.scales)*self.features_dict['mean'],
+                                   ndvi=len(self.scales)*self.features_dict['ndvi'],
+                                   orb=len(self.scales)*self.features_dict['orb'],
+                                   pantex=len(self.scales)*self.features_dict['pantex'],
+                                   saliency=len(self.scales)*self.features_dict['saliency'],
+                                   seg=len(self.scales)*self.features_dict['seg'],
+                                   sfs=len(self.scales)*self.features_dict['sfs'],
+                                   sfsorf=len(self.scales)*self.features_dict['sfsorf'],
+                                   surf=len(self.scales)*self.features_dict['surf'],
+                                   xy=len(self.scales)*self.features_dict['xy'])
 
         # Update the feature dictionary for feature neighbors.
         if self.neighbors:
@@ -148,6 +149,7 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'evi2' + Style.RESET_ALL + '    -- EVI2 mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'fourier' + Style.RESET_ALL + ' -- Fourier transform (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'gabor' + Style.RESET_ALL + '   -- Gabor filter bank (n scales x 2 x kernels(Default=24))',
+                  Fore.GREEN + Style.BRIGHT + 'grad' + Style.RESET_ALL + '    -- Edge gradient magnitude (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'hog' + Style.RESET_ALL + '     -- Histogram of Oriented Gradients (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
                   Fore.RED + Style.BRIGHT + 'hough' + Style.RESET_ALL + '   -- Local line statistics from Probabilistic Hough Transform (4 x n scales)' + Fore.RED + ' **Currently out of order**',
                   Fore.GREEN + Style.BRIGHT + 'lac' + Style.RESET_ALL + '     -- Lacunarity (n scales)',
@@ -189,7 +191,7 @@ def main():
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
-                        nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'hog', 'lac',
+                        nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'grad', 'hog', 'lac',
                                             'lbp', 'lbpm', 'lsr', 'mean', 'ndvi',
                                             'pantex', 'saliency', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',

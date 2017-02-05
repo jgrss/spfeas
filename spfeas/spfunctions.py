@@ -1,5 +1,7 @@
 from .sphelpers import lsr
 
+from skimage.exposure import rescale_intensity
+
 try:
     from skimage.feature import hog as HOG
     from skimage.feature import local_binary_pattern as LBP
@@ -55,6 +57,26 @@ def get_kernels():
             [roberts_filter_y_3, roberts_filter_x_3], [roberts_filter_y_4, roberts_filter_x_4]]
 
 
+def get_mag_avg(img):
+
+    img = np.sqrt(img)
+
+    kernels = get_kernels()
+
+    mag = np.zeros(img.shape, dtype='float32')
+
+    for kernel_filter in kernels:
+
+        gx = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[1], borderType=cv2.BORDER_CONSTANT)
+        gy = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[0], borderType=cv2.BORDER_CONSTANT)
+
+        mag += cv2.magnitude(gx, gy)
+
+    mag /= len(kernels)
+
+    return np.uint8(rescale_intensity(mag, out_range=(0, 255)))
+
+
 def get_mag_ang(img):
 
     """
@@ -69,26 +91,10 @@ def get_mag_ang(img):
 
     img = np.sqrt(img)
 
-    # kernels = get_kernels()
-    #
-    # mag = np.zeros(img.shape, dtype='float32')
-    # ang = np.zeros(img.shape, dtype='float32')
-    #
-    # for kernel_filter in kernels:
-    #
-    #     gx = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[1], borderType=cv2.BORDER_CONSTANT)
-    #     gy = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[0], borderType=cv2.BORDER_CONSTANT)
-
     gx = cv2.Sobel(np.float32(img), cv2.CV_32F, 1, 0)
     gy = cv2.Sobel(np.float32(img), cv2.CV_32F, 0, 1)
 
     mag, ang = cv2.cartToPolar(gx, gy)
-
-    # mag += mag_
-    # ang += ang_
-
-    # mag /= len(kernels)
-    # ang /= len(kernels)
 
     return mag, ang, gx, gy
 

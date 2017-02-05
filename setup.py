@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 To build .tar.gz:
     1. Setup directory structure
@@ -43,15 +45,23 @@ with open('LICENSE.txt') as f:
 with open('AUTHORS.txt') as f:
     author_file = f.read()
 
-required_packages = ['numpy>=1.12.0', 'scipy>=0.18.1', 'scikit-learn>=0.18.1', 'scikit-image>=0.12.3',
-                     'numexpr>=2.6.2', 'tables>=3.3', 'pandas>=0.19.2', 'matplotlib>=1.5.1', 'psutil>=4.3.1',
-                     'joblib>=0.10.3', 'BeautifulSoup4>=4.5.1', 'PyYAML>=3.12', 'colorama>=0.3.7',
-                     'cython>=0.25.2', 'bottleneck>=1.2.0', 'xmltodict', 'retrying',
-                     'opencv-python>=3.1.0', 'PySAL>=1.11.2', 'six>=1.10.0', 'pyFFTW>=0.10.4']
+required_packages = ['matplotlib>=1.5.1', 'psutil>=4.3.1',
+                     'joblib>=0.10.3', 'BeautifulSoup4>=4.5.1',
+                     'PyYAML>=3.12', 'colorama>=0.3.7',
+                     'xmltodict', 'retrying',
+                     'PySAL>=1.11.2', 'six>=1.10.0']
 
 if platform.system() == 'Darwin':
 
-    for pkg in ['Rtree>=0.8.2', 'gdal>=2.1']:
+    for pkg in ['numpy>=1.12.0', 'scipy>=0.18.1',
+                'scikit-image>=0.12.3',
+                'Rtree>=0.8.2', 'gdal>=2.1',
+                'numexpr>=2.6.2', 'tables>=3.3',
+                'bottleneck>=1.2.0', 'statsmodels>=0.8.0',
+                'opencv-python>=3.1.0', 'cython>=0.25.2',
+                'scikit-learn>=0.18.1', 'pandas>=0.19.2',
+                'pyFFTW>=0.10.4']:
+
         required_packages.append(pkg)
 
 
@@ -98,6 +108,7 @@ def setup_package():
                     zip_safe=False,
                     download_url=git_url,
                     install_requires=required_packages,
+                    include_package_data=True,
                     entry_points=get_console_dict())
 
     setup(**metadata)

@@ -2340,7 +2340,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
     cdef:
         Py_ssize_t i, j, ki, pix_ctr, pi
         unsigned int bcr, bcc
-        DTYPE_uint16_t k, k_half
+        DTYPE_uint16_t k
+        int k_half
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
         DTYPE_float32_t[:] out_values
@@ -2349,9 +2350,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
         DTYPE_float32_t[:, :] block_chunk
         list weights_list = []
 
-    for ki in xrange(0, scale_length):
+    for ki in range(0, scale_length):
         k = scs[ki]
-        k_half = k / 2
+        k_half = <int>(k / 2)
         rs = (scales_half - k_half + k) - (scales_half - k_half)
         cs = (scales_half - k_half + k) - (scales_half - k_half)
         weights_list.append(_create_weights(rs, cs))
