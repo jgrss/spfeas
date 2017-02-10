@@ -157,7 +157,7 @@ def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs
     elif trigger_ == 'pantex':
         return call_pantex(block_array_, block_size_, scales_, end_scale_, kwargs['weight'])
     elif trigger_ == 'sfs':
-        return call_sfs(block_array_, block_size_, scales_, end_scale_, kwargs['sfs_thresh'], kwargs['sfs_skip'])
+        return call_sfs(block_array_, block_size_, scales_, end_scale_, kwargs['sfs_threshold'], kwargs['sfs_skip'])
 
 
 # def call_surf(block_array_, block_size_, scales_, end_scale_):
