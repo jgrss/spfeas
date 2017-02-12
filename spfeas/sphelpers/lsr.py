@@ -13,10 +13,10 @@ try:
 except ImportError:
     raise ImportError('Scikit-image must be installed')
 
-try:
-    import pyfftw
-except ImportError:
-    raise ImportError('PyFFTW must be installed')
+# try:
+#     import pyfftw
+# except ImportError:
+#     raise ImportError('PyFFTW must be installed')
 
 try:
     # from scipy.ndimage.measurements import label as lab_img

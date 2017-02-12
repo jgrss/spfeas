@@ -51,7 +51,7 @@ required_packages = ['matplotlib>=1.5.1', 'psutil>=4.3.1',
                      'xmltodict', 'retrying',
                      'PySAL>=1.11.2', 'six>=1.10.0']
 
-if platform.system() == 'Darwin':
+if platform.system() != 'Windows':
 
     for pkg in ['numpy>=1.12.0', 'scipy>=0.18.1',
                 'scikit-image>=0.12.3',
@@ -59,8 +59,9 @@ if platform.system() == 'Darwin':
                 'numexpr>=2.6.2', 'tables>=3.3',
                 'bottleneck>=1.2.0', 'statsmodels>=0.8.0',
                 'opencv-python>=3.1.0', 'cython>=0.25.2',
-                'scikit-learn>=0.18.1', 'pandas>=0.19.2',
-                'pyFFTW>=0.10.4']:
+                'scikit-learn>=0.18.1', 'pandas>=0.19.2']:
+
+        # 'pyFFTW>=0.10.4'
 
         required_packages.append(pkg)
 
