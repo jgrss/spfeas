@@ -187,14 +187,15 @@ class BinQ(object):
             # continue
             # TEST
 
-            _fft = pyfftw.builders.fft(x*y,
-                                       n=len(x),
-                                       threads=32,
-                                       auto_align_input=True,
-                                       planner_effort='FFTW_ESTIMATE')
+            # _fft = pyfftw.builders.fft(x*y,
+            #                            n=len(x),
+            #                            threads=8,
+            #                            auto_align_input=True,
+            #                            planner_effort='FFTW_ESTIMATE')
 
-            # a = fftshift(fft(x*y, len(x)))
-            a = fftshift(_fft())
+            # a = fftshift(_fft())
+
+            a = fftshift(fft(x*y, len(x)))
             a = np.divide(a, len(x))
 
             idx = int(np.floor(len(x) / 2) + 1)
@@ -253,7 +254,7 @@ def feature_lsr(orientation, magnitude, x_deriv, y_deriv):
     bin_count = np.float32(np.searchsorted(range(5, 200+4, 4), lsfarr[:, 0]))
     lenpmf = bin_count / bin_count.sum()
 
-    bin_count = np.float32(np.searchsorted(list(np.linspace(0, 10, num=np.floor(10./.5))), lsfarr[:,4]))
+    bin_count = np.float32(np.searchsorted(list(np.linspace(0, 10, num=np.floor(10./.5))), lsfarr[:, 4]))
 
     contrastpmf = bin_count / bin_count.sum()
 

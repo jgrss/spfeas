@@ -1,3 +1,5 @@
+import sys
+import itertools
 from joblib import Parallel, delayed
 
 from .sphelpers import lsr
@@ -228,57 +230,71 @@ def feature_fourier(chBd, blk, scs, end_scale):
     return out_list
 
 
-def call_lsr(edoim_s, edmim_s, dx_s, dy_s):
-    return lsr.feature_lsr(edoim_s, edmim_s, dx_s, dy_s)
+def call_lsr(edoim_s, edmim_s, dx_s, dy_s, scs, scales_half):
+
+    scale_stats = []
+
+    for k in scs:
+
+        if k != scs[-1]:
+
+            k_half = int(k / 2)
+
+            ifst = scales_half - k_half
+            isnd = scales_half - k_half + k
+
+            edoim_s = edoim_s[ifst:isnd, ifst:isnd]
+            edmim_s = edmim_s[ifst:isnd, ifst:isnd]
+            dx_s = dx_s[ifst:isnd, ifst:isnd]
+            dy_s = dy_s[ifst:isnd, ifst:isnd]
+
+        scale_stats += list(lsr.feature_lsr(edoim_s, edmim_s, dx_s, dy_s))
+
+    return scale_stats
 
 
 def feature_lsr(ch_bd, blk, scs, end_scale):
 
     rows, cols = ch_bd.shape
     out_list = []
-    scales_half = end_scale / 2
+    scales_half = int(end_scale / 2)
 
     edge_mag, edge_ori, deriv_x, deriv_y = grad_mag(ch_bd)
     
     for i in xrange(0, rows-(end_scale-blk), blk):
-        for j in xrange(0, cols-(end_scale-blk), blk):
-            for k in scs:
 
-                # k_half = k / 2
-                #
-                # ifst = i + scales_half - int(k/2)
-                # isnd = i + scales_half - int(k/2) + k
-                # jfst = j + scales_half - int(k/2)
-                # jsnd = j + scales_half - int(k/2) + k
+        ifst_ = scales_half - scales_half
+        isnd_ = scales_half - scales_half + end_scale
 
-                # edoim_s = edge_ori[i+scales_half-k_half:i+scales_half-k_half+k,
-                #                    j+scales_half-k_half:j+scales_half-k_half+k]
-                # 
-                # edmim_s = edge_mag[i+scales_half-k_half:i+scales_half-k_half+k,
-                #                    j+scales_half-k_half:j+scales_half-k_half+k]
-                # 
-                # dx_s = deriv_x[i+scales_half-k_half:i+scales_half-k_half+k,
-                #                j+scales_half-k_half:j+scales_half-k_half+k]
-                # 
-                # dy_s = deriv_y[i+scales_half-k_half:i+scales_half-k_half+k,
-                #                j+scales_half-k_half:j+scales_half-k_half+k]
-    
-                # sts = lsr.feature_lsr(edoim_s, edmim_s, dx_s, dy_s)
+        out_list += list(itertools.chain.from_iterable(Parallel(n_jobs=64,
+                                                                max_nbytes=None)(delayed(call_lsr)(edge_ori[i+ifst_:i+isnd_,
+                                                                                                            j+ifst_:j+isnd_],
+                                                                                                   edge_mag[i+ifst_:i+isnd_,
+                                                                                                            j+ifst_:j+isnd_],
+                                                                                                   deriv_x[i+ifst_:i+isnd_,
+                                                                                                           j+ifst_:j+isnd_],
+                                                                                                   deriv_y[i+ifst_:i+isnd_,
+                                                                                                           j+ifst_:j+isnd_],
+                                                                                                   scs, scales_half)
+                                                                                 for j in xrange(0, cols-(end_scale-blk), blk))))
 
-                sts = Parallel(n_jobs=-1,
-                               max_nbytes=None)(delayed(call_lsr)(edge_ori[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
-                                                                           j+scales_half-int(k/2):j+scales_half-int(k/2)+k],
-                                                                  edge_mag[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
-                                                                           j+scales_half-int(k/2):j+scales_half-int(k/2)+k],
-                                                                  deriv_x[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
-                                                                          j+scales_half-int(k/2):j+scales_half-int(k/2)+k],
-                                                                  deriv_y[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
-                                                                          j+scales_half-int(k/2):j+scales_half-int(k/2)+k])
-                                                for k in scs)
-                
-                for st in sts:
-                    for st_ in st:
-                        out_list.append(st_)
+        # for j in xrange(0, cols-(end_scale-blk), blk):
+        #
+        #
+        #     sts = Parallel(n_jobs=len(scs),
+        #                    max_nbytes=None)(delayed(call_lsr)(edge_ori[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
+        #                                                                j+scales_half-int(k/2):j+scales_half-int(k/2)+k],
+        #                                                       edge_mag[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
+        #                                                                j+scales_half-int(k/2):j+scales_half-int(k/2)+k],
+        #                                                       deriv_x[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
+        #                                                               j+scales_half-int(k/2):j+scales_half-int(k/2)+k],
+        #                                                       deriv_y[i+scales_half-int(k/2):i+scales_half-int(k/2)+k,
+        #                                                               j+scales_half-int(k/2):j+scales_half-int(k/2)+k])
+        #                                     for k in scs)
+        #
+        #     for st in sts:
+        #         for st_ in st:
+        #             out_list.append(st_)
             
     return out_list
 
