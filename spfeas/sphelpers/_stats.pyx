@@ -807,50 +807,72 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
     """
 
     cdef:
-        Py_ssize_t i, j, ki, kl
-        DTYPE_uint16_t k, k_half
+        Py_ssize_t i, j, ki, kl, pi
+        DTYPE_uint16_t k
+        int k_half
         DTYPE_float32_t[:, :] ch_bd
-        DTYPE_float32_t[:, :] ch_bd_gabor, ch_bd_gabor_c
-        DTYPE_float32_t[:] sts
-        list st
-        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
-        int pix_ctr = 0
         int n_kernels = np.asarray(kernels).shape[0]
-        int knr = kernels[0].shape[0]
-        int knc = kernels[0].shape[1]
-        DTYPE_float32_t[:, :] gkernel
+        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
+        ch_bd_k = []
+        # DTYPE_float32_t[:, :] ch_bd_gabor, ch_bd_gabor_c
+        # DTYPE_float32_t[:] sts
+        # list st
+        int pix_ctr = 0
+        # int knr = kernels[0].shape[0]
+        # int knc = kernels[0].shape[1]
+        # DTYPE_float32_t[:, :] gkernel
+        DTYPE_float32_t[:] out_values
         int bcr, bcc
+        list weights_list = []
+        DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
+
+    for ki in range(0, scale_length):
+        k = scs[ki]
+        k_half = <int>(k / 2)
+        rs = (scales_half - k_half + k) - (scales_half - k_half)
+        cs = (scales_half - k_half + k) - (scales_half - k_half)
+        weights_list.append(_create_weights(rs, cs))
+
+    for kl in range(0, n_kernels):
+        ch_bd_k.append(np.float32(cv2.filter2D(np.float32(chBd), cv2.CV_32F, np.float32(kernels[kl]))))
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
             for ki in range(0, scale_length):
-
-                k = scs[ki]
-
-                k_half = k / 2
-
-                ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
-                             j+scales_half-k_half:j+scales_half-k_half+k]
-
-                bcr = ch_bd.shape[0]
-                bcc = ch_bd.shape[1]
-
-                ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
-
                 for kl in range(0, n_kernels):
 
-                    gkernel = kernels[kl]
-                    ch_bd_gabor_c = ch_bd_gabor.copy()
+                    k = scs[ki]
 
-                    with nogil:
+                    k_half = <int>(k / 2)
 
-                        _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor_c)
+                    ch_bd = ch_bd_k[kl][i+scales_half-k_half:i+scales_half-k_half+k,
+                                        j+scales_half-k_half:j+scales_half-k_half+k]
 
-                        out_list[pix_ctr] = _get_mean(ch_bd_gabor_c, bcr, bcc)
+                    bcr = ch_bd.shape[0]
+                    bcc = ch_bd.shape[1]
+
+                    out_values = _get_weighted_mean_var(ch_bd, weights_list[ki], bcr, bcc, in_zs.copy())
+
+                    for pi in range(0, 2):
+                        out_list[pix_ctr] = out_values[pi]
                         pix_ctr += 1
 
-                        out_list[pix_ctr] = _get_var(ch_bd_gabor_c, bcr, bcc)
-                        pix_ctr += 1
+                # ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
+                #
+                # for kl in range(0, n_kernels):
+                #
+                #     gkernel = kernels[kl]
+                #     ch_bd_gabor_c = ch_bd_gabor.copy()
+                #
+                #     with nogil:
+                #
+                #         _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor_c)
+                #
+                #         out_list[pix_ctr] = _get_mean(ch_bd_gabor_c, bcr, bcc)
+                #         pix_ctr += 1
+                #
+                #         out_list[pix_ctr] = _get_var(ch_bd_gabor_c, bcr, bcc)
+                #         pix_ctr += 1
 
     return np.float32(out_list)
 

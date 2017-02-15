@@ -107,10 +107,6 @@ def run(parameter_object):
                 obds = 1
                 for scale in parameter_object.scales:
 
-                    # TODO: Temporary hack for gabor kernel size above scale size
-                    if (trigger in ['gabor']) and scale < 16:
-                        continue
-
                     parameter_object.update_info(scale=scale)
 
                     for feature in xrange(1, parameter_object.features_dict[parameter_object.trigger]+1):
@@ -177,10 +173,6 @@ def run(parameter_object):
 
                         obds = 1
                         for scale in parameter_object.scales:
-
-                            # TODO: Temporary hack for gabor kernel size above scale size
-                            if (trigger in ['gabor']) and scale < 16:
-                                continue
 
                             parameter_object.update_info(scale=scale)
 
@@ -301,10 +293,6 @@ def run(parameter_object):
                             obds = 1
                             for scale in parameter_object.scales:
 
-                                # TODO: Temporary hack for gabor kernel size above scale size
-                                if (trigger in ['gabor']) and scale < 16:
-                                    continue
-
                                 parameter_object.update_info(scale=scale)
 
                                 for feature in xrange(1, parameter_object.features_dict[parameter_object.trigger]+1):
@@ -358,10 +346,6 @@ def run(parameter_object):
                             obds_t = 1
                             for scale in parameter_object.scales:
 
-                                # TODO: Temporary hack for gabor kernel size above scale size
-                                if (trigger in ['gabor']) and scale < 16:
-                                    continue
-
                                 parameter_object.update_info(scale=scale)
 
                                 for feature in xrange(1, parameter_object.features_dict[parameter_object.trigger]+1):
@@ -397,10 +381,6 @@ def run(parameter_object):
 
                 obds = 1
                 for scale in parameter_object.scales:
-
-                    # TODO: Temporary hack for gabor kernel size above scale size
-                    if (trigger in ['gabor']) and scale < 16:
-                        continue
 
                     parameter_object.update_info(scale=scale)
 
