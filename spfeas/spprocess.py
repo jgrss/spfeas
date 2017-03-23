@@ -332,6 +332,7 @@ def run(parameter_object):
                                     else:
                                         out_band_obj.WriteArray(out_sect_arr[obds-1], j_sect_ctr, i_sect_ctr)
 
+                                    out_band_obj.FlushCache()
                                     out_band_obj = None
 
                                     o_info.close()
