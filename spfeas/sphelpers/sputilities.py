@@ -316,7 +316,7 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
     if stats:
 
-        print '\nCalculating image min and max ...\n'
+        print('\nCalculating image min and max ...\n')
 
         min_max = get_layer_min_max(i_info, rgb=True)
 
@@ -356,7 +356,7 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
     else:
 
-        print '\nCalculating average RGB ...\n'.format(rgb.upper())
+        print('\nCalculating average RGB ...\n'.format(rgb.upper()))
 
         im_block = i_info.read(bands2open=[1, 2, 3],
                                i=i_sect, j=j_sect,

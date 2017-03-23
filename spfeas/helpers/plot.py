@@ -207,7 +207,7 @@ class plot(object):
 
         for k, v in self.store.iteritems():
 
-            print k, v
+            print(k, v)
 
     def load_shapefile(self, shape_name):
 

@@ -164,7 +164,7 @@ def _options():
                   Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
 
     for text_line in text_lines:
-        print text_line
+        print(text_line)
 
     sys.exit(Style.RESET_ALL)
 

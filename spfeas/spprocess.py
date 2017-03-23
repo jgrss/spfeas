@@ -82,9 +82,8 @@ def run(parameter_object):
 
                 if i_info.corrupted_bands:
 
-                    print
-                    print('The following bands appear to be corrupted:')
-                    print ', '.join(i_info.corrupted_bands)
+                    print('\nThe following bands appear to be corrupted:')
+                    print(', '.join(i_info.corrupted_bands))
 
                     return
 
@@ -288,7 +287,7 @@ def run(parameter_object):
                                                                   out_rows, out_cols,
                                                                   parameter_object)
 
-                            print '  Writing features to file ...'
+                            print('  Writing features to file ...')
 
                             obds = 1
                             for scale in parameter_object.scales:
@@ -410,8 +409,8 @@ def run(parameter_object):
                                 out_img_resamp = out_img_resamp.replace('blk{:d}'.format(parameter_object.block),
                                                                         'blk{:d}'.format(int(parameter_object.sfs_resample)))
 
-                                print '\nResampling SFS to {:.1f}m x {:.1f}m cell size ...\n'.format(parameter_object.sfs_resample,
-                                                                                                     parameter_object.sfs_resample)
+                                print('\nResampling SFS to {:.1f}m x {:.1f}m cell size ...\n'.format(parameter_object.sfs_resample,
+                                                                                                     parameter_object.sfs_resample))
 
                                 if 'img' in parameter_object.f_ext.lower():
 
