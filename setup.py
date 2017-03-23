@@ -27,8 +27,17 @@ import setuptools
 from distutils.core import setup
 import platform
 
+from Cython.Build import cythonize
 
-__version__ = '0.1.2b'
+try:
+    from Cython.Distutils import build_ext
+except:
+    from distutils.command import build_ext
+
+import numpy as np
+
+
+__version__ = '0.1.2'
 
 spfeas_name = 'SpFeas'
 maintainer = 'Jordan Graesser'
@@ -70,16 +79,29 @@ def get_packages():
     return setuptools.find_packages()
 
 
+def get_pyx_list():
+    return ['spfeas/helpers/*.pyx', 'spfeas/sphelpers/*.pyx']
+
+
 def get_package_data():
 
-    return {'spfeas': ['*.md',
-                       '*.txt',
-                       'helpers/*.so',
-                       'helpers/*.pyd',
-                       'sphelpers/*.so',
-                       'sphelpers/*.pyd',
-                       'notebooks/*.ipynb',
-                       'notebooks/*.png']}
+    if platform.system() == 'Windows':
+
+        return {'spfeas': ['*.md',
+                           '*.txt',
+                           'helpers/*.pyd',
+                           'sphelpers/*.pyd',
+                           'notebooks/*.ipynb',
+                           'notebooks/*.png']}
+
+    else:
+
+        return {'spfeas': ['*.md',
+                           '*.txt',
+                           'helpers/*.so',
+                           'sphelpers/*.so',
+                           'notebooks/*.ipynb',
+                           'notebooks/*.png']}
 
 
 # def get_pyx_list():
@@ -106,6 +128,9 @@ def setup_package():
                     author=author_file,
                     packages=get_packages(),
                     package_data=get_package_data(),
+                    ext_modules=cythonize(get_pyx_list()),
+                    include_dirs=[np.get_include()],
+                    cmdclass=dict(build_ext=build_ext),
                     zip_safe=False,
                     download_url=git_url,
                     install_requires=required_packages,

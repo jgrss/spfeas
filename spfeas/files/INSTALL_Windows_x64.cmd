@@ -17,8 +17,11 @@ IF NOT ERRORLEVEL 1 (
 
     pip install --upgrade --no-cache-dir beautifulsoup4 retrying six xmltodict colorama joblib matplotlib psutil PySAL PyYAML
 
-    pip install --no-cache-dir SpFeas-0.1.1.tar.gz
-    pip install --no-cache-dir MpGlue-0.1.0.tar.gz
+    pip uninstall spfeas
+    pip uninstall mpglue
+
+    pip install --no-cache-dir SpFeas-0.1.2-cp27-cp27m-win_amd64.whl
+    pip install --no-cache-dir MpGlue-0.1.1-cp27-cp27m-win_amd64.whl
 
     REM Check if SpFeas installed correctly
     where /q spfeas
