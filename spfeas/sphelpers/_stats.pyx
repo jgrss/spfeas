@@ -10,7 +10,9 @@ cimport numpy as np
 from copy import copy
 
 # from libc.stdlib cimport free
-from libc.math cimport atan, sqrt, sin, cos, floor, isnan, isinf, ceil
+from libc.math cimport atan, sqrt, sin, cos, floor, ceil
+# from libc.math cimport isnan as npy_isnan
+# from libc.math cimport isinf as npy_isinf
 
 from cython.parallel import parallel, prange
 # from libc.math cimport isnan, isinf
@@ -64,13 +66,13 @@ ctypedef np.float64_t DTYPE_float64_t
 # cdef npceil = np.ceil
 
 # cdef extern from 'numpy/npy_math.h':
-#     DTYPE_float32_t npy_ceil(DTYPE_float32_t x)
+#     DTYPE_float32_t npy_ceil(DTYPE_float32_t x) nogil
 
-# cdef extern from 'numpy/npy_math.h':
-#     bint isnan(DTYPE_float32_t x)
+cdef extern from 'numpy/npy_math.h':
+    bint npy_isnan(DTYPE_float32_t x) nogil
 
-# cdef extern from 'numpy/npy_math.h':
-#     bint isinf(DTYPE_float32_t x)
+cdef extern from 'numpy/npy_math.h':
+    bint npy_isinf(DTYPE_float32_t x) nogil
 
 # cdef extern from 'math.h':
 #     DTYPE_float32_t ceil(DTYPE_float32_t x)
@@ -353,7 +355,7 @@ cdef DTYPE_float32_t _get_weighted_sum(DTYPE_float32_t[:, :] block, DTYPE_float3
 
             dv = block[bi, bj] / weights[bi, bj]
 
-            if not isnan(dv) and not isinf(dv):
+            if not npy_isnan(dv) and not npy_isinf(dv):
                 block_sum += dv
 
     return block_sum
@@ -374,7 +376,7 @@ cdef DTYPE_float32_t _get_weighted_sum_byte(DTYPE_uint8_t[:, :] block, DTYPE_flo
 
             dv = float(block[bi, bj]) / weights[bi, bj]
 
-            if not isnan(dv) and not isinf(dv):
+            if not npy_isnan(dv) and not npy_isinf(dv):
                 block_sum += dv
 
     return block_sum
@@ -1157,21 +1159,21 @@ cdef void _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
 
             # Update the histogram with
             #   the line length.
-            if not isnan(d_i) and not isinf(d_i):
+            if not npy_isnan(d_i) and not npy_isinf(d_i):
                 hist_[hist_counter] = d_i
 
             hist_counter += 1
 
-            if not isnan(sfs_max) and not isinf(sfs_max):
+            if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
                 values_[0] = sfs_max
 
-            if not isnan(sfs_min) and not isinf(sfs_min):
+            if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
                 values_[1] = sfs_min
 
-            if not isnan(d_i) and not isinf(d_i):
+            if not npy_isnan(d_i) and not npy_isinf(d_i):
                 values_[2] += d_i
 
-            if not isnan(sfs_w_mean) and not isinf(sfs_w_mean):
+            if not npy_isnan(sfs_w_mean) and not npy_isinf(sfs_w_mean):
                 values_[3] += sfs_w_mean
 
 
@@ -1729,7 +1731,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(np.ndarray[DTYPE_uint8_t, 
 
     out_list_a = np.float32(out_list)
 
-    out_list_a[np.isnan(out_list_a) | np.isinf(out_list_a)] = 0
+    out_list_a[np.npy_isnan(out_list_a) | np.isinf(out_list_a)] = 0
 
     return out_list_a
 
@@ -2171,7 +2173,7 @@ cdef void _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
 #
 #                     value2check = glcm_mat_nan[r, c, d_idx, a_idx]
 #
-#                     if isnan(value2check) or isinf(value2check):
+#                     if npy_isnan(value2check) or isinf(value2check):
 #                         glcm_mat_nan[r, c, d_idx, a_idx] = 0
 
 
