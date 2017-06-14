@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 @author: Jordan Graesser
 Date Created: 7/2/2013
@@ -11,28 +9,23 @@ except ImportError:
     raise ImportError('NumPy must be installed')
 
 
-def reshape_feas(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, parameter_object):
+def chunks2section(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, parameter_object):
 
     """
-    trigger -- str
-    tk -- list
-        : List of returned features.
-    o_r -- list
-        : list of chunk rows.
-    o_c -- list
-        : List of chunk columns.
-    l_rows -- int
-        : Input section rows used in feature processing. This is probably overkill, and we could just use out_rows.
-    l_cols -- int
-        : Same as above for columns.
-    out_rows -- int
-        : Number of output section rows.
-    out_cols -- int
-        : Number of output section columns.
+    Reshapes section chunks to the full section
+    
+    trigger (str)
+    tk (list): List of returned features.
+    o_r (list): list of chunk rows.
+    o_c (list): List of chunk columns.
+    l_rows (int): Input section rows used in feature processing. This is probably overkill, and we could just use out_rows.
+    l_cols (int): Same as above for columns.
+    out_rows (int): Number of output section rows.
+    out_cols (int): Number of output section columns.
+    parameter_object (class object)
 
-    Returns
-    -------
-    Reshaped features as 3d array (features x rows x columns)
+    Returns:
+        Contextual features as 3d array (features x rows x columns)
     """
 
     out_dims = parameter_object.out_bands_dict[trigger]
@@ -48,12 +41,12 @@ def reshape_feas(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, para
 
     chunk_min_blk = parameter_object.chunk_size - scales_blk
 
-    for i in xrange(0, l_rows, chunk_min_blk):
+    for i in range(0, l_rows, chunk_min_blk):
 
         col_chunk_ctr = 0     # the index writer for the chunk columns
         j_sect_idx = 0		# the current section column index
 
-        for j in xrange(0, l_cols, chunk_min_blk):
+        for j in range(0, l_cols, chunk_min_blk):
 
             # row and column counter taken from the feature processing
             rw = o_r[row_chunk_ctr]
@@ -72,7 +65,7 @@ def reshape_feas(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, para
                 if trigger == 'ctr':
 
                     # divide the feature vector by the number of scales
-                    for sc in xrange(0, len(ts), len(ts)/len(parameter_object.scales)):
+                    for sc in range(0, len(ts), len(ts)/len(parameter_object.scales)):
 
                         # get the current feature vector and reshape into 2D
                         ts_arr = np.array(ts[sc:len(ts)/len(parameter_object.scales)+sc]).reshape(rw, cw)
@@ -84,7 +77,7 @@ def reshape_feas(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, para
                 else:
 
                     # reshape each feature vector
-                    for rs in xrange(0, out_dims):
+                    for rs in range(0, out_dims):
 
                         out_sect_arr[bd2wr, i_sect_idx:i_sect_idx+rw, j_sect_idx:j_sect_idx+cw] = \
                             np.asarray(ts[rs::out_dims]).reshape(rw, cw)
@@ -109,7 +102,7 @@ def reshape_feas(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, para
         out_sect_arr_temp = np.empty((out_dims*5, out_rows, out_cols), dtype='float32')
 
         out_dim_ctr = 0
-        for dim in xrange(0, out_dims):
+        for dim in range(0, out_dims):
 
             curr_dim = out_sect_arr[dim]
 

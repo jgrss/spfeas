@@ -32,9 +32,8 @@ except:
 try:
     from skimage.exposure import equalize_hist, rescale_intensity, equalize_adapthist
     from skimage.color import rgb2rgbcie
-    from skimage.filters import canny
 except ImportError:
-    raise ImportError('Scikits must be installed')
+    raise ImportError('Scikit-learn must be installed')
 
 # NumPy
 try:
@@ -201,15 +200,15 @@ def get_out_cols(in_bd, blk, end_scale):
     return len([j for j in xrange(0, cols-(end_scale-blk), blk)])
 
 
-def chunk_index(rows, cols, block_size, chunk_size, scale):
+def get_chunk_indices(rows, cols, block_size, chunk_size, scale):
 
-    index_list = []
+    index_list = list()
 
-    for i in xrange(0, rows, chunk_size - (scale - block_size)):
+    for i in range(0, rows, chunk_size-(scale-block_size)):
 
         n_rows = raster_tools.n_rows_cols(i, chunk_size, rows)
 
-        for j in xrange(0, cols, chunk_size - (scale - block_size)):
+        for j in range(0, cols, chunk_size-(scale-block_size)):
 
             n_cols = raster_tools.n_rows_cols(j, chunk_size, cols)
 
@@ -220,10 +219,10 @@ def chunk_index(rows, cols, block_size, chunk_size, scale):
 
 def get_out_dims(section_rows, section_cols, parameter_object):
 
-    bd_idx = chunk_index(section_rows, section_cols,
-                         parameter_object.block,
-                         parameter_object.chunk_size,
-                         parameter_object.scales[-1])
+    bd_idx = get_chunk_indices(section_rows, section_cols,
+                               parameter_object.block,
+                               parameter_object.chunk_size,
+                               parameter_object.scales[-1])
 
     # get the number of output row and columns for each chunk
     oR = map(get_out_rows, bd_idx, [parameter_object.block]*len(bd_idx), [parameter_object.scales[-1]]*len(bd_idx))
@@ -604,43 +603,27 @@ def wrapper(func, *args, **kwargs):
     return wrapped
 
 
-def get_sect_feas(bd, section_rows, section_cols, parameter_object):
+def get_section_stats(bd, section_rows, section_cols, parameter_object):
 
     """
     Split section into chunks and process features at each scale
     
     Args:
-        bd (ndarray): Section array.
-        blk_size (int)
-        scs (list)
-        trigger (str)
-        chunk_size (int)
-        mn (int)
-        mx (int)
-        min_len (int)
-        weighted (bool)
-        equalize (bool)
-        blur (bool)
-        vis (bool)
+        bd (ndarray): The section array.
+        section_rows (int)
+        section_cols (int)
+        parameter_object (class object)        
     
     Returns:
         List of computed features for each scale, for each statistic.
     """
 
-    # if (bd.dtype != 'uint8') and (bd.dtype != 'uint16'):
-    #     raise TypeError('\nThe input image should be stored in an unsigned 8-bit or 16-bit dynamic range.')
-
-    # if image_max > 0:
-    #     n_bins = image_max + 1
-    # else:
-    #     n_bins = 256
-
-    if (parameter_object.trigger == 'pantex') or (parameter_object.trigger == 'lac'):
+    if parameter_object.trigger in ['pantex', 'lac']:
         out_d_range = (0, 31)
     else:
         out_d_range = (0, 255)
 
-    # Scale the data to byte.
+    # Scale the data to an 8-bit range.
     if bd.dtype != 'uint8':
 
         bd = np.uint8(rescale_intensity(bd,
@@ -648,10 +631,9 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
                                                   parameter_object.max),
                                         out_range=out_d_range))
 
-    # Scale the data to an 8-bit range.
+    # Apply histogram equalization.
     if parameter_object.trigger != 'dmp':
 
-        # histogram equalization
         if parameter_object.equalize:
             bd = equalize_hist(bd, nbins=256)
 
@@ -664,31 +646,14 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
                                     nbins=256)
 
         if parameter_object.equalize or parameter_object.equalize_adapt:
-            bd = np.uint8(rescale_intensity(bd, in_range=(0., 1.), out_range=(0, 255)))
 
-    # remove image noise
+            bd = np.uint8(rescale_intensity(bd,
+                                            in_range=(0., 1.),
+                                            out_range=(0, 255)))
+
+    # Remove image noise.
     if parameter_object.smooth > 0:
-
-        # if bd.dtype != np.uint8:
-            # bd = raster_tools.rescale_intensity(bd, 256, maxI=bd.max(), minI=0, dType='i').astype(np.uint8)
-            # bd = rescale_intensity(bd, in_range=(parameter_object.min, parameter_object.max), out_range=(0, 255)).astype(np.uint8)
-
-        # bd = cv2.GaussianBlur(bd, (3,3), 1)
-        #bd = cv2.fastNlMeansDenoising(bd, h=smooth, templateWindowSize=7, searchWindowSize=21)
-        # bd = cv2.medianBlur(bd, smooth)
-        bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, 5, 5))
-
-    # get image gradient and orientation for HoG
-    # if parameter_object.trigger == 'hog':
-    #     grad_img, ori_img = get_mag_ang(bd)
-        
-    # rescale for GLCM
-    # elif (parameter_object.trigger == 'pantex') or (parameter_object.trigger == 'lac'):
-    #
-    #     # rescale to 32 grey scales for GLCM
-    #     # bd = raster_tools.rescale_intensity(bd, 32, maxI=parameter_object.max, minI=parameter_object.min, dType='i').astype(np.uint8)
-    #     # bd = np.uint8(rescale_intensity(bd, in_range=(0, 255), out_range=(0, 31)))
-    #     # bd = rescale_intensity(bd, in_range=(parameter_object.min, parameter_object.max), out_range=(0, 31))
+        bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, .1, .1))
 
     elif parameter_object.trigger == 'lbp':
         
@@ -697,83 +662,26 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
 
     elif parameter_object.trigger == 'hough':
 
-        # rescale to byte for canny
-        # if bd.dtype != np.uint8:
-
-            # bd = raster_tools.rescale_intensity(bd, 256, maxI=bd.max(), minI=0, dType='i').astype(np.uint8)	# min./max. stretch
-            # bd = rescale_intensity(bd, in_range=(parameter_object.min, parameter_object.max), out_range=(0, 255))
-
         # for display (testing) purposes only
         if parameter_object.visualize:
             bdOrig = bd.copy()
-
-        # extract Canny edges
-        # bd = cv2.Canny(bd.astype(np.uint8), .1*bd.max(), .2*bd.max(), apertureSize=3)		# 32, 16
-        # bd = cv2.Canny(bd.astype(np.uint8), 32, 16, apertureSize=3)
-
-        # bd, ori_img = get_mag_ang(bd)
-        # del ori_img
-        #
-        # bd = np.where(bd > 250, 255, 0).astype(np.uint8)
-
-        # plt.imshow(bd, cmap='gray')
-        # plt.show()
-        # sys.exit()
-
-        # convert from boolean to integer if using OpenCV Canny?
-        ##bd = np.asarray(bd).astype(np.uint8)
-        ##bd[(bd == 1)] = 255
-        
-        # scikits
-        # bd 		= canny(bd.astype(np.uint8), sigma=1)#, low_threshold=12, high_threshold=24)	# Scikits implementation of Canny	
 
     elif parameter_object.trigger == 'dmp':
         bd = get_dmp(bd, section_rows, section_cols)
 
     # test canny and hough lines
     if parameter_object.visualize:
-        
-        # if parameter_object.trigger != 'hough':
-        
-           # bd, _	= histEq(bd, numBins=256)	# histogram equalization
-           # bd = equalize_hist(bd, nbins=256)
 
         # for display purposes only
         bdOrig = bd.copy()
 
         test_plot(bd, bdOrig, parameter_object.trigger, parameter_object)
 
-    # split the image array into overlapping chunks where
-    # the overlap is determined by the output pixel block size and
-    # the maximum scale
-    # if parameter_object.trigger == 'hog':
-    #
-    #     grad_img = _chunk.chunk_float(grad_img, section_rows, section_cols,
-    #                                   parameter_object.block,
-    #                                   parameter_object.chunk_size,
-    #                                   parameter_object.scales[-1])
-    #
-    #     ori_img = _chunk.chunk_float(ori_img, section_rows, section_cols,
-    #                                  parameter_object.block,
-    #                                  parameter_object.chunk_size,
-    #                                  parameter_object.scales[-1])
-
-    # elif parameter_object.trigger == 'ndvi':
-
-        # bd_4 = bd[0].astype(np.float32)
-        # bd_3 = bd[1].astype(np.float32)
-        #
-        # bd = ne.evaluate('(bd_4 - bd_3) / (bd_4 + bd_3)')
-
-        # vie = VegIndicesEquations(bd)
-        # bd = vie.NDVI()
-
-        # bd = _chunk.chunk_int(bd, section_rows, section_cols, blk_size, chunk_size, scs[-1])
-
-    chunk_iters = chunk_index(section_rows, section_cols,
-                              parameter_object.block,
-                              parameter_object.chunk_size,
-                              parameter_object.scales[-1])
+    # Get the row and column section chunk indices.
+    chunk_indices = get_chunk_indices(section_rows, section_cols,
+                                      parameter_object.block,
+                                      parameter_object.chunk_size,
+                                      parameter_object.scales[-1])
 
     func_dict = dict(dmp=dict(name='Differential Morphological Profiles',
                               args=dict()),
@@ -813,36 +721,11 @@ def get_sect_feas(bd, section_rows, section_cols, parameter_object):
 
     other_args = func_dict[parameter_object.trigger]['args']
 
-    return Parallel(n_jobs=parameter_object.n_jobs,
-                    max_nbytes=None)(delayed(call_func)(bd[chi[0]:chi[1], chi[2]:chi[3]],
+    return Parallel(n_jobs=parameter_object.n_jobs_chunk,
+                    max_nbytes=None)(delayed(call_func)(bd[chi[0]:chi[1],
+                                                        chi[2]:chi[3]],
                                                         parameter_object.block,
                                                         parameter_object.scales,
                                                         parameter_object.scales[-1],
                                                         parameter_object.trigger,
-                                                        **other_args) for chi in chunk_iters)
-
-    # elif parameter_object.trigger == 'surf':
-    #
-    #     print '\n  Processing SURF ...'
-    #
-    #     return Parallel(n_jobs=parameter_object.n_jobs,
-    #                     max_nbytes=None)(delayed(call_surf)(bd_, parameter_object.block,
-    #                                                         parameter_object.scales,
-    #                                                         parameter_object.scales[-1]) for bd_ in bd)
-
-    # elif parameter_object.trigger == 'ctr':
-    #
-    #     print '\n  Copying band scales ...'
-    #     return pool.map(startCtr, itertools.izip(bd, [blk_size]*len(bd), [scs]*len(bd)))
-
-    # elif parameter_object.trigger == 'hough':
-    #
-    #     print '\n  Processing Hough lines ...'
-    #
-    #     return Parallel(n_jobs=parameter_object.n_jobs,
-    #                     max_nbytes=None)(delayed(call_hough)(bd_, parameter_object.block,
-    #                                                          parameter_object.scales,
-    #                                                          parameter_object.scales[-1],
-    #                                                          parameter_object.hline_threshold,
-    #                                                          parameter_object.hline_min,
-    #                                                          parameter_object.hline_gap) for bd_ in bd)
+                                                        **other_args) for chi in chunk_indices)

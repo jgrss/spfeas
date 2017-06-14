@@ -4,7 +4,7 @@ import os
 import sys
 import copy
 import time
-import psutil
+# import psutil
 import itertools
 
 from .. import errors
@@ -65,26 +65,31 @@ def parameter_checks(parameter_object):
 
     # Ensure the input image exists.
     if not os.path.isfile(parameter_object.input_image):
-        raise OSError('The input image does not exist.')
+        errors.logger.error('The input image, {}, does not exist.'.format(parameter_object.input_image))
+        raise OSError('The input image, {}, does not exist.'.format(parameter_object.input_image))
 
     # Ensure the block size is smaller than
     #   the maximum scale size.
     if parameter_object.block > np.max(parameter_object.scales):
-        raise ValueError('The block size (block_size) cannot be greater than the maximum scale <scales>.')
+        errors.logger.error('The block size ({:d}) cannot be greater than the maximum scale <scales>.'.format(parameter_object.block))
+        raise ValueError('The block size ({:d}) cannot be greater than the maximum scale <scales>.'.format(parameter_object.block))
 
     # Ensure the block size is even if
     #   the scales are even.
     if (parameter_object.block % 2 != 0) and (parameter_object.scales[0] % 2 == 0):
-        raise ValueError('Please pass an even number for the <block_size> parameter if your <scales> are also even.')
+        errors.logger.error('Please pass an even number for the `block_size` parameter if your `scales` are also even.')
+        raise ValueError('Please pass an even number for the `block_size` parameter if your `scales` are also even.')
 
     # Ensure the correct smoothing parameters.
     if parameter_object.smooth > 0:
 
         if parameter_object.smooth <= 2:
-            raise ValueError('The <smooth> parameter should be 3 or greater.')
+            errors.logger.error('The `smooth` parameter should be 3 or greater.')
+            raise ValueError('The `smooth` parameter should be 3 or greater.')
 
         if parameter_object.smooth % 2 == 0:
-            raise ValueError('The <smooth> parameter should be an odd number.')
+            errors.logger.error('The `smooth` parameter should be an odd number.')
+            raise ValueError('The `smooth` parameter should be an odd number.')
 
     # Create the output directory.
     if not os.path.isdir(parameter_object.output_dir):
@@ -92,6 +97,7 @@ def parameter_checks(parameter_object):
         try:
             os.makedirs(parameter_object.output_dir)
         except OSError:
+            errors.logger.error('Could not create the output directory.')
             raise OSError('Could not create the output directory.')
 
 
@@ -111,16 +117,17 @@ def scale_fea_check(parameter_object):
     else:
         band_pos_str = '-'.join(band_pos_str)
 
-    feature_str = 'fea{:03d}'.format(parameter_object.feature)
+    feature_str = 'feas001-{:03}'.format(parameter_object.features_dict[parameter_object.trigger])
 
     out_img = os.path.join(parameter_object.feas_dir,
-                           '{}_{}_bd{}_blk{:d}_sc{:d}_{}{}'.format(parameter_object.f_base,
-                                                                   parameter_object.trigger,
-                                                                   band_pos_str,
-                                                                   parameter_object.block,
-                                                                   parameter_object.scale,
-                                                                   feature_str,
-                                                                   parameter_object.f_ext))
+                           '{}_{}_bd{}_blk{:d}_scales{}_{}_{:04}{}'.format(parameter_object.f_base,
+                                                                           parameter_object.trigger,
+                                                                           band_pos_str,
+                                                                           parameter_object.block,
+                                                                           '-'.join(map(str, parameter_object.scales)),
+                                                                           feature_str,
+                                                                           parameter_object.section_counter,
+                                                                           parameter_object.f_ext))
 
     out_img_d_name, out_img_f_name = os.path.split(out_img)
     out_img_base, out_img_f_ext = os.path.splitext(out_img_f_name)
@@ -382,6 +389,27 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
         return luminosity, None, None
 
 
+class ManageStatus(object):
+
+    """A class to manage the processing status with YAML"""
+
+    def load_status(self):
+
+        """Loads the processing status from file"""
+
+        with open(self.status_file, 'r') as pf:
+            self.status_dict = yaml.load(pf)
+
+    def dump_status(self):
+
+        """Dumps the processing status to file"""
+
+        with open(self.status_file, 'w') as pf:
+
+            pf.write(yaml.dump(self.status_dict,
+                               default_flow_style=False))
+
+
 def create_outputs(parameter_object, new_feas_list, image_info):
 
     obds = 1
@@ -441,7 +469,7 @@ def get_sect_chunk_size(image_info, parameter_object):
     return parameter_object
 
 
-def get_adj_info(meta_info, i_info, parameter_object):
+def get_output_info_tile(meta_info, image_info, tile_parameter_object, i_sect, j_sect, section_shape):
 
     """
     Get the adjusted output image information
@@ -458,18 +486,56 @@ def get_adj_info(meta_info, i_info, parameter_object):
         Updated MapPy class information object
     """
 
-    i_info.rows = len([i for i in xrange(0, meta_info.rows, parameter_object.block)])
-    i_info.cols = len([i for i in xrange(0, meta_info.cols, parameter_object.block)])
+    if len(section_shape) > 2:
+        __, rows, cols = section_shape
+    else:
+        rows, cols = section_shape
 
-    i_info.left = meta_info.left
-    i_info.top = meta_info.top
-    i_info.right = meta_info.right
-    i_info.bottom = meta_info.bottom
+    cell_size_y = float(tile_parameter_object.block) * meta_info.cellY
+    cell_size_x = float(tile_parameter_object.block) * meta_info.cellX
 
-    i_info.cellY = float(parameter_object.block) * meta_info.cellY
-    i_info.cellX = float(parameter_object.block) * meta_info.cellX
+    image_info.update_info(rows=rows-1,
+                           cols=cols-1,
+                           left=meta_info.left+(j_sect*meta_info.cellY),
+                           top=meta_info.top-(i_sect*meta_info.cellY),
+                           cellY=cell_size_y,
+                           cellX=cell_size_x,
+                           bands=tile_parameter_object.out_bands_dict[tile_parameter_object.trigger],
+                           storage='float32')
 
-    return i_info
+    image_info.update_info(right=image_info.left+(cols*meta_info.cellY),
+                           bottom=image_info.top-(rows*meta_info.cellY))
+
+    return image_info
+
+
+def get_adj_info(meta_info, image_info, parameter_object):
+
+    """
+    Get the adjusted output image information
+
+    Args:
+        meta_info -- MapPy class object
+        i_info -- MapPy class object
+        max_sc -- int
+            : maximum scale used
+        blk_size -- int
+            : block size to write to
+
+    Returns:
+        Updated MapPy class information object
+    """
+
+    image_info.update_info(rows=len([i for i in range(0, meta_info.rows, parameter_object.block)]),
+                           cols=len([i for i in range(0, meta_info.cols, parameter_object.block)]),
+                           left=meta_info.left,
+                           top=meta_info.top,
+                           right=meta_info.right,
+                           bottom=meta_info.bottom,
+                           cellY=float(parameter_object.block) * meta_info.cellY,
+                           cellX=float(parameter_object.block) * meta_info.cellX)
+
+    return image_info
 
 
 def create_band(meta_info, parameter_object, out_bands, blocks=True):
@@ -516,8 +582,12 @@ def get_stats(image_info, parameter_object):
     elif image_info.storage.lower() == 'uint16':
         image_max = 10000
     else:
-        errors.logger('The input storage, {} is not supported.'.format(image_info.storage))
-        raise NotImplementedError
+
+        errors.logger.error('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
+                                                                                      image_info.file_name))
+
+        raise NotImplementedError('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
+                                                                                            image_info.file_name))
 
     parameter_object.update_info(min=image_min,
                                  max=image_max)
