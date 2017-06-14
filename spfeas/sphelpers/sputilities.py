@@ -66,19 +66,19 @@ def parameter_checks(parameter_object):
     # Ensure the input image exists.
     if not os.path.isfile(parameter_object.input_image):
         errors.logger.error('The input image, {}, does not exist.'.format(parameter_object.input_image))
-        raise OSError('The input image, {}, does not exist.'.format(parameter_object.input_image))
+        raise OSError
 
     # Ensure the block size is smaller than
     #   the maximum scale size.
     if parameter_object.block > np.max(parameter_object.scales):
         errors.logger.error('The block size ({:d}) cannot be greater than the maximum scale <scales>.'.format(parameter_object.block))
-        raise ValueError('The block size ({:d}) cannot be greater than the maximum scale <scales>.'.format(parameter_object.block))
+        raise ValueError
 
     # Ensure the block size is even if
     #   the scales are even.
     if (parameter_object.block % 2 != 0) and (parameter_object.scales[0] % 2 == 0):
         errors.logger.error('Please pass an even number for the `block_size` parameter if your `scales` are also even.')
-        raise ValueError('Please pass an even number for the `block_size` parameter if your `scales` are also even.')
+        raise ValueError
 
     # Ensure the correct smoothing parameters.
     if parameter_object.smooth > 0:
@@ -89,7 +89,7 @@ def parameter_checks(parameter_object):
 
         if parameter_object.smooth % 2 == 0:
             errors.logger.error('The `smooth` parameter should be an odd number.')
-            raise ValueError('The `smooth` parameter should be an odd number.')
+            raise ValueError
 
     # Create the output directory.
     if not os.path.isdir(parameter_object.output_dir):
@@ -98,10 +98,29 @@ def parameter_checks(parameter_object):
             os.makedirs(parameter_object.output_dir)
         except OSError:
             errors.logger.error('Could not create the output directory.')
-            raise OSError('Could not create the output directory.')
+            raise OSError
 
 
-def scale_fea_check(parameter_object):
+def set_yaml_file(parameter_object):
+
+    """Sets the output YAML status file"""
+
+    band_pos_str = map(str, parameter_object.band_positions)
+
+    if band_pos_str[0] in ['rgb', 'bgr']:
+        band_pos_str = '-{}'.format(band_pos_str[0])
+    else:
+        band_pos_str = '-'.join(band_pos_str)
+
+    return os.path.join(parameter_object.output_dir,
+                        '{}__BANDS_{}__BLOCK_{:d}__SCALES_{}__TRIGGERS_{}.yaml'.format(parameter_object.f_base,
+                                                                                       band_pos_str,
+                                                                                       parameter_object.block,
+                                                                                       '-'.join(map(str, parameter_object.scales)),
+                                                                                       '-'.join(parameter_object.triggers)))
+
+
+def scale_fea_check(parameter_object, is_image=True):
 
     """
     Checks the scale and feature to set the string name.
@@ -117,23 +136,40 @@ def scale_fea_check(parameter_object):
     else:
         band_pos_str = '-'.join(band_pos_str)
 
-    feature_str = 'feas001-{:03}'.format(parameter_object.features_dict[parameter_object.trigger])
+    feature_str = 'STATS_001-{:03}'.format(parameter_object.band_info['band_count'])
 
-    out_img = os.path.join(parameter_object.feas_dir,
-                           '{}_{}_bd{}_blk{:d}_scales{}_{}_{:04}{}'.format(parameter_object.f_base,
-                                                                           parameter_object.trigger,
-                                                                           band_pos_str,
-                                                                           parameter_object.block,
-                                                                           '-'.join(map(str, parameter_object.scales)),
-                                                                           feature_str,
-                                                                           parameter_object.section_counter,
-                                                                           parameter_object.f_ext))
+    if is_image:
 
-    out_img_d_name, out_img_f_name = os.path.split(out_img)
-    out_img_base, out_img_f_ext = os.path.splitext(out_img_f_name)
+        section_counter_ = 'TILE_{:06}'.format(parameter_object.section_counter)
+        image_extension = parameter_object.f_ext
 
-    parameter_object.update_info(out_img=out_img,
-                                 out_img_base=out_img_base)
+        out_img = os.path.join(parameter_object.feas_dir,
+                               '{}_{}__BAND_{}__BLOCK_{:d}__SCALES_{}__{}__{}{}'.format(parameter_object.f_base,
+                                                                                        parameter_object.trigger,
+                                                                                        band_pos_str,
+                                                                                        parameter_object.block,
+                                                                                        '-'.join(map(str,
+                                                                                                     parameter_object.scales)),
+                                                                                        feature_str,
+                                                                                        section_counter_,
+                                                                                        image_extension))
+
+        out_img_d_name, out_img_f_name = os.path.split(out_img)
+        out_img_base, out_img_f_ext = os.path.splitext(out_img_f_name)
+
+        parameter_object.update_info(out_img=out_img,
+                                     out_img_base=out_img_base)
+
+    else:
+
+        search_wildcard = '{}_{}__BAND_{}__BLOCK_{:d}__SCALES_{}__{}__*.tif'.format(parameter_object.f_base,
+                                                                                    parameter_object.trigger,
+                                                                                    band_pos_str,
+                                                                                    parameter_object.block,
+                                                                                    '-'.join(map(str, parameter_object.scales)),
+                                                                                    feature_str)
+
+        parameter_object.update_info(search_wildcard=search_wildcard)
 
     return parameter_object
 
@@ -213,7 +249,7 @@ def stack_features(parameter_object, new_feas_list):
     for ni, new_feas in enumerate(new_feas_list):
         stack_dict[str(ni+1)] = [new_feas]
 
-    print('Stacking variables ...')
+    errors.logger.info('Stacking variables ...')
 
     vrt_builder(stack_dict, out_vrt, force_type='float32', be_quiet=True)
 
@@ -228,12 +264,12 @@ def set_feas_dir(parameter_object):
     Prepares directory names
     """
 
-    feas_dir = os.path.join(parameter_object.output_dir, parameter_object.trigger)
+    feas_dir = os.path.join(parameter_object.output_dir, parameter_object.status_file.replace('.yaml', ''))
 
     parameter_object.update_info(feas_dir=feas_dir)
 
-    if not os.path.isdir(feas_dir):
-        os.makedirs(feas_dir)
+    if not os.path.isdir(parameter_object.feas_dir):
+        os.makedirs(parameter_object.feas_dir)
 
     if parameter_object.use_rgb:
         parameter_object.update_info(band_positions=[parameter_object.rgb2write.lower()])
@@ -337,7 +373,7 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
     if stats:
 
-        print('\nCalculating image min and max ...\n')
+        errors.logger.info('\nCalculating image min and max ...\n')
 
         min_max = get_layer_min_max(i_info, rgb=True)
 
@@ -377,7 +413,7 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
     else:
 
-        print('\nCalculating average RGB ...\n'.format(rgb.upper()))
+        errors.logger.info('\nCalculating average RGB ...\n'.format(rgb.upper()))
 
         im_block = i_info.read(bands2open=[1, 2, 3],
                                i=i_sect, j=j_sect,
@@ -500,7 +536,7 @@ def get_output_info_tile(meta_info, image_info, tile_parameter_object, i_sect, j
                            top=meta_info.top-(i_sect*meta_info.cellY)-(meta_info.cellY*2),
                            cellY=cell_size_y,
                            cellX=cell_size_x,
-                           bands=tile_parameter_object.out_bands_dict[tile_parameter_object.trigger],
+                           bands=tile_parameter_object.band_info['band_count'],
                            storage='float32')
 
     image_info.update_info(right=image_info.left+(cols*meta_info.cellY),
@@ -586,8 +622,7 @@ def get_stats(image_info, parameter_object):
         errors.logger.error('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
                                                                                       image_info.file_name))
 
-        raise NotImplementedError('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
-                                                                                            image_info.file_name))
+        raise NotImplementedError
 
     parameter_object.update_info(min=image_min,
                                  max=image_max)

@@ -12,6 +12,7 @@ import time
 import copy
 
 from . import spprocess
+from .sphelpers.sputilities import set_yaml_file
 
 try:
     import colorama
@@ -83,6 +84,13 @@ class SPParameters(object):
                                    surf=len(self.scales)*self.features_dict['surf'],
                                    xy=len(self.scales)*self.features_dict['xy'])
 
+        self.band_info = dict(band_count=0)
+
+        for trigger in self.triggers:
+
+            self.band_info[trigger] = copy.copy(self.band_info['band_count']) + 1
+            self.band_info['band_count'] += self.out_bands_dict[trigger]
+
         # Update the feature dictionary for feature neighbors.
         if self.neighbors:
 
@@ -94,14 +102,11 @@ class SPParameters(object):
 
         self.f_ext = '.tif'
 
-        # The status dictionary file.
-        self.status_dict_txt = os.path.join(self.output_dir, '{}_status.yaml'.format(self.f_base))
-
         # The log file.
         self.log_txt = os.path.join(self.output_dir, '{}_log.txt'.format(self.f_base))
 
         # The status file.
-        self.status_file = os.path.join(self.output_dir, '{}_status.yaml'.format(self.f_base))
+        self.status_file = set_yaml_file(self)
 
         if self.use_rgb:
             self.rgb2write = 'RGB'
@@ -250,6 +255,8 @@ def main():
     parser.add_argument('--gdal-cache', dest='gdal_cache', help='The GDAL cache size (MB)', default=256, type=int)
     parser.add_argument('--reset', dest='reset', help='Whether to reset section memory', action='store_true')
     parser.add_argument('--overwrite', dest='overwrite', help='Whether to overwrite output files', action='store_true')
+    parser.add_argument('--overviews', dest='overviews', help='Whether to build pyramid overviews for the VRT mosaic',
+                        action='store_true')
     parser.add_argument('--options', dest='options', help='Whether to show trigger options', action='store_true')
 
     args = parser.parse_args()
@@ -264,7 +271,8 @@ def main():
 
     start_time = time.time()
 
-    spatial_features(args.input, args.output,
+    spatial_features(args.input,
+                     args.output,
                      band_positions=args.band_positions,
                      block=args.block,
                      scales=args.scales,
@@ -296,7 +304,8 @@ def main():
                      section_size=args.section_size,
                      chunk_size=args.chunk_size,
                      gdal_cache=args.gdal_cache,
-                     overwrite=args.overwrite)
+                     overwrite=args.overwrite,
+                     overviews=args.overviews)
 
     print('\nEnd data & time -- (%s)\nTotal processing time -- (%.2gs)\n'
           % (time.asctime(time.localtime(time.time())), (time.time() - start_time)))

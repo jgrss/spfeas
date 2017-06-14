@@ -4,8 +4,9 @@ import os
 import sys
 # import time
 # import platform
-import copy
+# import copy
 # import itertools
+import fnmatch
 from joblib import Parallel, delayed
 
 from .sphelpers import sputilities
@@ -14,7 +15,7 @@ from .sphelpers import spreshape
 from .spfunctions import get_mag_avg
 from . import errors
 
-from mpglue import raster_tools, VegIndicesEquations
+from mpglue import raster_tools, VegIndicesEquations, vrt_builder
 
 # YAML
 try:
@@ -32,7 +33,7 @@ except ImportError:
 def _write_section2file(this_parameter_object__, meta_info, section2write, 
                         i_sect, j_sect, section_counter):
     
-    print('  Writing section {:d} to file ...'.format(section_counter))
+    errors.logger.info('  Writing section {:d} to file ...'.format(section_counter))
 
     o_info = meta_info.copy()
 
@@ -51,13 +52,27 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
                                   o_info.rows,
                                   o_info.cols), dtype='uint8')
 
-    # Create the output raster.
-    with raster_tools.create_raster(this_parameter_object__.out_img, o_info) as out_raster:
+    start_band = this_parameter_object__.band_info[this_parameter_object__.trigger]
+    n_bands = this_parameter_object__.out_bands_dict[this_parameter_object__.trigger]
 
-        # Write each scale and feature.
-        for feature_band in range(1, this_parameter_object__.out_bands_dict[this_parameter_object__.trigger]+1):
-            out_raster.write_array(section2write[feature_band-1, 1:, 1:], band=feature_band)
-            
+    if os.path.isfile(this_parameter_object__.out_img):
+
+        # Open the file and write the new bands.
+        with raster_tools.ropen(this_parameter_object__.out_img, open2read=False) as out_raster:
+
+            # Write each scale and feature.
+            for feature_band in range(start_band, start_band+n_bands+1):
+                out_raster.write_array(section2write[feature_band-1, 1:, 1:], band=feature_band)
+
+    else:
+
+        # Create the output raster.
+        with raster_tools.create_raster(this_parameter_object__.out_img, o_info) as out_raster:
+
+            # Write each scale and feature.
+            for feature_band in range(start_band, start_band+n_bands):
+                out_raster.write_array(section2write[feature_band-1, 1:, 1:], band=feature_band)
+
     out_raster = None
 
     # Check if any of the bands are corrupted.
@@ -66,21 +81,21 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
         ob_info.check_corrupted_bands()
 
         # Open the status YAML file.
-        mts = sputilities.ManageStatus()
+        mts_ = sputilities.ManageStatus()
 
         # Load the status dictionary
-        mts.status_file = this_parameter_object__.status_file
-        mts.load_status()
+        mts_.status_file = this_parameter_object__.status_file
+        mts_.load_status()
 
         if ob_info.corrupted_bands:
-            mts.status_dict[this_parameter_object__.out_img] = 'corrupt'
+            mts_.status_dict[this_parameter_object__.out_img_base] = 'corrupt'
         else:
-            mts.status_dict[this_parameter_object__.out_img] = 'complete'
+            mts_.status_dict[this_parameter_object__.out_img_base] = 'complete'
 
-        mts.dump_status()
+        mts_.dump_status()
 
     ob_info = None
-            
+
 
 def _section_read_write(section_counter, section_pair):
     
@@ -92,37 +107,37 @@ def _section_read_write(section_counter, section_pair):
     this_parameter_object_ = sputilities.scale_fea_check(this_parameter_object_)
 
     # Open the status YAML file.
-    mts = sputilities.ManageStatus()
+    mts_ = sputilities.ManageStatus()
 
     # Load the status dictionary
-    mts.status_file = this_parameter_object_.status_file
-    mts.load_status()
+    mts_.status_file = this_parameter_object_.status_file
+    mts_.load_status()
 
     # Check file status.
     if os.path.isfile(this_parameter_object_.out_img):
 
         # The file has been processed.
-        if this_parameter_object_.out_img in mts.status_dict:
+        if this_parameter_object_.out_img_base in mts_.status_dict:
 
-            if mts.status_dict[this_parameter_object_.out_img] == 'complete':
+            if mts_.status_dict[this_parameter_object_.out_img_base] == 'complete':
 
                 if this_parameter_object_.overwrite:
 
                     os.remove(this_parameter_object_.out_img)
-                    mts.status_dict[this_parameter_object_.out_img] = 'incomplete'
+                    mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
 
                 else:
                     return
 
-            elif mts.status_dict[this_parameter_object_.out_img] == 'corrupt':
+            elif mts_.status_dict[this_parameter_object_.out_img_base] == 'corrupt':
 
                 os.remove(this_parameter_object_.out_img)
-                mts.status_dict[this_parameter_object_.out_img] = 'incomplete'
+                mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
 
         else:
 
             os.remove(this_parameter_object_.out_img)
-            mts.status_dict[this_parameter_object_.out_img] = 'incomplete'
+            mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
 
     i_sect = section_pair[0]
     j_sect = section_pair[1]
@@ -196,12 +211,8 @@ def _section_read_write(section_counter, section_pair):
                                        rows=n_rows,
                                        cols=n_cols)
 
-    # if this_parameter_object_.trigger == 'orb':
-    #     sect_in = spsplit.get_orb_keypoints(sect_in, this_parameter_object_)
-    #     this_parameter_object_.update_info(min=0, max=255)
-
-    # pad array here
-    # (top, bottom), (left, right)
+    # Pad the array.
+    #   (top, bottom), (left, right)
     this_parameter_object_.update_info(i_sect_blk_ctr=1,
                                        j_sect_blk_ctr=1)
 
@@ -255,14 +266,6 @@ def _section_read_write(section_counter, section_pair):
                         j_sect,
                         section_counter)
 
-    # else:
-    #
-    #     _write_section2file(this_parameter_object_,
-    #                         this_image_info,
-    #                         None,
-    #                         i_sect,
-    #                         j_sect)
-
     this_parameter_object_ = None
     this_image_info_ = None
 
@@ -285,88 +288,148 @@ def run(parameter_object):
     # Write the parameters to file.
     sputilities.write_log(parameter_object)
 
-    new_feas_list = []
-
     if parameter_object.stack_only:
+
+        new_feas_list = list()
 
         # If prompted, stack features without processing.
         parameter_object = sputilities.stack_features(parameter_object, new_feas_list)
 
     else:
 
-        trigger_orig_seg = False
+        # Create the status object.
+        mts = sputilities.ManageStatus()
+        mts.status_file = parameter_object.status_file
 
-        # Iterate over each feature trigger.
-        for trigger in parameter_object.triggers:
+        # Setup the status dictionary.
+        if os.path.isfile(parameter_object.status_file):
+            mts.load_status()
+        else:
 
-            parameter_object.update_info(trigger=trigger)
+            mts.status_dict = dict()
 
-            # Set the output features folder.
-            parameter_object = sputilities.set_feas_dir(parameter_object)
+            mts.status_dict['all_finished'] = 'no'
 
-            # Iterate over each band
-            for band_position in parameter_object.band_positions:
+            mts.status_dict['band_order'] = dict()
 
-                parameter_object.update_info(band_position=band_position)
+            # Save the band order.
+            for trigger in parameter_object.triggers:
 
-                # Get input image information.
-                i_info = raster_tools.ropen(parameter_object.input_image)
+                mts.status_dict['band_order']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger],
+                                                                                         parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger])
 
-                # Check if any of the input
-                #   bands are corrupted.
-                i_info.check_corrupted_bands()
+            mts.dump_status()
 
-                if i_info.corrupted_bands:
+        process_image = True
 
-                    errors.logger.error('\nThe following bands appear to be corrupted:\n{}'.format(', '.join(i_info.corrupted_bands)))
-                    raise errors.CorruptedBandsError('\nThe following bands appear to be corrupted:\n{}'.format(', '.join(i_info.corrupted_bands)))
+        if 'all_finished' in mts.status_dict:
 
-                # Get image statistics.
-                parameter_object = sputilities.get_stats(i_info, parameter_object)
+            if mts.status_dict['all_finished'] == 'yes':
+                process_image = False
 
-                # Get section and chunk size.
-                parameter_object = sputilities.get_sect_chunk_size(i_info, parameter_object)
+        # Set the output features folder.
+        parameter_object = sputilities.set_feas_dir(parameter_object)
 
-                # if parameter_object.trigger == 'sfsorf':
-                #     parameter_object.update_info(scale=parameter_object.scales[-1],
-                #                                  feature=100)
-                #     parameter_object = sputilities.scale_fea_check(parameter_object)
-                #     spsplit.sfs_orfeo(parameter_object)
-                #     if os.path.isfile(parameter_object.out_img):
-                #         os.remove(parameter_object.out_img)
-                #     continue
+        if not process_image:
+            errors.logger.warning('The input image, {}, is set as finished processing.'.format(parameter_object.input_image))
+        else:
 
-                # Create the output feature bands.
-                # parameter_object = sputilities.create_outputs(parameter_object,
-                #                                               new_feas_list,
-                #                                               i_info)
+            # Iterate over each feature trigger.
+            for trigger in parameter_object.triggers:
 
-                # Get the number of sections in
-                #   the image (only used as a counter).
-                parameter_object = sputilities.get_n_sects(i_info, parameter_object)
+                parameter_object.update_info(trigger=trigger)
 
-                this_parameter_object = parameter_object.copy()
-                this_image_info = i_info.copy()
+                # Iterate over each band
+                for band_position in parameter_object.band_positions:
 
-                # Create the status dictionary.
-                mts = sputilities.ManageStatus()
-                mts.status_file = parameter_object.status_file
+                    parameter_object.update_info(band_position=band_position)
 
-                # Load the status dictionary, or start from scratch
-                if not os.path.isfile(parameter_object.status_file):
+                    # Get the input image information.
+                    with raster_tools.ropen(parameter_object.input_image) as i_info:
 
-                    mts.status_dict = dict()
-                    mts.status_dict['all'] = 'incomplete'
-                    mts.dump_status()
+                        # Check if any of the input
+                        #   bands are corrupted.
+                        i_info.check_corrupted_bands()
 
-                Parallel(n_jobs=parameter_object.n_jobs_section,
-                         max_nbytes=None)(delayed(_section_read_write)(idx_pair,
-                                                                       parameter_object.section_idx_pairs[idx_pair-1])
-                                          for idx_pair in range(1, parameter_object.n_sects+1))
+                        if i_info.corrupted_bands:
 
+                            errors.logger.error('\nThe following bands appear to be corrupted:\n{}'.format(', '.join(i_info.corrupted_bands)))
+                            raise errors.CorruptedBandsError
 
+                        # Get image statistics.
+                        parameter_object = sputilities.get_stats(i_info, parameter_object)
 
+                        # Get section and chunk size.
+                        parameter_object = sputilities.get_sect_chunk_size(i_info, parameter_object)
 
+                        # Get the number of sections in
+                        #   the image (only used as a counter).
+                        parameter_object = sputilities.get_n_sects(i_info, parameter_object)
+
+                        this_parameter_object = parameter_object.copy()
+                        this_image_info = i_info.copy()
+
+                        Parallel(n_jobs=parameter_object.n_jobs_section,
+                                 max_nbytes=None)(delayed(_section_read_write)(idx_pair,
+                                                                               parameter_object.section_idx_pairs[idx_pair-1])
+                                                  for idx_pair in range(1, parameter_object.n_sects+1))
+
+                    i_info = None
+
+        # Check the corruption status
+        mts.load_status()
+
+        any_corrupt = False
+
+        for k, v in mts.status_dict.items():
+
+            if v == 'corrupt':
+
+                any_corrupt = True
+                break
+
+        if not any_corrupt:
+
+            mts.status_dict['all_finished'] = 'yes'
+            mts.dump_status()
+
+        # Finally, mosaic the image tiles.
+        if mts.status_dict['all_finished'] == 'yes':
+
+            comp_dict = dict()
+
+            # Get the image list.
+            parameter_object = sputilities.scale_fea_check(parameter_object, is_image=False)
+
+            image_list = fnmatch.filter(os.listdir(parameter_object.feas_dir), parameter_object.search_wildcard)
+            image_list = [os.path.join(parameter_object.feas_dir, im) for im in image_list]
+
+            comp_dict['1'] = image_list
+
+            print
+            print comp_dict
+            print
+
+            errors.logger.info('\nCreating the VRT mosaic ...')
+
+            vrt_mosaic = parameter_object.status_file.replace('.yaml', '.vrt')
+
+            vrt_builder(comp_dict,
+                        vrt_mosaic,
+                        force_type='float32',
+                        be_quiet=True,
+                        overwrite=True)
+
+            if parameter_object.overviews:
+
+                errors.logger.info('\nBuilding VRT overviews ...')
+
+                with raster_tools.ropen(vrt_mosaic, open2read=False) as vrt_info:
+
+                    vrt_info.remove_overviews()
+                    vrt_info.build_overviews(levels=[2, 4, 8, 16])
+
+                vrt_info = None
 
     #             # Here we iterate over the image by sections.
     #             n_sect = 1
