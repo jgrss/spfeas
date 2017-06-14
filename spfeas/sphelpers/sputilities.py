@@ -7,6 +7,8 @@ import time
 import psutil
 import itertools
 
+from .. import errors
+
 from mpglue import raster_tools, vrt_builder
 
 import numpy as np
@@ -20,6 +22,10 @@ except ImportError:
 
 def write_log(parameter_object):
 
+    """
+    Writes a parameter log to file
+    """
+
     # Setup the log file.
     if os.path.isfile(parameter_object.log_txt):
 
@@ -27,7 +33,7 @@ def write_log(parameter_object):
             starter = log_txt_wr.readlines()
 
     else:
-        starter = []
+        starter = list()
 
     lines2write = starter + ['\n',
                              '=================================================\n',
@@ -52,6 +58,10 @@ def write_log(parameter_object):
 
 
 def parameter_checks(parameter_object):
+
+    """
+    Checks parameters
+    """
 
     # Ensure the input image exists.
     if not os.path.isfile(parameter_object.input_image):
@@ -206,6 +216,10 @@ def stack_features(parameter_object, new_feas_list):
 
 
 def set_feas_dir(parameter_object):
+
+    """
+    Prepares directory names
+    """
 
     feas_dir = os.path.join(parameter_object.output_dir, parameter_object.trigger)
 
@@ -368,6 +382,46 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
         return luminosity, None, None
 
 
+def create_outputs(parameter_object, new_feas_list, image_info):
+
+    obds = 1
+    for scale in parameter_object.scales:
+
+        parameter_object.update_info(scale=scale)
+
+        for feature in range(1, parameter_object.features_dict[parameter_object.trigger]+1):
+
+            parameter_object.update_info(feature=feature)
+
+            parameter_object = scale_fea_check(parameter_object)
+
+            # Set the status dictionary.
+            # parameter_object = sputilities.set_status(parameter_object)
+
+            new_feas_list.append(parameter_object.out_img)
+
+            # Only create a new feature if the file does not exist
+            if create_band(image_info, parameter_object, 1):
+                continue
+
+            # if parameter_object.feature_status == -999:
+            #
+            #     sputilities.create_band(i_info, parameter_object, 1)
+            #
+            #     # set the status as created
+            #     parameter_object.status_dict[parameter_object.out_img_base] = 0
+            #
+            # # Store the status dictionary
+            # with open(parameter_object.status_dict_txt, 'w') as pf:
+            #
+            #     pf.write(yaml.dump(parameter_object.status_dict,
+            #                        default_flow_style=False))
+
+            obds += 1
+
+    return parameter_object
+
+
 def get_sect_chunk_size(image_info, parameter_object):
 
     # get section and chunk size
@@ -454,41 +508,55 @@ def create_band(meta_info, parameter_object, out_bands, blocks=True):
 
 def get_stats(image_info, parameter_object):
 
-    # Check available cpu memory
-    available_space = psutil.virtual_memory().available * 9.53674e-7
+    image_min = 0
 
-    rows_and_cols = image_info.rows * image_info.cols
-
-    if (25000000 < rows_and_cols < 64000000) and (available_space > 8000):
-
-        if parameter_object.use_rgb:
-
-            __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
-
-        else:
-
-            if parameter_object.image_max > 0:
-                mx = parameter_object.image_max
-                mn = 0
-            else:
-                mx = image_info.read(bands2open=parameter_object.band_position).max()
-                mn = image_info.read(bands2open=parameter_object.band_position).min()
-
+    # Let's make some assumptions
+    if image_info.storage.lower() == 'byte':
+        image_max = 255
+    elif image_info.storage.lower() == 'uint16':
+        image_max = 10000
     else:
+        errors.logger('The input storage, {} is not supported.'.format(image_info.storage))
+        raise NotImplementedError
 
-        if parameter_object.use_rgb:
+    parameter_object.update_info(min=image_min,
+                                 max=image_max)
 
-            __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
-
-        else:
-
-            if parameter_object.image_max > 0:
-                mx = parameter_object.image_max
-                mn = 0
-            else:
-                mn, mx, __, __ = image_info.get_stats(parameter_object.band_position)
-
-    parameter_object.update_info(min=mn, max=mx)
+    # Check available cpu memory
+    # available_space = psutil.virtual_memory().available * 9.53674e-7
+    #
+    # rows_and_cols = image_info.rows * image_info.cols
+    #
+    # if (25000000 < rows_and_cols < 64000000) and (available_space > 8000):
+    #
+    #     if parameter_object.use_rgb:
+    #
+    #         __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
+    #
+    #     else:
+    #
+    #         if parameter_object.image_max > 0:
+    #             mx = parameter_object.image_max
+    #             mn = 0
+    #         else:
+    #             mx = image_info.read(bands2open=parameter_object.band_position).max()
+    #             mn = image_info.read(bands2open=parameter_object.band_position).min()
+    #
+    # else:
+    #
+    #     if parameter_object.use_rgb:
+    #
+    #         __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
+    #
+    #     else:
+    #
+    #         if parameter_object.image_max > 0:
+    #             mx = parameter_object.image_max
+    #             mn = 0
+    #         else:
+    #             mn, mx, __, __ = image_info.get_stats(parameter_object.band_position)
+    #
+    # parameter_object.update_info(min=mn, max=mx)
 
     return parameter_object
 
@@ -528,31 +596,34 @@ def set_status(parameter_object):
 
 def get_n_sects(image_info, parameter_object):
 
-    n_row_sects = len([i_sect
-                       for i_sect in xrange(0, image_info.rows,
-                                            parameter_object.sect_row_size -
-                                            (parameter_object.scales[-1] - parameter_object.block))])
+    row_sections = [i_sect for i_sect in range(0, image_info.rows,
+                                               parameter_object.sect_row_size -
+                                               (parameter_object.scales[-1] - parameter_object.block))]
 
-    n_col_sects = len([j_sect
-                       for j_sect in xrange(0, image_info.cols,
-                                            parameter_object.sect_col_size -
-                                            (parameter_object.scales[-1] -
-                                             parameter_object.block))])
+    column_sections = [j_sect for j_sect in range(0, image_info.cols,
+                                                  parameter_object.sect_col_size -
+                                                  (parameter_object.scales[-1] -
+                                                  parameter_object.block))]
 
-    n_sects = len([j_sect
-                   for (i_sect, j_sect) in
-                   itertools.product(xrange(0, image_info.rows,
-                                            parameter_object.sect_row_size -
-                                            (parameter_object.scales[-1] -
-                                             parameter_object.block)),
-                                     xrange(0, image_info.cols,
-                                            parameter_object.sect_col_size -
-                                            (parameter_object.scales[-1] -
-                                             parameter_object.block)))])
+    section_idx_pairs = [(idx, jdx) for idx, jdx in itertools.product(range(0, image_info.rows,
+                                                                            parameter_object.sect_row_size -
+                                                                            (parameter_object.scales[-1] -
+                                                                            parameter_object.block)),
+                                                                      range(0, image_info.cols,
+                                                                            parameter_object.sect_col_size -
+                                                                            (parameter_object.scales[-1] -
+                                                                            parameter_object.block)))]
+
+    n_row_sects = len(row_sections)
+    n_col_sects = len(column_sections)
+    n_sects = len(section_idx_pairs)
 
     parameter_object.update_info(n_row_sects=n_row_sects,
                                  n_col_sects=n_col_sects,
-                                 n_sects=n_sects)
+                                 n_sects=n_sects,
+                                 row_sections=row_sections,
+                                 column_sections=column_sections,
+                                 section_idx_pairs=section_idx_pairs)
 
     return parameter_object
 

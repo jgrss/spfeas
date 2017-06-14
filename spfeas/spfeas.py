@@ -9,6 +9,7 @@ import os
 import sys
 import argparse
 import time
+import copy
 
 from . import spprocess
 
@@ -26,19 +27,36 @@ class SPParameters(object):
         self.input_image = input_image
         self.output_dir = output_dir
 
+    def copy(self):
+        return copy.copy(self)
+
     def set_defaults(self, **kwargs):
         
         for k, v in kwargs.iteritems():
             setattr(self, k, v)
 
         # Set the features dictionary.
-        self.features_dict = dict(mean=2, pantex=1, ctr=1,
-                                  lsr=3, grad=2, hough=4, hog=7,
-                                  lbp=62, lbpm=7, gabor=2*8,
-                                  surf=4, seg=1, fourier=2,
-                                  sfs=6, evi2=2, ndvi=2,
-                                  dmp=2, xy=2, lac=1,
-                                  orb=7, saliency=2,
+        self.features_dict = dict(mean=2,
+                                  pantex=1,
+                                  ctr=1,
+                                  lsr=3,
+                                  grad=2,
+                                  hough=4,
+                                  hog=7,
+                                  lbp=62,
+                                  lbpm=7,
+                                  gabor=2*8,
+                                  surf=4,
+                                  seg=1,
+                                  fourier=2,
+                                  sfs=6,
+                                  evi2=2,
+                                  ndvi=2,
+                                  dmp=2,
+                                  xy=2,
+                                  lac=1,
+                                  orb=7,
+                                  saliency=2,
                                   sfsorf=6)
 
         # Set the output bands based on the trigger.

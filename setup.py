@@ -37,7 +37,7 @@ except:
 import numpy as np
 
 
-__version__ = '0.1.3'
+__version__ = '0.2.0'
 
 spfeas_name = 'SpFeas'
 maintainer = 'Jordan Graesser'
@@ -80,34 +80,30 @@ def get_packages():
 
 
 def get_pyx_list():
-    return ['spfeas/helpers/*.pyx', 'spfeas/sphelpers/*.pyx']
+
+    return ['spfeas/helpers/*.pyx',
+            'spfeas/sphelpers/*.pyx']
 
 
 def get_package_data():
 
     if platform.system() == 'Windows':
 
-        return {'spfeas': ['*.md',
-                           '*.txt',
-                           'helpers/*.pyd',
+        return {'': ['*.md', '*.txt'],
+                'spfeas': ['helpers/*.pyd',
                            'sphelpers/*.pyd',
                            'notebooks/*.ipynb',
                            'notebooks/*.png']}
 
     else:
 
-        return {'spfeas': ['*.md',
-                           '*.txt',
-                           'helpers/*.so',
+        return {'': ['*.md', '*.txt'],
+                'spfeas': ['helpers/*.so',
+                           'helpers/*.pyx',
                            'sphelpers/*.so',
+                           'sphelpers/*.pyx',
                            'notebooks/*.ipynb',
                            'notebooks/*.png']}
-
-
-# def get_pyx_list():
-#
-#     return ['spfeas/helpers/*.pyx',
-#             'spfeas/sphelpers/*.pyx']
 
 
 def get_console_dict():
@@ -134,7 +130,6 @@ def setup_package():
                     zip_safe=False,
                     download_url=git_url,
                     install_requires=required_packages,
-                    include_package_data=True,
                     entry_points=get_console_dict())
 
     setup(**metadata)
