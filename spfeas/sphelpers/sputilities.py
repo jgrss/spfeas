@@ -496,8 +496,8 @@ def get_output_info_tile(meta_info, image_info, tile_parameter_object, i_sect, j
 
     image_info.update_info(rows=rows-1,
                            cols=cols-1,
-                           left=meta_info.left+(j_sect*meta_info.cellY),
-                           top=meta_info.top-(i_sect*meta_info.cellY),
+                           left=meta_info.left+(j_sect*meta_info.cellY)+(meta_info.cellY*2),
+                           top=meta_info.top-(i_sect*meta_info.cellY)-(meta_info.cellY*2),
                            cellY=cell_size_y,
                            cellX=cell_size_x,
                            bands=tile_parameter_object.out_bands_dict[tile_parameter_object.trigger],

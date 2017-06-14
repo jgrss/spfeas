@@ -30,9 +30,9 @@ except ImportError:
 
 
 def _write_section2file(this_parameter_object__, meta_info, section2write, 
-                        i_sect, j_sect):
+                        i_sect, j_sect, section_counter):
     
-    print('  Writing section to file ...')
+    print('  Writing section {:d} to file ...'.format(section_counter))
 
     o_info = meta_info.copy()
 
@@ -56,7 +56,7 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
 
         # Write each scale and feature.
         for feature_band in range(1, this_parameter_object__.out_bands_dict[this_parameter_object__.trigger]+1):
-            out_raster.write_array(section2write[feature_band-1, :-1, :-1], band=feature_band)
+            out_raster.write_array(section2write[feature_band-1, 1:, 1:], band=feature_band)
             
     out_raster = None
 
@@ -252,7 +252,8 @@ def _section_read_write(section_counter, section_pair):
                         this_image_info,
                         out_section_array,
                         i_sect,
-                        j_sect)
+                        j_sect,
+                        section_counter)
 
     # else:
     #
@@ -357,8 +358,6 @@ def run(parameter_object):
                     mts.status_dict = dict()
                     mts.status_dict['all'] = 'incomplete'
                     mts.dump_status()
-
-                print parameter_object.section_idx_pairs
 
                 Parallel(n_jobs=parameter_object.n_jobs_section,
                          max_nbytes=None)(delayed(_section_read_write)(idx_pair,
