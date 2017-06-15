@@ -37,24 +37,31 @@ except:
 
 
 @retry(wait_fixed=1000, stop_max_attempt_number=10)
-def _update_status(object_info, param_info, yaml_info):
+def _update_status(are_corrupted, param_info, yaml_info, is_finished):
 
-    if object_info.corrupted_bands:
-        yaml_info.status_dict[param_info.out_img_base] = 'corrupt'
+    """Updates the YAML status dictionary"""
+
+    if param_info.out_img_base not in yaml_info.status_dict:
+        yaml_info.status_dict[param_info.out_img_base] = dict()
+
+    if are_corrupted:
+        yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'corrupt'
     else:
 
-        # Only finalize the image on
-        #   the last feature trigger.
-        if param_info.trigger == param_info.triggers[-1]:
-            yaml_info.status_dict[param_info.out_img_base] = 'complete'
+        if is_finished:
+            yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'complete'
         else:
-            yaml_info.status_dict[param_info.out_img_base] = 'incomplete'
+            yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'incomplete'
 
     yaml_info.dump_status()
 
 
 def _write_section2file(this_parameter_object__, meta_info, section2write, 
                         i_sect, j_sect, section_counter):
+
+    """
+    Writes the section array to disk    
+    """
     
     errors.logger.info('  Writing section {:d} to file ...'.format(section_counter))
 
@@ -76,7 +83,7 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
                                   o_info.cols), dtype='uint8')
 
     start_band = this_parameter_object__.band_info[this_parameter_object__.trigger]
-    n_bands = this_parameter_object__.out_bands_dict[this_parameter_object__.trigger]
+    n_bands = this_parameter_object__.features_dict[this_parameter_object__.trigger]
 
     if os.path.isfile(this_parameter_object__.out_img):
 
@@ -88,6 +95,8 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
             for feature_band in range(start_band, start_band+n_bands+1):
 
                 out_raster.write_array(section2write[array_layer_counter, 1:, 1:], band=feature_band)
+                out_raster.close_band()
+
                 array_layer_counter += 1
 
     else:
@@ -100,6 +109,8 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
             for feature_band in range(start_band, start_band+n_bands):
 
                 out_raster.write_array(section2write[array_layer_counter, 1:, 1:], band=feature_band)
+                out_raster.close_band()
+
                 array_layer_counter += 1
 
     out_raster = None
@@ -119,12 +130,16 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
         mts_.load_status()
 
         # Update the tile status.
-        _update_status(ob_info, this_parameter_object__, mts_)
+        _update_status(ob_info.corrupted_bands, this_parameter_object__, mts_, True)
 
     ob_info = None
 
 
 def _section_read_write(section_counter, section_pair, param_dict):
+
+    """
+    Handles the section reading and writing     
+    """
 
     # this_parameter_object_ = this_parameter_object.copy()
     this_parameter_object_ = copy.copy(param_dict)
@@ -148,37 +163,43 @@ def _section_read_write(section_counter, section_pair, param_dict):
         # Check file status.
         if os.path.isfile(this_parameter_object_.out_img):
 
-            # The file has been processed.
             if this_parameter_object_.out_img_base in mts_.status_dict:
 
-                if mts_.status_dict[this_parameter_object_.out_img_base] == 'complete':
+                if this_parameter_object_.trigger in mts_.status_dict[this_parameter_object_.out_img_base]:
 
-                    if this_parameter_object_.overwrite:
+                    if mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] == 'complete':
 
-                        errors.logger.info('Removing {} and re-running ...'.format(this_parameter_object_.out_img))
+                        if this_parameter_object_.overwrite:
 
-                        os.remove(this_parameter_object_.out_img)
-                        mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
+                            errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
+                            mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
 
-                    else:
+                            _update_status(False, this_parameter_object_, mts_, False)
 
-                        errors.logger.info('{} is already finished ...'.format(this_parameter_object_.out_img))
+                        else:
 
-                        return
+                            errors.logger.info('{} is already finished ...'.format(this_parameter_object_.out_img))
+                            return
 
-                elif mts_.status_dict[this_parameter_object_.out_img_base] == 'corrupt':
+                    elif mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] in ['corrupt', 'incomplete']:
 
-                    errors.logger.info('Removing corrupted {} and re-running ...'.format(this_parameter_object_.out_img))
+                        errors.logger.info('Re-running {} {} ...'.format(mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger],
+                                                                         this_parameter_object_.out_img))
 
-                    os.remove(this_parameter_object_.out_img)
-                    mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
+                        mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
+
+                        if mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] == 'corrupt':
+                            _update_status(True, this_parameter_object_, mts_, False)
+                        else:
+                            _update_status(False, this_parameter_object_, mts_, False)
 
             else:
+                errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
-                errors.logger.info('Removing incomplete {} and re-running ...'.format(this_parameter_object_.out_img))
+        else:
 
-                os.remove(this_parameter_object_.out_img)
-                mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
+            # Update the tile status.
+            _update_status(False, this_parameter_object_, mts_, False)
 
         i_sect = section_pair[0]
         j_sect = section_pair[1]
@@ -354,23 +375,22 @@ def run(parameter_object):
 
             mts.status_dict = dict()
 
-            mts.status_dict['all_finished'] = 'no'
-
-            mts.status_dict['band_order'] = dict()
+            mts.status_dict['ALL_FINISHED'] = 'no'
+            mts.status_dict['BAND_ORDER'] = dict()
 
             # Save the band order.
             for trigger in parameter_object.triggers:
 
-                mts.status_dict['band_order']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger],
+                mts.status_dict['BAND_ORDER']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger],
                                                                                          parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger]-1)
 
             mts.dump_status()
 
         process_image = True
 
-        if 'all_finished' in mts.status_dict:
+        if 'ALL_FINISHED' in mts.status_dict:
 
-            if mts.status_dict['all_finished'] == 'yes':
+            if mts.status_dict['ALL_FINISHED'] == 'yes':
                 process_image = False
 
         # Set the output features folder.
@@ -425,25 +445,27 @@ def run(parameter_object):
                                                                            parameter_dict)
                                               for idx_pair in range(1, parameter_object.n_sects+1))
 
-        # Check the corruption status
+        # Check the corruption status.
         mts.load_status()
 
-        any_corrupt = False
-
+        n_corrupt = 0
         for k, v in mts.status_dict.items():
 
-            if v == 'corrupt':
+            if isinstance(v, dict):
 
-                any_corrupt = True
-                break
+                for ksub, vsub in v.iteritems():
 
-        if not any_corrupt:
+                    if vsub in ['corrupt', 'incomplete']:
+                        n_corrupt += 1
 
-            mts.status_dict['all_finished'] = 'yes'
+        if n_corrupt == 0:
+
+            mts.status_dict['ALL_FINISHED'] = 'yes'
             mts.dump_status()
 
-        # Finally, mosaic the image tiles.
-        if mts.status_dict['all_finished'] == 'yes':
+            # Finally, mosaic the image tiles.
+
+            errors.logger.info('\nCreating the VRT mosaic ...')
 
             comp_dict = dict()
 
@@ -454,8 +476,6 @@ def run(parameter_object):
             image_list = [os.path.join(parameter_object.feas_dir, im) for im in image_list]
 
             comp_dict['1'] = image_list
-
-            errors.logger.info('\nCreating the VRT mosaic ...')
 
             vrt_mosaic = parameter_object.status_file.replace('.yaml', '.vrt')
 
@@ -475,3 +495,6 @@ def run(parameter_object):
                     vrt_info.build_overviews(levels=[2, 4, 8, 16])
 
                 vrt_info = None
+
+        else:
+            errors.logger.warning('\nThere were {:d} corrupt or incomplete tiles.\nRe-run the command with the same parameters.'.format(n_corrupt))

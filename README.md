@@ -58,7 +58,7 @@ Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
 Dependencies:
 
 ```text
-pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL retrying
+pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL
 ```
 
 #### Installing with the bash or CMD installers
