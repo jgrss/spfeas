@@ -13,21 +13,21 @@ Version 0.2.0
 ##### YAML status
 
 ```text
-<FILENAME>__BD#_BK#_SC#_TR%.yaml
+<OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%.yaml
 
-Example:
-image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
+**Example:**
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
 ```
 
 ##### Tiled files
 
 ```text
-<FILENAME>__BD#_BK#_SC#_TR%/<FILENAME>__BD#_BK#_SC#_ST1-###_TL######.tif
+<OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%/<FILENAME>__BD#_BK#_SC#_ST1-###_TL######.tif
 
-Example:
-image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000001.tif
-image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000002.tif
-image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
+**Example:**
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000001.tif
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000002.tif
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
 ```
 
 Installation
