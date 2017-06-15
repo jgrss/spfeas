@@ -46,6 +46,8 @@ Installation
 
 #### Installing or upgrading from source
 
+Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
+
 ```text
 > pip uninstall spfeas
 > git clone https://github.com/jgrss/spfeas.git
