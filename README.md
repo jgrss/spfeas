@@ -5,8 +5,34 @@ SpFeas
 
 SpFeas has only been tested on Python 2.7. 
 
+Version 0.2.0
+-----
+
+#### Naming conventions
+
+##### YAML status
+
+```text
+<FILENAME>__BD#_BK#_SC#_TR%.yaml
+
+Example:
+image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
+```
+
+##### Tiled files
+
+```text
+<FILENAME>__BD#_BK#_SC#_TR%/<FILENAME>__BD#_BK#_SC#_ST1-###_TL######.tif
+
+Example:
+image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000001.tif
+image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000002.tif
+image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
+```
+
 Installation
 ------------
+
 #### Installation instructions
 
 1) Open INSTALLATION.ipynb under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).

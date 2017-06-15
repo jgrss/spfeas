@@ -113,11 +113,11 @@ def set_yaml_file(parameter_object):
         band_pos_str = '-'.join(band_pos_str)
 
     return os.path.join(parameter_object.output_dir,
-                        '{}__BANDS_{}__BLOCK_{:d}__SCALES_{}__TRIGGERS_{}.yaml'.format(parameter_object.f_base,
-                                                                                       band_pos_str,
-                                                                                       parameter_object.block,
-                                                                                       '-'.join(map(str, parameter_object.scales)),
-                                                                                       '-'.join(parameter_object.triggers)))
+                        '{}__BD{}_BK{:d}_SC{}_TR{}.yaml'.format(parameter_object.f_base,
+                                                                band_pos_str,
+                                                                parameter_object.block,
+                                                                '-'.join(map(str, parameter_object.scales)),
+                                                                '-'.join(parameter_object.triggers)))
 
 
 def scale_fea_check(parameter_object, is_image=True):
@@ -136,23 +136,21 @@ def scale_fea_check(parameter_object, is_image=True):
     else:
         band_pos_str = '-'.join(band_pos_str)
 
-    feature_str = 'STATS_001-{:03}'.format(parameter_object.band_info['band_count'])
+    feature_str = 'ST1-{:03}'.format(parameter_object.band_info['band_count'])
 
     if is_image:
 
-        section_counter_ = 'TILE_{:06}'.format(parameter_object.section_counter)
+        section_counter_ = 'TL{:06}'.format(parameter_object.section_counter)
         image_extension = parameter_object.f_ext
 
         out_img = os.path.join(parameter_object.feas_dir,
-                               '{}_{}__BAND_{}__BLOCK_{:d}__SCALES_{}__{}__{}{}'.format(parameter_object.f_base,
-                                                                                        parameter_object.trigger,
-                                                                                        band_pos_str,
-                                                                                        parameter_object.block,
-                                                                                        '-'.join(map(str,
-                                                                                                     parameter_object.scales)),
-                                                                                        feature_str,
-                                                                                        section_counter_,
-                                                                                        image_extension))
+                               '{}__BD{}_BK{:d}_SC{}__{}__{}{}'.format(parameter_object.f_base,
+                                                                       band_pos_str,
+                                                                       parameter_object.block,
+                                                                       '-'.join(map(str, parameter_object.scales)),
+                                                                       feature_str,
+                                                                       section_counter_,
+                                                                       image_extension))
 
         out_img_d_name, out_img_f_name = os.path.split(out_img)
         out_img_base, out_img_f_ext = os.path.splitext(out_img_f_name)
@@ -162,12 +160,11 @@ def scale_fea_check(parameter_object, is_image=True):
 
     else:
 
-        search_wildcard = '{}_{}__BAND_{}__BLOCK_{:d}__SCALES_{}__{}__*.tif'.format(parameter_object.f_base,
-                                                                                    parameter_object.trigger,
-                                                                                    band_pos_str,
-                                                                                    parameter_object.block,
-                                                                                    '-'.join(map(str, parameter_object.scales)),
-                                                                                    feature_str)
+        search_wildcard = '{}__BD{}_BK{:d}_SC{}__{}__*.tif'.format(parameter_object.f_base,
+                                                                   band_pos_str,
+                                                                   parameter_object.block,
+                                                                   '-'.join(map(str, parameter_object.scales)),
+                                                                   feature_str)
 
         parameter_object.update_info(search_wildcard=search_wildcard)
 
