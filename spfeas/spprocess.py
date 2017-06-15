@@ -186,21 +186,19 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
                     if 'corrupt' in status_list:
 
-                        errors.logger.info('Re-running {} {} ...'.format(mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger],
-                                                                         this_parameter_object_.out_img))
+                        errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
                         # Remove the file on the first trigger
                         #   if the file is corrupt.
                         if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
-                            os.remove(this_parameter_object_.out_img_base)
+                            os.remove(this_parameter_object_.out_img)
 
                         mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
                         mts_.dump_status(this_parameter_object_.status_file)
 
                     elif ('corrupt' not in status_list) and ('incomplete' in status_list):
 
-                        errors.logger.info('Re-running {} {} ...'.format(mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger],
-                                                                         this_parameter_object_.out_img))
+                        errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
                     else:
 
@@ -210,7 +208,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
                             # Remove the file on the first trigger.
                             if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
-                                os.remove(this_parameter_object_.out_img_base)
+                                os.remove(this_parameter_object_.out_img)
 
                             mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
                             mts_.dump_status(this_parameter_object_.status_file)
@@ -224,7 +222,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
                 # Remove the file on the first trigger.
                 if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
-                    os.remove(this_parameter_object_.out_img_base)
+                    os.remove(this_parameter_object_.out_img)
 
                 errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
@@ -388,10 +386,18 @@ def run(parameter_object):
         # Create the status object.
         mts = sputilities.ManageStatus()
 
+        parameter_object.remove_files = False
+
         # Setup the status dictionary.
         if os.path.isfile(parameter_object.status_file):
 
             mts.load_status(parameter_object.status_file)
+
+            if parameter_object.section_size != mts.status_dict['SECTION_SIZE']:
+
+                errors.logger.warning('The section size was changed, so all existing tiled images will be removed.')
+                
+                parameter_object.remove_files = True
 
             if not isinstance(mts.status_dict, dict):
                 errors.logger.error('The YAML file already existed, but was not properly stored and saved.\nPlease remove and re-run.')
@@ -410,6 +416,8 @@ def run(parameter_object):
                 mts.status_dict['BAND_ORDER']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger],
                                                                                          parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger]-1)
 
+            mts.status_dict['SECTION_SIZE'] = parameter_object.section_size
+
             mts.dump_status(parameter_object.status_file)
 
         process_image = True
@@ -421,6 +429,17 @@ def run(parameter_object):
 
         # Set the output features folder.
         parameter_object = sputilities.set_feas_dir(parameter_object)
+
+        if parameter_object.remove_files:
+
+            image_list = fnmatch.filter(os.listdir(parameter_object.feas_dir), '*.tif')
+
+            if image_list:
+
+                image_list = [os.path.join(parameter_object.feas_dir, im_) for im_ in image_list]
+
+                for full_image in image_list:
+                    os.remove(full_image)
 
         if not process_image:
             errors.logger.warning('The input image, {}, is set as finished processing.'.format(parameter_object.input_image))
