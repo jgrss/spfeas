@@ -108,7 +108,7 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
     else:
 
         # Create the output raster.
-        with raster_tools.create_raster(this_parameter_object__.out_img, o_info) as out_raster:
+        with raster_tools.create_raster(this_parameter_object__.out_img, o_info, compress='deflate') as out_raster:
 
             # Write each scale and feature.
             array_layer_counter = 0
@@ -396,7 +396,7 @@ def run(parameter_object):
             if parameter_object.section_size != mts.status_dict['SECTION_SIZE']:
 
                 errors.logger.warning('The section size was changed, so all existing tiled images will be removed.')
-                
+
                 parameter_object.remove_files = True
 
             if not isinstance(mts.status_dict, dict):
