@@ -30,6 +30,15 @@ out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_T
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
 ```
 
+```text
+BD = input band position
+BK = input block size
+SC = input scales
+TR = input triggers
+ST = statistics
+TL = tile position
+```
+
 Installation
 ------------
 
