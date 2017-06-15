@@ -603,7 +603,7 @@ def wrapper(func, *args, **kwargs):
     return wrapped
 
 
-def get_section_stats(bd, section_rows, section_cols, parameter_object):
+def get_section_stats(bd, section_rows, section_cols, parameter_object, section_counter):
 
     """
     Split section into chunks and process features at each scale
@@ -717,7 +717,8 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object):
                               args=dict(sfs_threshold=parameter_object.sfs_threshold,
                                         sfs_skip=parameter_object.sfs_skip)))
 
-    print('\n Processing {} ...'.format(func_dict[parameter_object.trigger]['name']))
+    print('\n Processing {} for section {} ...'.format(func_dict[parameter_object.trigger]['name'],
+                                                       section_counter))
 
     other_args = func_dict[parameter_object.trigger]['args']
 

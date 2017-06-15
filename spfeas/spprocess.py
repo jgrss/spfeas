@@ -4,7 +4,7 @@ import os
 import sys
 # import time
 # import platform
-# import copy
+import copy
 # import itertools
 import fnmatch
 from joblib import Parallel, delayed
@@ -28,6 +28,29 @@ try:
     import numpy as np
 except ImportError:
     raise ImportError('NumPy must be installed')
+
+# retry
+try:
+    from retrying import retry
+except:
+    raise ImportError('retrying must be installed')
+
+
+@retry(wait_fixed=1000, stop_max_attempt_number=10)
+def _update_status(object_info, param_info, yaml_info):
+
+    if object_info.corrupted_bands:
+        yaml_info.status_dict[param_info.out_img_base] = 'corrupt'
+    else:
+
+        # Only finalize the image on
+        #   the last feature trigger.
+        if param_info.trigger == param_info.triggers[-1]:
+            yaml_info.status_dict[param_info.out_img_base] = 'complete'
+        else:
+            yaml_info.status_dict[param_info.out_img_base] = 'incomplete'
+
+    yaml_info.dump_status()
 
 
 def _write_section2file(this_parameter_object__, meta_info, section2write, 
@@ -61,8 +84,11 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
         with raster_tools.ropen(this_parameter_object__.out_img, open2read=False) as out_raster:
 
             # Write each scale and feature.
+            array_layer_counter = 0
             for feature_band in range(start_band, start_band+n_bands+1):
-                out_raster.write_array(section2write[feature_band-1, 1:, 1:], band=feature_band)
+
+                out_raster.write_array(section2write[array_layer_counter, 1:, 1:], band=feature_band)
+                array_layer_counter += 1
 
     else:
 
@@ -70,8 +96,11 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
         with raster_tools.create_raster(this_parameter_object__.out_img, o_info) as out_raster:
 
             # Write each scale and feature.
+            array_layer_counter = 0
             for feature_band in range(start_band, start_band+n_bands):
-                out_raster.write_array(section2write[feature_band-1, 1:, 1:], band=feature_band)
+
+                out_raster.write_array(section2write[array_layer_counter, 1:, 1:], band=feature_band)
+                array_layer_counter += 1
 
     out_raster = None
 
@@ -83,188 +112,201 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
         # Open the status YAML file.
         mts_ = sputilities.ManageStatus()
 
+        errors.logger.info('  Updating status ...')
+
         # Load the status dictionary
         mts_.status_file = this_parameter_object__.status_file
         mts_.load_status()
 
-        if ob_info.corrupted_bands:
-            mts_.status_dict[this_parameter_object__.out_img_base] = 'corrupt'
-        else:
-            mts_.status_dict[this_parameter_object__.out_img_base] = 'complete'
-
-        mts_.dump_status()
+        # Update the tile status.
+        _update_status(ob_info, this_parameter_object__, mts_)
 
     ob_info = None
 
 
-def _section_read_write(section_counter, section_pair):
-    
-    this_parameter_object_ = this_parameter_object.copy()
+def _section_read_write(section_counter, section_pair, param_dict):
 
-    this_parameter_object_.update_info(section_counter=section_counter)
+    # this_parameter_object_ = this_parameter_object.copy()
+    this_parameter_object_ = copy.copy(param_dict)
+    this_parameter_object_ = sputilities.dict2class(this_parameter_object_)
 
-    # Set the output name.
-    this_parameter_object_ = sputilities.scale_fea_check(this_parameter_object_)
+    # Get the input image information.
+    with raster_tools.ropen(this_parameter_object_.input_image) as this_image_info:
 
-    # Open the status YAML file.
-    mts_ = sputilities.ManageStatus()
+        this_parameter_object_.update_info(section_counter=section_counter)
 
-    # Load the status dictionary
-    mts_.status_file = this_parameter_object_.status_file
-    mts_.load_status()
+        # Set the output name.
+        this_parameter_object_ = sputilities.scale_fea_check(this_parameter_object_)
 
-    # Check file status.
-    if os.path.isfile(this_parameter_object_.out_img):
+        # Open the status YAML file.
+        mts_ = sputilities.ManageStatus()
 
-        # The file has been processed.
-        if this_parameter_object_.out_img_base in mts_.status_dict:
+        # Load the status dictionary
+        mts_.status_file = this_parameter_object_.status_file
+        mts_.load_status()
 
-            if mts_.status_dict[this_parameter_object_.out_img_base] == 'complete':
+        # Check file status.
+        if os.path.isfile(this_parameter_object_.out_img):
 
-                if this_parameter_object_.overwrite:
+            # The file has been processed.
+            if this_parameter_object_.out_img_base in mts_.status_dict:
+
+                if mts_.status_dict[this_parameter_object_.out_img_base] == 'complete':
+
+                    if this_parameter_object_.overwrite:
+
+                        errors.logger.info('Removing {} and re-running ...'.format(this_parameter_object_.out_img))
+
+                        os.remove(this_parameter_object_.out_img)
+                        mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
+
+                    else:
+
+                        errors.logger.info('{} is already finished ...'.format(this_parameter_object_.out_img))
+
+                        return
+
+                elif mts_.status_dict[this_parameter_object_.out_img_base] == 'corrupt':
+
+                    errors.logger.info('Removing corrupted {} and re-running ...'.format(this_parameter_object_.out_img))
 
                     os.remove(this_parameter_object_.out_img)
                     mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
 
-                else:
-                    return
+            else:
 
-            elif mts_.status_dict[this_parameter_object_.out_img_base] == 'corrupt':
+                errors.logger.info('Removing incomplete {} and re-running ...'.format(this_parameter_object_.out_img))
 
                 os.remove(this_parameter_object_.out_img)
                 mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
 
+        i_sect = section_pair[0]
+        j_sect = section_pair[1]
+
+        n_rows = raster_tools.n_rows_cols(i_sect, this_parameter_object_.sect_row_size, this_image_info.rows)
+        n_cols = raster_tools.n_rows_cols(j_sect, this_parameter_object_.sect_col_size, this_image_info.cols)
+
+        # Open the image array.
+        # TODO: add other indices
+        if this_parameter_object_.trigger in ['ndvi', 'evi2']:
+
+            sect_in = this_image_info.read(bands2open=[this_parameter_object_.band_red,
+                                                       this_parameter_object_.band_nir],
+                                           i=i_sect,
+                                           j=j_sect,
+                                           rows=n_rows,
+                                           cols=n_cols,
+                                           d_type='float32')
+
+            vie = VegIndicesEquations(sect_in, chunk_size=-1)
+            sect_in = vie.compute(this_parameter_object_.trigger.upper(), out_type=2)
+
+            this_parameter_object_.min = 0
+            this_parameter_object_.max = 255
+
+        elif this_parameter_object_.trigger == 'dmp':
+
+            sect_in = np.asarray([this_image_info.read(bands2open=dmp_bd,
+                                                       i=i_sect,
+                                                       j=j_sect,
+                                                       rows=n_rows,
+                                                       cols=n_cols,
+                                                       d_type='float32')
+                                  for dmp_bd in range(1, this_image_info.bands+1)]).reshape(this_image_info.bands,
+                                                                                            n_rows,
+                                                                                            n_cols)
+
+        elif this_parameter_object_.trigger == 'saliency':
+
+            sect_in = spsplit.saliency(this_image_info,
+                                       this_parameter_object_,
+                                       i_sect,
+                                       j_sect,
+                                       n_rows,
+                                       n_cols)
+
+        elif this_parameter_object_.trigger == 'grad':
+
+            sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
+                                                           i_sect,
+                                                           j_sect,
+                                                           n_rows,
+                                                           n_cols)
+
+            sect_in = get_mag_avg(sect_in)
+            this_parameter_object_.update_info(min=0, max=255)
+
+        elif this_parameter_object_.use_rgb and this_parameter_object_.trigger not in ['grad', 'ndvi', 'evi2', 'dmp', 'saliency']:
+
+            sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
+                                                           i_sect,
+                                                           j_sect,
+                                                           n_rows,
+                                                           n_cols)
+
         else:
 
-            os.remove(this_parameter_object_.out_img)
-            mts_.status_dict[this_parameter_object_.out_img_base] = 'incomplete'
+            sect_in = this_image_info.read(bands2open=this_parameter_object_.band_position,
+                                           i=i_sect,
+                                           j=j_sect,
+                                           rows=n_rows,
+                                           cols=n_cols)
 
-    i_sect = section_pair[0]
-    j_sect = section_pair[1]
+        # Pad the array.
+        #   (top, bottom), (left, right)
+        this_parameter_object_.update_info(i_sect_blk_ctr=1,
+                                           j_sect_blk_ctr=1)
 
-    n_rows = raster_tools.n_rows_cols(i_sect, this_parameter_object_.sect_row_size, this_image_info.rows)
-    n_cols = raster_tools.n_rows_cols(j_sect, this_parameter_object_.sect_col_size, this_image_info.cols)
+        sect_in = sputilities.pad_array(this_parameter_object_, sect_in, n_rows, n_cols)
 
-    # Open the image array.
-    # TODO: add other indices
-    if this_parameter_object_.trigger in ['ndvi', 'evi2']:
+        if this_parameter_object_.trigger == 'dmp':
 
-        sect_in = this_image_info.read(bands2open=[this_parameter_object_.band_red,
-                                                   this_parameter_object_.band_nir],
-                                       i=i_sect,
-                                       j=j_sect,
-                                       rows=n_rows,
-                                       cols=n_cols,
-                                       d_type='float32')
+            l_rows, l_cols = sect_in[0].shape
+            oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows,
+                                                              l_cols,
+                                                              this_parameter_object_)
+        else:
 
-        vie = VegIndicesEquations(sect_in, chunk_size=-1)
-        sect_in = vie.compute(this_parameter_object_.trigger.upper(), out_type=2)
+            l_rows, l_cols = sect_in.shape
+            oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows,
+                                                              l_cols,
+                                                              this_parameter_object_)
 
-        this_parameter_object_.min = 0
-        this_parameter_object_.max = 255
+        # out_section_array = None
 
-    elif this_parameter_object_.trigger == 'dmp':
+        # Only extract features if the section hasn't
+        #   been completed or if the section does not
+        #   contain all zeros.
+        # if sect_in.max() > 0:
 
-        sect_in = np.asarray([this_image_info.read(bands2open=dmp_bd,
-                                                   i=i_sect,
-                                                   j=j_sect,
-                                                   rows=n_rows,
-                                                   cols=n_cols,
-                                                   d_type='float32')
-                              for dmp_bd in range(1, this_image_info.bands+1)]).reshape(this_image_info.bands,
-                                                                                        n_rows,
-                                                                                        n_cols)
+        # Here we split the current section into
+        #   chunks and process the features.
 
-    elif this_parameter_object_.trigger == 'saliency':
+        # Split image and compute features.
+        section_stats_array = spsplit.get_section_stats(sect_in,
+                                                        l_rows,
+                                                        l_cols,
+                                                        this_parameter_object_,
+                                                        section_counter)
 
-        sect_in = spsplit.saliency(this_image_info,
-                                   this_parameter_object_,
-                                   i_sect,
-                                   j_sect,
-                                   n_rows,
-                                   n_cols)
+        # Reshape list of features into
+        #   <features x rows x columns> array.
+        out_section_array = spreshape.chunks2section(this_parameter_object_.trigger,
+                                                     section_stats_array,
+                                                     oR,
+                                                     oC,
+                                                     l_rows,
+                                                     l_cols,
+                                                     out_rows,
+                                                     out_cols,
+                                                     this_parameter_object_)
 
-    elif this_parameter_object_.trigger == 'grad':
-
-        sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
-                                                       i_sect,
-                                                       j_sect,
-                                                       n_rows,
-                                                       n_cols)
-
-        sect_in = get_mag_avg(sect_in)
-        this_parameter_object_.update_info(min=0, max=255)
-
-    elif this_parameter_object_.use_rgb and this_parameter_object_.trigger not in ['grad', 'ndvi', 'evi2', 'dmp', 'saliency']:
-
-        sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
-                                                       i_sect,
-                                                       j_sect,
-                                                       n_rows,
-                                                       n_cols)
-
-    else:
-
-        sect_in = this_image_info.read(bands2open=this_parameter_object_.band_position,
-                                       i=i_sect,
-                                       j=j_sect,
-                                       rows=n_rows,
-                                       cols=n_cols)
-
-    # Pad the array.
-    #   (top, bottom), (left, right)
-    this_parameter_object_.update_info(i_sect_blk_ctr=1,
-                                       j_sect_blk_ctr=1)
-
-    sect_in = sputilities.pad_array(this_parameter_object_, sect_in, n_rows, n_cols)
-
-    if this_parameter_object_.trigger == 'dmp':
-
-        l_rows, l_cols = sect_in[0].shape
-        oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows,
-                                                          l_cols,
-                                                          this_parameter_object_)
-    else:
-
-        l_rows, l_cols = sect_in.shape
-        oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows,
-                                                          l_cols,
-                                                          this_parameter_object_)
-
-    # out_section_array = None
-
-    # Only extract features if the section hasn't
-    #   been completed or if the section does not
-    #   contain all zeros.
-    # if sect_in.max() > 0:
-
-    # Here we split the current section into
-    #   chunks and process the features.
-
-    # Split image and compute features.
-    section_stats_array = spsplit.get_section_stats(sect_in,
-                                                    l_rows,
-                                                    l_cols,
-                                                    this_parameter_object_)
-
-    # Reshape list of features into
-    #   <features x rows x columns> array.
-    out_section_array = spreshape.chunks2section(this_parameter_object_.trigger,
-                                                 section_stats_array,
-                                                 oR,
-                                                 oC,
-                                                 l_rows,
-                                                 l_cols,
-                                                 out_rows,
-                                                 out_cols,
-                                                 this_parameter_object_)
-
-    _write_section2file(this_parameter_object_,
-                        this_image_info,
-                        out_section_array,
-                        i_sect,
-                        j_sect,
-                        section_counter)
+        _write_section2file(this_parameter_object_,
+                            this_image_info,
+                            out_section_array,
+                            i_sect,
+                            j_sect,
+                            section_counter)
 
     this_parameter_object_ = None
     this_image_info_ = None
@@ -280,8 +322,6 @@ def run(parameter_object):
         do_pca=False, stack_feas=True, stack_only=False, band_red=3, band_nir=4, neighbors=False, n_jobs=-1,
         reset_sects=False, image_max=0, lac_r=2, section_size=8000, chunk_size=512
     """
-
-    global this_parameter_object, this_image_info
 
     sputilities.parameter_checks(parameter_object)
 
@@ -303,7 +343,13 @@ def run(parameter_object):
 
         # Setup the status dictionary.
         if os.path.isfile(parameter_object.status_file):
+
             mts.load_status()
+
+            if not hasattr(mts, 'status_dict'):
+                errors.logger.error('The YAML file already existed, but was not properly stored and saved.\nPlease remove and re-run.')
+                raise AttributeError
+
         else:
 
             mts.status_dict = dict()
@@ -316,7 +362,7 @@ def run(parameter_object):
             for trigger in parameter_object.triggers:
 
                 mts.status_dict['band_order']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger],
-                                                                                         parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger])
+                                                                                         parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger]-1)
 
             mts.dump_status()
 
@@ -334,10 +380,13 @@ def run(parameter_object):
             errors.logger.warning('The input image, {}, is set as finished processing.'.format(parameter_object.input_image))
         else:
 
+            original_band_positions = copy.copy(parameter_object.band_positions)
+
             # Iterate over each feature trigger.
             for trigger in parameter_object.triggers:
 
-                parameter_object.update_info(trigger=trigger)
+                parameter_object.update_info(trigger=trigger,
+                                             band_positions=original_band_positions)
 
                 # Iterate over each band
                 for band_position in parameter_object.band_positions:
@@ -366,15 +415,15 @@ def run(parameter_object):
                         #   the image (only used as a counter).
                         parameter_object = sputilities.get_n_sects(i_info, parameter_object)
 
-                        this_parameter_object = parameter_object.copy()
-                        this_image_info = i_info.copy()
-
-                        Parallel(n_jobs=parameter_object.n_jobs_section,
-                                 max_nbytes=None)(delayed(_section_read_write)(idx_pair,
-                                                                               parameter_object.section_idx_pairs[idx_pair-1])
-                                                  for idx_pair in range(1, parameter_object.n_sects+1))
-
                     i_info = None
+
+                    parameter_dict = sputilities.class2dict(parameter_object)
+
+                    Parallel(n_jobs=parameter_object.n_jobs_section,
+                             max_nbytes=None)(delayed(_section_read_write)(idx_pair,
+                                                                           parameter_object.section_idx_pairs[idx_pair-1],
+                                                                           parameter_dict)
+                                              for idx_pair in range(1, parameter_object.n_sects+1))
 
         # Check the corruption status
         mts.load_status()

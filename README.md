@@ -55,7 +55,13 @@ Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
 > python setup.py build && python setup.py install
 ```
 
-#### Installing with bash or CMD installers
+Dependencies:
+
+```text
+pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL retrying
+```
+
+#### Installing with the bash or CMD installers
 
 1) Open INSTALLATION.ipynb under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
 

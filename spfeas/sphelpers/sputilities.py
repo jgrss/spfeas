@@ -120,6 +120,46 @@ def set_yaml_file(parameter_object):
                                                                 '-'.join(parameter_object.triggers)))
 
 
+def class2dict(class2convert):
+
+    """Converts a class to a dictionary"""
+
+    parameter_dict = dict()
+
+    for attribute in [a for a in dir(class2convert) if not a.startswith('__')]:
+
+        if attribute not in ['copy', 'set_defaults', 'run', 'update_info']:
+            parameter_dict[attribute] = getattr(class2convert, attribute)
+
+    return parameter_dict
+
+
+class DictClass(object):
+
+    def __init__(self, input_dict):
+        self._convert(input_dict)
+
+    def _convert(self, input_dict):
+
+        for ks, vs in input_dict.iteritems():
+            setattr(self, ks, vs)
+
+    def copy(self):
+        return copy.copy(self)
+
+    def update_info(self, **kwargs):
+
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+
+
+def dict2class(dict2convert):
+
+    """Converts a dictionary to a class"""
+
+    return DictClass(dict2convert)
+
+
 def scale_fea_check(parameter_object, is_image=True):
 
     """
