@@ -14,10 +14,8 @@ Version 0.2.0
 
 ```text
 <OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%.yaml
-```
 
-**Example:**
-```text
+Example:
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
 ```
 
@@ -25,10 +23,8 @@ out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
 
 ```text
 <OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%/<FILENAME>__BD#_BK#_SC#_ST1-###_TL######.tif
-```
 
-**Example:**
-```text
+Example:
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000001.tif
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000002.tif
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
@@ -74,6 +70,11 @@ Print examples:
 
 ```text
 spfeas -e
+```
+
+Full usage:
+```text
+spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 4 8 --sect-size 1000 --chunk-size 100 --n-jobs-section -1 --n-jobs-chunk -1 --overviews
 ```
 
 #### Detailed examples
