@@ -44,14 +44,16 @@ TL = tile position
 Installation
 ------------
 
-#### Upgrading SpFeas only
+#### Installing or upgrading from source
 
 ```text
 > pip uninstall spfeas
-> pip install SpFeas-0.2.0.tar.gz
+> git clone https://github.com/jgrss/spfeas.git
+> cd spfeas/
+> python setup.py build && python setup.py install
 ```
 
-#### Installation instructions
+#### Installing with bash or CMD installers
 
 1) Open INSTALLATION.ipynb under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
 
