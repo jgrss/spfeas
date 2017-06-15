@@ -36,7 +36,7 @@ except:
     raise ImportError('retrying must be installed')
 
 
-@retry(wait_fixed=1000, stop_max_attempt_number=10)
+@retry(wait_fixed=3000, stop_max_attempt_number=10)
 def _update_status(are_corrupted, param_info, yaml_info, is_finished):
 
     """Updates the YAML status dictionary"""
