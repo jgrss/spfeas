@@ -29,31 +29,36 @@ try:
 except ImportError:
     raise ImportError('NumPy must be installed')
 
-# retry
-try:
-    from retrying import retry
-except:
-    raise ImportError('retrying must be installed')
+
+# @retry(wait_fixed=3000, retry_on_result=_retry_if_dict_not_loaded, stop_max_attempt_number=10)
+# def _load_status(yaml_info_dict):
+#     yaml_info_dict.load_status()
+#     return yaml_info_dict
 
 
-@retry(wait_fixed=3000, stop_max_attempt_number=10)
-def _update_status(are_corrupted, param_info, yaml_info, is_finished):
+# @retry(wait_fixed=3000, stop_max_attempt_number=10)
+# def _dump_status(yaml_info_dict):
+#     yaml_info_dict.dump_status()
 
-    """Updates the YAML status dictionary"""
 
-    if param_info.out_img_base not in yaml_info.status_dict:
-        yaml_info.status_dict[param_info.out_img_base] = dict()
-
-    if are_corrupted:
-        yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'corrupt'
-    else:
-
-        if is_finished:
-            yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'complete'
-        else:
-            yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'incomplete'
-
-    yaml_info.dump_status()
+# @retry(retry_on_result=_retry_if_not_loaded, stop_max_attempt_number=10)
+# def _update_status(are_corrupted, param_info, yaml_info, is_finished):
+#
+#     """Updates the YAML status dictionary"""
+#
+#     if param_info.out_img_base not in yaml_info.status_dict:
+#         yaml_info.status_dict[param_info.out_img_base] = dict()
+#
+#     if are_corrupted:
+#         yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'corrupt'
+#     else:
+#
+#         if is_finished:
+#             yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'complete'
+#         else:
+#             yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'incomplete'
+#
+#     _dump_status(yaml_info)
 
 
 def _write_section2file(this_parameter_object__, meta_info, section2write, 
@@ -63,7 +68,8 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
     Writes the section array to disk    
     """
     
-    errors.logger.info('  Writing section {:d} to file ...'.format(section_counter))
+    errors.logger.info('  Writing section {:d} of {:d} to file ...'.format(section_counter,
+                                                                           this_parameter_object__.n_sects))
 
     o_info = meta_info.copy()
 
@@ -121,16 +127,23 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
         ob_info.check_corrupted_bands()
 
         # Open the status YAML file.
-        mts_ = sputilities.ManageStatus()
+        mts__ = sputilities.ManageStatus()
 
         errors.logger.info('  Updating status ...')
 
         # Load the status dictionary
-        mts_.status_file = this_parameter_object__.status_file
-        mts_.load_status()
+        mts__.load_status(this_parameter_object__.status_file)
 
         # Update the tile status.
-        _update_status(ob_info.corrupted_bands, this_parameter_object__, mts_, True)
+        if this_parameter_object__.out_img_base not in mts__.status_dict:
+            mts__.status_dict[this_parameter_object__.out_img_base] = dict()
+
+        if ob_info.corrupted_bands:
+            mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'corrupt'
+        else:
+            mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'complete'
+
+        mts__.dump_status(this_parameter_object__.status_file)
 
     ob_info = None
 
@@ -157,8 +170,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
         mts_ = sputilities.ManageStatus()
 
         # Load the status dictionary
-        mts_.status_file = this_parameter_object_.status_file
-        mts_.load_status()
+        mts_.load_status(this_parameter_object_.status_file)
 
         # Check file status.
         if os.path.isfile(this_parameter_object_.out_img):
@@ -167,39 +179,54 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
                 if this_parameter_object_.trigger in mts_.status_dict[this_parameter_object_.out_img_base]:
 
-                    if mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] == 'complete':
+                    # Check every trigger because the
+                    #   entire file needs to be removed.
+                    status_list = [mts_.status_dict[this_parameter_object_.out_img_base][tr]
+                                   for tr in this_parameter_object_.triggers]
+
+                    if 'corrupt' in status_list:
+
+                        errors.logger.info('Re-running {} {} ...'.format(mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger],
+                                                                         this_parameter_object_.out_img))
+
+                        # Remove the file on the first trigger
+                        #   if the file is corrupt.
+                        if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
+                            os.remove(this_parameter_object_.out_img_base)
+
+                        mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
+                        mts_.dump_status(this_parameter_object_.status_file)
+
+                    elif ('corrupt' not in status_list) and ('incomplete' in status_list):
+
+                        errors.logger.info('Re-running {} {} ...'.format(mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger],
+                                                                         this_parameter_object_.out_img))
+
+                    else:
 
                         if this_parameter_object_.overwrite:
 
                             errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
-                            mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
 
-                            _update_status(False, this_parameter_object_, mts_, False)
+                            # Remove the file on the first trigger.
+                            if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
+                                os.remove(this_parameter_object_.out_img_base)
+
+                            mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
+                            mts_.dump_status(this_parameter_object_.status_file)
 
                         else:
 
                             errors.logger.info('{} is already finished ...'.format(this_parameter_object_.out_img))
                             return
 
-                    elif mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] in ['corrupt', 'incomplete']:
-
-                        errors.logger.info('Re-running {} {} ...'.format(mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger],
-                                                                         this_parameter_object_.out_img))
-
-                        mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
-
-                        if mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] == 'corrupt':
-                            _update_status(True, this_parameter_object_, mts_, False)
-                        else:
-                            _update_status(False, this_parameter_object_, mts_, False)
-
             else:
+
+                # Remove the file on the first trigger.
+                if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
+                    os.remove(this_parameter_object_.out_img_base)
+
                 errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
-
-        else:
-
-            # Update the tile status.
-            _update_status(False, this_parameter_object_, mts_, False)
 
         i_sect = section_pair[0]
         j_sect = section_pair[1]
@@ -360,14 +387,13 @@ def run(parameter_object):
 
         # Create the status object.
         mts = sputilities.ManageStatus()
-        mts.status_file = parameter_object.status_file
 
         # Setup the status dictionary.
         if os.path.isfile(parameter_object.status_file):
 
-            mts.load_status()
+            mts.load_status(parameter_object.status_file)
 
-            if not hasattr(mts, 'status_dict'):
+            if not isinstance(mts.status_dict, dict):
                 errors.logger.error('The YAML file already existed, but was not properly stored and saved.\nPlease remove and re-run.')
                 raise AttributeError
 
@@ -384,7 +410,7 @@ def run(parameter_object):
                 mts.status_dict['BAND_ORDER']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger],
                                                                                          parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger]-1)
 
-            mts.dump_status()
+            mts.dump_status(parameter_object.status_file)
 
         process_image = True
 
@@ -446,7 +472,7 @@ def run(parameter_object):
                                               for idx_pair in range(1, parameter_object.n_sects+1))
 
         # Check the corruption status.
-        mts.load_status()
+        mts.load_status(parameter_object.status_file)
 
         n_corrupt = 0
         for k, v in mts.status_dict.items():
@@ -461,7 +487,7 @@ def run(parameter_object):
         if n_corrupt == 0:
 
             mts.status_dict['ALL_FINISHED'] = 'yes'
-            mts.dump_status()
+            mts.dump_status(parameter_object.status_file)
 
             # Finally, mosaic the image tiles.
 
@@ -497,4 +523,8 @@ def run(parameter_object):
                 vrt_info = None
 
         else:
-            errors.logger.warning('\nThere were {:d} corrupt or incomplete tiles.\nRe-run the command with the same parameters.'.format(n_corrupt))
+
+            if n_corrupt == 1:
+                errors.logger.warning('\nThere was {:d} corrupt or incomplete tile.\nRe-run the command with the same parameters.'.format(n_corrupt))
+            else:
+                errors.logger.warning('\nThere were {:d} corrupt or incomplete tiles.\nRe-run the command with the same parameters.'.format(n_corrupt))

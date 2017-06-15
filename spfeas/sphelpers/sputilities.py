@@ -19,6 +19,12 @@ try:
 except ImportError:
     raise ImportError('YAML must be installed')
 
+# retry
+try:
+    from retrying import retry
+except:
+    raise ImportError('retrying must be installed')
+
 
 def write_log(parameter_object):
 
@@ -462,22 +468,44 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
         return luminosity, None, None
 
 
+def _retry_if_not_dict(result):
+
+    if not isinstance(result, dict):
+        return True
+    else:
+        return False
+
+
 class ManageStatus(object):
 
     """A class to manage the processing status with YAML"""
 
-    def load_status(self):
+    def copy(self):
+        return copy.copy(self)
+
+    def load_status(self, status2load):
 
         """Loads the processing status from file"""
 
-        with open(self.status_file, 'r') as pf:
-            self.status_dict = yaml.load(pf)
+        self.status_dict = self._load_status(status2load)
 
-    def dump_status(self):
+        if not isinstance(self.status_dict, dict):
+            errors.logger.error('The loaded object was not a dictionary.')
+
+    @retry(wait_fixed=3000, retry_on_result=_retry_if_not_dict, stop_max_attempt_number=10)
+    def _load_status(self, status2load):
+
+        with open(status2load, 'r') as pf:
+            return yaml.load(pf)
+
+    def dump_status(self, status2dump):
 
         """Dumps the processing status to file"""
 
-        with open(self.status_file, 'w') as pf:
+        if not hasattr(self, 'status_dict'):
+            errors.logger.error('The object does not have a status dictionary.')
+
+        with open(status2dump, 'wb') as pf:
 
             pf.write(yaml.dump(self.status_dict,
                                default_flow_style=False))
