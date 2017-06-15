@@ -14,8 +14,10 @@ Version 0.2.0
 
 ```text
 <OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%.yaml
+```
 
 **Example:**
+```text
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
 ```
 
@@ -23,8 +25,10 @@ out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
 
 ```text
 <OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%/<FILENAME>__BD#_BK#_SC#_ST1-###_TL######.tif
+```
 
 **Example:**
+```text
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000001.tif
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000002.tif
 out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
