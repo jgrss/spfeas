@@ -30,42 +30,19 @@ except ImportError:
     raise ImportError('NumPy must be installed')
 
 
-# @retry(wait_fixed=3000, retry_on_result=_retry_if_dict_not_loaded, stop_max_attempt_number=10)
-# def _load_status(yaml_info_dict):
-#     yaml_info_dict.load_status()
-#     return yaml_info_dict
-
-
-# @retry(wait_fixed=3000, stop_max_attempt_number=10)
-# def _dump_status(yaml_info_dict):
-#     yaml_info_dict.dump_status()
-
-
-# @retry(retry_on_result=_retry_if_not_loaded, stop_max_attempt_number=10)
-# def _update_status(are_corrupted, param_info, yaml_info, is_finished):
-#
-#     """Updates the YAML status dictionary"""
-#
-#     if param_info.out_img_base not in yaml_info.status_dict:
-#         yaml_info.status_dict[param_info.out_img_base] = dict()
-#
-#     if are_corrupted:
-#         yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'corrupt'
-#     else:
-#
-#         if is_finished:
-#             yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'complete'
-#         else:
-#             yaml_info.status_dict[param_info.out_img_base][param_info.trigger] = 'incomplete'
-#
-#     _dump_status(yaml_info)
-
-
 def _write_section2file(this_parameter_object__, meta_info, section2write, 
                         i_sect, j_sect, section_counter):
 
     """
-    Writes the section array to disk    
+    Writes the section array to disk
+
+    Args:
+        this_parameter_object__ (class)
+        meta_info (`rinfo` object)
+        section2write (ndarray)
+        i_sect (int)
+        j_sect (int)
+        section_counter (int)
     """
     
     errors.logger.info('  Writing section {:d} of {:d} to file ...'.format(section_counter,
@@ -151,7 +128,12 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
 def _section_read_write(section_counter, section_pair, param_dict):
 
     """
-    Handles the section reading and writing     
+    Handles the section reading and writing
+
+    Args:
+        section_counter (int)
+        section_pair (tuple)
+        param_dict (dict)
     """
 
     # this_parameter_object_ = this_parameter_object.copy()
@@ -317,13 +299,6 @@ def _section_read_write(section_counter, section_pair, param_dict):
             oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows,
                                                               l_cols,
                                                               this_parameter_object_)
-
-        # out_section_array = None
-
-        # Only extract features if the section hasn't
-        #   been completed or if the section does not
-        #   contain all zeros.
-        # if sect_in.max() > 0:
 
         # Here we split the current section into
         #   chunks and process the features.

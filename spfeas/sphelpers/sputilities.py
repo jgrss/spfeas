@@ -30,6 +30,9 @@ def write_log(parameter_object):
 
     """
     Writes a parameter log to file
+
+    Args:
+        parameter_object (class)
     """
 
     # Setup the log file.
@@ -67,6 +70,9 @@ def parameter_checks(parameter_object):
 
     """
     Checks parameters
+
+    Args:
+        parameter_object (class)
     """
 
     # Ensure the input image exists.
@@ -109,7 +115,12 @@ def parameter_checks(parameter_object):
 
 def set_yaml_file(parameter_object):
 
-    """Sets the output YAML status file"""
+    """
+    Sets the output YAML status file
+
+    Args:
+        parameter_object (class)
+    """
 
     band_pos_str = map(str, parameter_object.band_positions)
 
@@ -128,7 +139,12 @@ def set_yaml_file(parameter_object):
 
 def class2dict(class2convert):
 
-    """Converts a class to a dictionary"""
+    """
+    Converts a class to a dictionary
+
+    Args:
+        class2convert (class)
+    """
 
     parameter_dict = dict()
 
@@ -141,6 +157,8 @@ def class2dict(class2convert):
 
 
 class DictClass(object):
+
+    """A class to convert a dictionary to a class object"""
 
     def __init__(self, input_dict):
         self._convert(input_dict)
@@ -161,7 +179,12 @@ class DictClass(object):
 
 def dict2class(dict2convert):
 
-    """Converts a dictionary to a class"""
+    """
+    Converts a dictionary to a class
+
+    Args:
+        dict2convert (dict)
+    """
 
     return DictClass(dict2convert)
 
@@ -170,6 +193,10 @@ def scale_fea_check(parameter_object, is_image=True):
 
     """
     Checks the scale and feature to set the string name.
+
+    Args:
+        parameter_object (class)
+        is_image (Optional[bool])
 
     Returns:
         Image name as a string
@@ -220,7 +247,7 @@ def scale_fea_check(parameter_object, is_image=True):
 def stack_features(parameter_object, new_feas_list):
 
     """
-    Stack features
+    Stacks features
     """
 
     for trigger in parameter_object.triggers:
@@ -305,6 +332,9 @@ def set_feas_dir(parameter_object):
 
     """
     Prepares directory names
+
+    Args:
+        parameter_object (class)
     """
 
     feas_dir = os.path.join(parameter_object.output_dir, parameter_object.status_file.replace('.yaml', ''))
@@ -336,7 +366,10 @@ def min_max_func(im, im_min, im_max):
 def get_luminosity(im_block):
 
     """
-    Get the pixel-wise average in the visible spectrum
+    Gets the pixel-wise average in the visible spectrum
+
+    Args:
+        im_block (array)
     """
 
     return im_block.mean(axis=0)
@@ -398,20 +431,21 @@ def get_layer_min_max(i_info, layers=[1, 2, 3], rgb=False, block_size=2048):
 def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=False):
 
     """
-    Convert RGB to gray scale array
-
-    0.2125 R + 0.7154 G + 0.0721 B
+    Converts RGB to gray scale array
 
     Args:
         i_info (object of ropen)
-        j_sec (int): Starting column index.
+        j_sect (int): Starting column index.
         i_sect (int): Starting row index.
         n_cols (int)
         n_rows (int)
         rgb (Optional[str]): The order of the visible spectrum bands. Many RGB images or photos
             are stored as red, green, blue. However, with multi-band satellite imagery common storage
             is blue, green, red. Though it may be unorthodox, the default here is blue, green, red, or 'BGR'.
-        stats (Optional[bool]
+        stats (Optional[bool])
+
+    Equation:
+        0.2125 R + 0.7154 G + 0.0721 B
     """
 
     if stats:
@@ -524,27 +558,11 @@ def create_outputs(parameter_object, new_feas_list, image_info):
 
             parameter_object = scale_fea_check(parameter_object)
 
-            # Set the status dictionary.
-            # parameter_object = sputilities.set_status(parameter_object)
-
             new_feas_list.append(parameter_object.out_img)
 
             # Only create a new feature if the file does not exist
             if create_band(image_info, parameter_object, 1):
                 continue
-
-            # if parameter_object.feature_status == -999:
-            #
-            #     sputilities.create_band(i_info, parameter_object, 1)
-            #
-            #     # set the status as created
-            #     parameter_object.status_dict[parameter_object.out_img_base] = 0
-            #
-            # # Store the status dictionary
-            # with open(parameter_object.status_dict_txt, 'w') as pf:
-            #
-            #     pf.write(yaml.dump(parameter_object.status_dict,
-            #                        default_flow_style=False))
 
             obds += 1
 
@@ -552,6 +570,14 @@ def create_outputs(parameter_object, new_feas_list, image_info):
 
 
 def get_sect_chunk_size(image_info, parameter_object):
+
+    """
+    Gets section and chunk sizes
+
+    Args:
+        image_info (`rinfo` object)
+        parameter_object (class)
+    """
 
     # get section and chunk size
     if image_info.rows <= parameter_object.section_size:
@@ -573,18 +599,18 @@ def get_sect_chunk_size(image_info, parameter_object):
 def get_output_info_tile(meta_info, image_info, tile_parameter_object, i_sect, j_sect, section_shape):
 
     """
-    Get the adjusted output image information
+    Gets the adjusted output image information
 
     Args:
-        meta_info -- MapPy class object
-        i_info -- MapPy class object
-        max_sc -- int
-            : maximum scale used
-        blk_size -- int
-            : block size to write to
+        meta_info (`rinfo` object)
+        image_info (`rinfo` object)
+        tile_parameter_object
+        i_sect (int)
+        j_sect (int)
+        section_shape (tuple)
 
     Returns:
-        Updated MapPy class information object
+        Updated `rinfo` object
     """
 
     if len(section_shape) > 2:
@@ -675,6 +701,14 @@ def create_band(meta_info, parameter_object, out_bands, blocks=True):
 
 def get_stats(image_info, parameter_object):
 
+    """
+    Sets the image statistics
+
+    Args:
+         image_info (`rinfo` object)
+         parameter_object (class)
+    """
+
     image_min = 0
 
     # Let's make some assumptions
@@ -691,42 +725,6 @@ def get_stats(image_info, parameter_object):
 
     parameter_object.update_info(min=image_min,
                                  max=image_max)
-
-    # Check available cpu memory
-    # available_space = psutil.virtual_memory().available * 9.53674e-7
-    #
-    # rows_and_cols = image_info.rows * image_info.cols
-    #
-    # if (25000000 < rows_and_cols < 64000000) and (available_space > 8000):
-    #
-    #     if parameter_object.use_rgb:
-    #
-    #         __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
-    #
-    #     else:
-    #
-    #         if parameter_object.image_max > 0:
-    #             mx = parameter_object.image_max
-    #             mn = 0
-    #         else:
-    #             mx = image_info.read(bands2open=parameter_object.band_position).max()
-    #             mn = image_info.read(bands2open=parameter_object.band_position).min()
-    #
-    # else:
-    #
-    #     if parameter_object.use_rgb:
-    #
-    #         __, mn, mx = convert_rgb2gray(image_info, None, None, None, None, stats=True)
-    #
-    #     else:
-    #
-    #         if parameter_object.image_max > 0:
-    #             mx = parameter_object.image_max
-    #             mn = 0
-    #         else:
-    #             mn, mx, __, __ = image_info.get_stats(parameter_object.band_position)
-    #
-    # parameter_object.update_info(min=mn, max=mx)
 
     return parameter_object
 
@@ -766,6 +764,14 @@ def set_status(parameter_object):
 
 def get_n_sects(image_info, parameter_object):
 
+    """
+    Gets the section information
+
+    Args:
+        image_info (`rinfo` object)
+        parameter_object (class)
+    """
+
     row_sections = [i_sect for i_sect in range(0, image_info.rows,
                                                parameter_object.sect_row_size -
                                                (parameter_object.scales[-1] - parameter_object.block))]
@@ -799,6 +805,16 @@ def get_n_sects(image_info, parameter_object):
 
 
 def pad_array(parameter_object, array_section, n_rows, n_cols):
+
+    """
+    Pads the array
+
+    Args:
+        parameter_object (class)
+        array_section (2d array)
+        n_rows (int)
+        n_cols (int)
+    """
 
     # pad left and top
     if parameter_object.scales[-1] != parameter_object.block:
