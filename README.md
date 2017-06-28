@@ -49,11 +49,11 @@ Installation
 Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
 
 ```text
-> pip uninstall spfeas
-> git clone https://github.com/jgrss/spfeas.git
-> cd spfeas/
-> python setup.py build
-> python setup.py install
+pip uninstall spfeas
+git clone https://github.com/jgrss/spfeas.git
+cd spfeas/
+python setup.py build
+python setup.py install
 ```
 
 Dependencies:
