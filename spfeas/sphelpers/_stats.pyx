@@ -163,13 +163,38 @@ cdef inline DTYPE_float32_t _get_line_length(DTYPE_float32_t y1, DTYPE_float32_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef int _get_output_length(int rows,
+                            int cols,
+                            int scales_block,
+                            int block_size,
+                            int scale_length,
+                            int n_features):
+
+    cdef:
+        Py_ssize_t i, j, ki
+        int out_len = 0
+
+    with nogil:
+
+        for i from 0 <= i < rows-scales_block by block_size:
+
+            for j from 0 <= j < cols-scales_block by block_size:
+
+                for ki in range(0, scale_length):
+                    out_len += n_features
+
+    return out_len
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef DTYPE_float32_t _get_min_f(DTYPE_float32_t[:] in_row, int cols):
 
     cdef:
         Py_ssize_t a
         DTYPE_float32_t m = 100000000.
 
-    for a in xrange(0, cols):
+    for a in range(0, cols):
     # for a in prange(0, cols, nogil=True, num_threads=cols, schedule='static'):
         m = _get_min_sample(m, in_row[a])
 
@@ -184,8 +209,8 @@ cdef DTYPE_uint8_t _get_min(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
         Py_ssize_t bi, bj
         DTYPE_uint8_t m = 255
 
-    for bi in xrange(0, rs):
-        for bj in xrange(0, cs):
+    for bi in range(0, rs):
+        for bj in range(0, cs):
 
             m = _get_min_sample_int(m, block[bi, bj])
 
@@ -202,8 +227,8 @@ cdef DTYPE_float32_t _get_max_f2d(DTYPE_float32_t[:, :] block, int rs, int cs):
 
     with nogil:
 
-        for bi in xrange(0, rs):
-            for bj in xrange(0, cs):
+        for bi in range(0, rs):
+            for bj in range(0, cs):
 
                 m = _get_max_sample(m, block[bi, bj])
 
@@ -218,8 +243,8 @@ cdef int _get_max(DTYPE_uint8_t[:, :] block, Py_ssize_t rs, Py_ssize_t cs) nogil
         Py_ssize_t bi, bj
         int m = -255
 
-    for bi in xrange(0, rs):
-        for bj in xrange(0, cs):
+    for bi in range(0, rs):
+        for bj in range(0, cs):
 
             m = _get_max_sample_int(m, block[bi, bj])
 
@@ -234,7 +259,7 @@ cdef DTYPE_float32_t _get_max_f(DTYPE_float32_t[:] in_row, int cols) nogil:
         Py_ssize_t a
         DTYPE_float32_t m = in_row[0]
 
-    for a in xrange(1, cols):
+    for a in range(1, cols):
         m = _get_max_sample(m, in_row[a])
 
     return m
@@ -256,7 +281,7 @@ cdef DTYPE_float32_t get_sum_1d(DTYPE_float32_t[:] block):
     with nogil:
 
         # for i in prange(1, samps, nogil=True, num_threads=samps, schedule='static'):
-        for i in xrange(1, samps):
+        for i in range(1, samps):
             the_sum += block[i]
 
     return the_sum
@@ -653,7 +678,7 @@ cdef DTYPE_float32_t _get_mean_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
 #     cdef int samps = len(block)
 #     cdef DTYPE_float64_t the_sum = block[0]
 #
-#     for idx in xrange(1, samps):
+#     for idx in range(1, samps):
 #         the_sum += block[idx]
 #
 #     return the_sum / samps
@@ -874,6 +899,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         int n_kernels = np.asarray(kernels).shape[0]
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         # list ch_bd_k = []
+        np.ndarray[DTYPE_float32_t, ndim=3] ch_bdka_array = np.zeros((n_kernels, rows, cols), dtype='float32')
         DTYPE_float32_t[:, :, :] ch_bdka = np.zeros((n_kernels, rows, cols), dtype='float32')
         # DTYPE_float32_t[:, :] ch_bd_gabor, ch_bd_gabor_c
         # DTYPE_float32_t[:] sts
@@ -898,8 +924,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         dist_weights_m.append(_create_weights(dist_weights, rs, cs))
 
     for kl in range(0, n_kernels):
-        ch_bdka[kl] = np.float32(cv2.filter2D(np.float32(chBd), cv2.CV_32F, np.float32(kernels[kl])))
-        # ch_bd_k.append(np.float32(cv2.filter2D(np.float32(chBd), cv2.CV_32F, np.float32(kernels[kl]))))
+        ch_bdka_array[kl] = cv2.filter2D(np.float32(chBd), cv2.CV_32F, np.float32(kernels[kl]))
+
+    ch_bdka = ch_bdka_array
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -910,7 +937,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
 
                     k_half = <int>(k / 2)
 
-                    ch_bd = ch_bdka[kl, i+scales_half-k_half:i+scales_half-k_half+k,
+                    ch_bd = ch_bdka[kl,
+                                    i+scales_half-k_half:i+scales_half-k_half+k,
                                     j+scales_half-k_half:j+scales_half-k_half+k]
 
                     bcr = ch_bd.shape[0]
@@ -919,6 +947,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
                     _get_weighted_mean_var(ch_bd, dist_weights_m[ki], bcr, bcc, in_zs)
 
                     for pi in range(0, 2):
+
                         out_list[pix_ctr] = in_zs[pi]
                         pix_ctr += 1
 
@@ -965,11 +994,13 @@ def feature_gabor(np.ndarray chBd, int blk, list scs, int end_scale, list kernel
 
     scale_length = scales_array.shape[0]
 
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in range(0, scale_length):
-                for kl in range(0, n_kernels):
-                    out_len += 2
+    with nogil:
+
+        for i from 0 <= i < rows-scales_block by blk:
+            for j from 0 <= j < cols-scales_block by blk:
+                for ki in range(0, scale_length):
+                    for kl in range(0, n_kernels):
+                        out_len += 2
 
     return _feature_gabor(np.float32(chBd), blk, scales_array, out_len, scales_half,
                           scales_block, kernels, rows, cols, scale_length)
@@ -1022,7 +1053,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
+            for ki in range(0, scale_length):
 
                 k = scs[ki]
 
@@ -1041,7 +1072,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
                                                 cells_per_block=(1, 1))),
                                  sts)
 
-                    for sti in xrange(0, 7):
+                    for sti in range(0, 7):
 
                         out_list[pix_ctr] = sts[sti]
 
@@ -1062,16 +1093,11 @@ def feature_hog(np.ndarray chbd,
         Py_ssize_t i, j, ki
         int scales_half = int(end_scale / 2)
         int scales_block = end_scale - blk
-        int out_len = 0
         int rows = chbd.shape[0]
         int cols = chbd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
-                out_len += 7
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 7)
 
     return _feature_hog(np.float32(chbd), blk, scales_array, end_scale,
                         scales_half, scales_block, out_len, rows, cols, scale_length)
@@ -1387,22 +1413,15 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
         Py_ssize_t i, j, ki, k
         int scales_half = int(end_scale / 2)
         int scales_block = end_scale - blk
-        int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
-        int n_scales = scales_array.shape[0]
+        int scale_length = scales_array.shape[0]
         DTYPE_uint16_t[:, :] rcc = np.zeros((4, end_scale), dtype='uint16')
         DTYPE_float32_t[:] histogram = np.zeros(end_scale, dtype='float32')
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 6)
 
-    with nogil:
-
-        for i from 0 <= i < rows-scales_block by blk:
-            for j from 0 <= j < cols-scales_block by blk:
-                for ki in range(0, n_scales):
-                    out_len += 6
-
-    return _feature_sfs(chBd, blk, scales_array, n_scales, thresh_hom, scales_half,
+    return _feature_sfs(chBd, blk, scales_array, scale_length, thresh_hom, scales_half,
                         scales_block, out_len, rows, cols, skip_factor, rcc, histogram)
 
 
@@ -1444,7 +1463,7 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
 #
 #     for i from 0 <= i < rows-scales_block by blk:
 #         for j from 0 <= j < cols-scales_block by blk:
-#             for ki in xrange(0, n_scales):
+#             for ki in range(0, n_scales):
 #                 out_len += 4
 #
 #     # set the output list
@@ -1455,12 +1474,12 @@ def feature_sfs(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int e
 #
 #     for i from 0 <= i < rows-scales_block by blk:
 #         for j from 0 <= j < cols-scales_block by blk:
-#             for ki in xrange(0, n_scales):
+#             for ki in range(0, n_scales):
 #
 #                 sts = _feature_surf(chBd[i+scales_half-k_half:i+scales_half-k_half+k,
 #                                     j+scales_half-k_half:j+scales_half-k_half+k], kPts, j, i, k, scs)
 #
-#                 for st in xrange(0, 4):
+#                 for st in range(0, 4):
 #
 #                     out_list[pix_ctr] = sts[st]
 #
@@ -1627,18 +1646,11 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd,
         Py_ssize_t i, j, ki
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
-        int out_len = 0
         int rows = ch_bd.shape[0]
         int cols = ch_bd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-
-    with nogil:
-
-        for i from 0 <= i < rows-scales_block by blk:
-            for j from 0 <= j < cols-scales_block by blk:
-                for ki in range(0, scale_length):
-                    out_len += 7
+        out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 7)
 
     return np.float32(_feature_orb(ch_bd, blk, scales_array,
                                    scales_half, scales_block, scale_length,
@@ -1663,7 +1675,7 @@ cdef _set_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int rows, int cols):
         np.ndarray[DTYPE_uint8_t, ndim=3] lbpBd = np.zeros((len(p_range), rows, cols), dtype='uint8')
 
     # run lBP for each scale
-    for scsc in xrange(0, len(p_range)):
+    for scsc in range(0, len(p_range)):
         lbpBd[scsc] = LBP(chBd, p_range[scsc], Rdict[p_range[scsc]], 'uniform')
 
     return lbpBd, p_range
@@ -1687,12 +1699,12 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(np.ndarray[DTYPE_uint8_t, 
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         np.ndarray[DTYPE_uint8_t, ndim=1] out_list
-        int out_len = 0
         int pix_ctr = 0
         DTYPE_uint16_t k, k_half
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
         np.ndarray[DTYPE_float32_t, ndim=1] out_list_a
+        int out_len
 
     # get the LBP images
     lbpBd, p_range = _set_lbp(chBd, rows, cols)
@@ -1700,10 +1712,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(np.ndarray[DTYPE_uint8_t, 
     # count of bins for all p,r LBP pairs
     pr_bin_count = np.sum([pr+2 for pr in p_range])
 
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
-                out_len += pr_bin_count
+    out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, pr_bin_count)
 
     # set the output list
     out_list = np.empty(out_len, dtype='uint8')
@@ -1766,27 +1775,22 @@ cdef list _feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list sc
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         np.ndarray[DTYPE_float64_t, ndim=1] out_list
-        int out_len = 0
         int pix_ctr = 0
         DTYPE_uint16_t k, k_half
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
         DTYPE_float32_t[:] sts = np.zeros(7, dtype='float32')
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 7)
 
     # get the LBP images
     lbpBd, p_range = _set_lbp(chBd, rows, cols)
-
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
-                out_len += 7
 
     # set the output list
     out_list = np.zeros(out_len).astype(np.float64)
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
+            for ki in range(0, scale_length):
 
                 k = scales_array[ki]
 
@@ -1799,7 +1803,7 @@ cdef list _feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list sc
                 _get_moments(np.concatenate([np.bincount(ch_bd[p_range.index(pc)].flat, minlength=pc+2)
                                              for pc in p_range]).astype(np.float32), sts)
 
-                for sti in xrange(0, 7):
+                for sti in range(0, 7):
 
                     out_list[pix_ctr] = sts[sti]
 
@@ -2001,7 +2005,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t
 
             # get the matching dimensions at each scale
             # and get line statistics
-            for ki in xrange(0, scale_length):
+            for ki in range(0, scale_length):
 
                 k = scales_array[ki]
 
@@ -2033,16 +2037,11 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
         int cols = chBd.shape[1]
         list sts
         DTYPE_float64_t st
-        int out_len = 0
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
-                out_len += 4
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 4)
 
     return _feature_hough(chBd, blk, scales_array, scales_half, scales_block, scale_length,
                           out_len, rows, cols, threshold, min_len, line_gap, end_scale)
@@ -2130,17 +2129,17 @@ cdef void _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
     distances_ = distances.shape[0]
 
     # Get the sums
-    for a_idx in xrange(0, angles_):
+    for a_idx in range(0, angles_):
 
-        for d_idx in xrange(0, distances_):
+        for d_idx in range(0, distances_):
 
             # angle_dist_sum = 0.
 
             # Iterate over the co-occurrence array
             #   and normalize.
-            for r in xrange(0, levels):
+            for r in range(0, levels):
 
-                for c in xrange(0, levels):
+                for c in range(0, levels):
                     glcm_normed_[r, c, d_idx, a_idx] += (Pt[r, c, d_idx, a_idx] / Pt_sums[d_idx, a_idx])
 
 
@@ -2160,16 +2159,16 @@ cdef void _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
 #     distances_ = distances.shape[0]
 #
 #     # Get the sums
-#     for a_idx in xrange(0, angles_):
+#     for a_idx in range(0, angles_):
 #
-#         for d_idx in xrange(0, distances_):
+#         for d_idx in range(0, distances_):
 #
 #             # angle_dist_sum = 0.
 #
 #             # Iterate over the image
-#             for r in xrange(0, levels):
+#             for r in range(0, levels):
 #
-#                 for c in xrange(0, levels):
+#                 for c in range(0, levels):
 #
 #                     value2check = glcm_mat_nan[r, c, d_idx, a_idx]
 #
@@ -2245,7 +2244,7 @@ cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P,
 #     # cdef:
 #     #     Py_ssize_t dV, dist
 #     #     # np.ndarray[DTYPE_float32_t, ndim=1] gmat = np.asarray([greycoprops(glcm_mat, 'contrast')[dist-1][dV]
-#     #     #                                                        for dV in xrange(0, len(dispVect))
+#     #     #                                                        for dV in range(0, len(dispVect))
 #     #     #                                                        for dist in dists]).astype(np.float32)
 #
 #     return _glcm_contrast(glcm_mat, distances, angles, levels, contrast_array)
@@ -2261,8 +2260,8 @@ cdef DTYPE_float32_t[:, :] _set_contrast_weights(int levels):
         Py_ssize_t li, lj
         DTYPE_float32_t[:, :] contrast_array = np.zeros((levels, levels), dtype='float32')
 
-    for li in xrange(0, levels):
-        for lj in xrange(0, levels):
+    for li in range(0, levels):
+        for lj in range(0, levels):
             contrast_array[li, lj] = pow(li-lj, 2)
 
     return contrast_array
@@ -2329,7 +2328,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
             for i from 0 <= i < rows-scales_block by blk:
                 for j from 0 <= j < cols-scales_block by blk:
-                    for ki in xrange(0, scale_length):
+                    for ki in range(0, scale_length):
 
                         k = scs[ki]
 
@@ -2371,7 +2370,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
             for i from 0 <= i < rows-scales_block by blk:
                 for j from 0 <= j < cols-scales_block by blk:
-                    for ki in xrange(0, scale_length):
+                    for ki in range(0, scale_length):
 
                         k = scs[ki]
 
@@ -2414,18 +2413,11 @@ def feature_pantex(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, in
         Py_ssize_t i, j, ki
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
-        int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-
-    with nogil:
-
-        for i from 0 <= i < rows-scales_block by blk:
-            for j from 0 <= j < cols-scales_block by blk:
-                for ki in xrange(0, scale_length):
-                    out_len += 1
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 1)
 
     return _feature_pantex(chBd, blk, scales_array, scales_half, scales_block,
                            out_len, weighted, rows, cols, scale_length)
@@ -2441,8 +2433,8 @@ cdef DTYPE_float32_t[:, :] _create_weights(DTYPE_float32_t[:, :] dist_weights, i
         DTYPE_float32_t rm = rs / 2.
         DTYPE_float32_t cm = cs / 2.
 
-    for ri in xrange(0, rs):
-        for rj in xrange(0, cs):
+    for ri in range(0, rs):
+        for rj in range(0, cs):
             dist_weights[ri, rj] = _euclidean_distance(cm, rm, float(rj), float(ri))
 
     return dist_weights
@@ -2485,7 +2477,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
 
         for i from 0 <= i < rows-scales_block by blk:
             for j from 0 <= j < cols-scales_block by blk:
-                for ki in xrange(0, scale_length):
+                for ki in range(0, scale_length):
 
                     k = scs[ki]
 
@@ -2502,7 +2494,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
 
                     _get_weighted_mean_var(block_chunk, dw, bcr, bcc, in_zs)
 
-                    for pi in xrange(0, 2):
+                    for pi in range(0, 2):
 
                         out_list[pix_ctr] = in_zs[pi]
 
@@ -2530,7 +2522,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
 #
 #     for i from 0 <= i < rows-scales_block by blk:
 #         for j from 0 <= j < cols-scales_block by blk:
-#             for ki in xrange(0, scale_length):
+#             for ki in range(0, scale_length):
 #
 #                 k = scs[ki]
 #
@@ -2558,16 +2550,11 @@ def feature_mean(np.ndarray ch_bd, int blk, list scs, int end_scale):
         Py_ssize_t i, j, k
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
-        int out_len = 0
         int rows = ch_bd.shape[0]
         int cols = ch_bd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
-                out_len += 2
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 2)
 
     return feature_mean_float32(np.float32(ch_bd), blk, scales_array, out_len, scales_half,
                                 scales_block, scale_length)
@@ -2578,7 +2565,7 @@ def feaCtrFloat64(np.ndarray[DTYPE_float64_t, ndim=2] chBd, int blk, list scs, i
 
     cdef int i, j, k
 
-    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
+    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
 @cython.boundscheck(False)
@@ -2586,7 +2573,7 @@ def feaCtrFloat32(np.ndarray[DTYPE_float32_t, ndim=2] chBd, int blk, list scs, i
 
     cdef int i, j, k
 
-    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
+    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
 @cython.boundscheck(False)
@@ -2594,7 +2581,7 @@ def feaCtr_uint16(np.ndarray[unsigned short, ndim=2] chBd, int blk, list scs, in
 
     cdef int i, j, k
 
-    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
+    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
 @cython.boundscheck(False)
@@ -2602,7 +2589,7 @@ def feaCtr_uint8(np.ndarray[unsigned char, ndim=2] chBd, int blk, list scs, int 
 
     cdef int i, j, k
 
-    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
+    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
 @cython.boundscheck(False)
@@ -2610,7 +2597,7 @@ def feaCtr_uint(np.ndarray[int, ndim=2] chBd, int blk, list scs, int rows, int c
 
     cdef int i, j, k
 
-    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in xrange(0, rows-(scs[-1]-blk), blk) for j in xrange(0, cols-(scs[-1]-blk), blk) ]
+    return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
 @cython.boundscheck(False)
@@ -2795,16 +2782,9 @@ def feature_lacunarity(np.ndarray chunk_block, int blk, list scales, int end_sca
         int cols = chunk_block.shape[1]
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
-        int out_len = 0
         DTYPE_uint16_t[:] scale_array = np.array(scales, dtype='uint16')
         int scale_length = scale_array.shape[0]
-
-    with nogil:
-
-        for i from 0 <= i < rows-scales_block by blk:
-            for j from 0 <= j < cols-scales_block by blk:
-                for ki in xrange(0, scale_length):
-                    out_len += 1
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 1)
 
     return _feature_lacunarity(np.uint8(chunk_block), blk, scale_array, scales_half, scales_block,
                                rows, cols, r, out_len, scale_length)
@@ -2888,7 +2868,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_fourier(DTYPE_uint8_t[:, :] ch
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
-            for ki in xrange(0, scale_length):
+            for ki in range(0, scale_length):
 
                 k = scales[ki]
                 k_half = <int>(k / 2)
@@ -2920,16 +2900,9 @@ def feature_fourier(np.ndarray chunk_block, int blk, list scales, int end_scale)
         int cols = chunk_block.shape[1]
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
-        int out_len = 0
         DTYPE_uint16_t[:] scale_array = np.array(scales, dtype='uint16')
         int scale_length = scale_array.shape[0]
-
-    with nogil:
-
-        for i from 0 <= i < rows-scales_block by blk:
-            for j from 0 <= j < cols-scales_block by blk:
-                for ki in xrange(0, scale_length):
-                    out_len += 1
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 1)
 
     return _feature_fourier(np.uint8(chunk_block), blk, scale_array, scales_half, scales_block,
                                rows, cols, out_len, scale_length)
