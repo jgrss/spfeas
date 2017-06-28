@@ -52,7 +52,8 @@ Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
 > pip uninstall spfeas
 > git clone https://github.com/jgrss/spfeas.git
 > cd spfeas/
-> python setup.py build && python setup.py install
+> python setup.py build
+> python setup.py install
 ```
 
 Dependencies:
