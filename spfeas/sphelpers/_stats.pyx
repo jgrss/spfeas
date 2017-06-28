@@ -1731,7 +1731,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(np.ndarray[DTYPE_uint8_t, 
 
     out_list_a = np.float32(out_list)
 
-    out_list_a[np.npy_isnan(out_list_a) | np.isinf(out_list_a)] = 0
+    out_list_a[np.isnan(out_list_a) | np.isinf(out_list_a)] = 0
 
     return out_list_a
 
@@ -2173,7 +2173,7 @@ cdef void _norm_glcm(DTYPE_float32_t[:, :, :, :] Pt,
 #
 #                     value2check = glcm_mat_nan[r, c, d_idx, a_idx]
 #
-#                     if npy_isnan(value2check) or isinf(value2check):
+#                     if npy_isnan(value2check) or npy_isinf(value2check):
 #                         glcm_mat_nan[r, c, d_idx, a_idx] = 0
 
 
