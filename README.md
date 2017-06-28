@@ -5,10 +5,10 @@ SpFeas
 
 SpFeas has only been tested on Python 2.7. 
 
-Version 0.2.0
+Version 0.2.0b
 -----
 
-Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes in `0.2.0`. 
+Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes coming in `0.2.0`. 
 
 #### Naming conventions
 
