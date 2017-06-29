@@ -48,7 +48,7 @@ Installation
 
 Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
 
-```text
+```commandline
 pip uninstall spfeas
 git clone https://github.com/jgrss/spfeas.git
 cd spfeas/
@@ -58,7 +58,7 @@ python setup.py install
 
 Dependencies:
 
-```text
+```commandline
 pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL
 ```
 
@@ -70,19 +70,19 @@ pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr 
 
 3) On OSX, the following line should print **/usr/local/bin/spfeas**:
 
-```text
+```bash
 which spfeas
 ```
 
 4) On Windows, the following line should print **C:\<Python path>\Scripts\spfeas**:
 
-```text
+```bash
 where spfeas
 ```
 
 5) To uninstall SpFeas, type the following line in the terminal
 
-```text
+```commandline
 pip uninstall spfeas
 ```
 
@@ -91,18 +91,19 @@ Usage examples
 
 Print help:
 
-```text
+```commandline
 spfeas -h
 ```
 
 Print examples:
 
-```text
+```commandline
 spfeas -e
 ```
 
 Full usage:
-```text
+
+```commandline
 spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 4 8 --sect-size 1000 --chunk-size 100 --n-jobs-section -1 --n-jobs-chunk -1 --overviews
 ```
 
