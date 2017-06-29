@@ -10,6 +10,13 @@ import sys
 import argparse
 import time
 import copy
+import platform
+import ctypes
+
+if platform.system() == 'Darwin':
+
+    GEOS_DIR = '/usr/lib/libc.dylib'
+    ctypes.CDLL(GEOS_DIR)
 
 from . import spprocess
 from .sphelpers.sputilities import set_yaml_file
@@ -88,7 +95,10 @@ class SPParameters(object):
 
         for trigger in self.triggers:
 
+            # The starting band position for each trigger.
             self.band_info[trigger] = copy.copy(self.band_info['band_count']) + 1
+
+            # The total band count.
             self.band_info['band_count'] += self.out_bands_dict[trigger]
 
         # Update the feature dictionary for feature neighbors.

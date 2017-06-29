@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# import sys
+
 import cython
 cimport cython
 from cpython cimport array
@@ -434,7 +436,8 @@ cdef DTYPE_float32_t _get_weighted_mean_byte(DTYPE_uint8_t[:, :] block, DTYPE_fl
 @cython.cdivision(True)
 cdef void _get_weighted_mean_var(DTYPE_float32_t[:, :] block,
                                  DTYPE_float32_t[:, :] weights,
-                                 int rs, int cs,
+                                 int rs,
+                                 int cs,
                                  DTYPE_float32_t[:] out_values_) nogil:
 
     cdef:
@@ -2443,9 +2446,12 @@ cdef DTYPE_float32_t[:, :] _create_weights(DTYPE_float32_t[:, :] dist_weights, i
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:, :] ch_bd, int blk,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:, :] ch_bd,
+                                                              int blk,
                                                               DTYPE_uint16_t[:] scs,
-                                                              int out_len, int scales_half, int scales_block,
+                                                              int out_len,
+                                                              int scales_half,
+                                                              int scales_block,
                                                               int scale_length):
 
     cdef:
@@ -2455,7 +2461,6 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
         int k_half
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
-        # DTYPE_float32_t[:] out_values
         int rows = ch_bd.shape[0]
         int cols = ch_bd.shape[1]
         DTYPE_float32_t[:, :] block_chunk
@@ -2463,6 +2468,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
         list dist_weights_m = []
 
     for ki in range(0, scale_length):
+
         k = scs[ki]
         k_half = <int>(k / 2)
         rs = (scales_half - k_half + k) - (scales_half - k_half)

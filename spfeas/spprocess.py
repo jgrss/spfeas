@@ -30,8 +30,12 @@ except ImportError:
     raise ImportError('NumPy must be installed')
 
 
-def _write_section2file(this_parameter_object__, meta_info, section2write, 
-                        i_sect, j_sect, section_counter):
+def _write_section2file(this_parameter_object__,
+                        meta_info,
+                        section2write,
+                        i_sect,
+                        j_sect,
+                        section_counter):
 
     """
     Writes the section array to disk
@@ -39,7 +43,7 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
     Args:
         this_parameter_object__ (class)
         meta_info (`rinfo` object)
-        section2write (ndarray)
+        section2write (list of 1d arrays)
         i_sect (int)
         j_sect (int)
         section_counter (int)
@@ -66,7 +70,7 @@ def _write_section2file(this_parameter_object__, meta_info, section2write,
                                   o_info.cols), dtype='uint8')
 
     start_band = this_parameter_object__.band_info[this_parameter_object__.trigger]
-    n_bands = this_parameter_object__.features_dict[this_parameter_object__.trigger]
+    n_bands = this_parameter_object__.out_bands_dict[this_parameter_object__.trigger]
 
     if os.path.isfile(this_parameter_object__.out_img):
 

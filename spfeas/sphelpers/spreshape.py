@@ -15,8 +15,7 @@ def chunks2section(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, pa
     Reshapes section chunks to the full section
     
     trigger (str)
-    tk (list): List of returned features.
-    o_r (list): list of chunk rows.
+    tk (list of 1d arrays): List of returned features.
     o_c (list): List of chunk columns.
     l_rows (int): Input section rows used in feature processing. This is probably overkill, and we could just use out_rows.
     l_cols (int): Same as above for columns.
@@ -79,8 +78,9 @@ def chunks2section(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, pa
                     # reshape each feature vector
                     for rs in range(0, out_dims):
 
-                        out_sect_arr[bd2wr, i_sect_idx:i_sect_idx+rw, j_sect_idx:j_sect_idx+cw] = \
-                            np.asarray(ts[rs::out_dims]).reshape(rw, cw)
+                        out_sect_arr[bd2wr,
+                                     i_sect_idx:i_sect_idx+rw,
+                                     j_sect_idx:j_sect_idx+cw] = np.asarray(ts[rs::out_dims]).reshape(rw, cw)
 
                         bd2wr += 1
 
