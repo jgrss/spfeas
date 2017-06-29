@@ -682,8 +682,7 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                                       parameter_object.block,
                                       parameter_object.chunk_size,
                                       parameter_object.scales[-1])
-    print 'Gabor k length: ', len(prep_gabor(n_orientations=32, sigmas=[1, 2, 4]))
-    print
+
     func_dict = dict(dmp=dict(name='Differential Morphological Profiles',
                               args=dict()),
                      evi2=dict(name='Two-band Enhanced Vegetation Index',

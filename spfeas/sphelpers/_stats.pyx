@@ -914,7 +914,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         # DTYPE_float32_t[:] out_values
         int bcr, bcc
         DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
-        DTYPE_float32_t[:, :] dist_weights
+        DTYPE_float32_t[:, :] dist_weights, dw
         list dist_weights_m = []
 
     for ki in range(0, scale_length):
@@ -931,45 +931,50 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
 
     ch_bdka = ch_bdka_array
 
-    for i from 0 <= i < rows-scales_block by blk:
-        for j from 0 <= j < cols-scales_block by blk:
-            for ki in range(0, scale_length):
-                for kl in range(0, n_kernels):
+    with nogil:
 
-                    k = scs[ki]
+        for i from 0 <= i < rows-scales_block by blk:
+            for j from 0 <= j < cols-scales_block by blk:
+                for ki in range(0, scale_length):
+                    for kl in range(0, n_kernels):
 
-                    k_half = <int>(k / 2)
+                        k = scs[ki]
 
-                    ch_bd = ch_bdka[kl,
-                                    i+scales_half-k_half:i+scales_half-k_half+k,
-                                    j+scales_half-k_half:j+scales_half-k_half+k]
+                        k_half = <int>(k / 2)
 
-                    bcr = ch_bd.shape[0]
-                    bcc = ch_bd.shape[1]
+                        ch_bd = ch_bdka[kl,
+                                        i+scales_half-k_half:i+scales_half-k_half+k,
+                                        j+scales_half-k_half:j+scales_half-k_half+k]
 
-                    _get_weighted_mean_var(ch_bd, dist_weights_m[ki], bcr, bcc, in_zs)
+                        bcr = ch_bd.shape[0]
+                        bcc = ch_bd.shape[1]
 
-                    for pi in range(0, 2):
+                        with gil:
+                            dw = dist_weights_m[ki]
 
-                        out_list[pix_ctr] = in_zs[pi]
-                        pix_ctr += 1
+                        _get_weighted_mean_var(ch_bd, dw, bcr, bcc, in_zs)
 
-                # ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
-                #
-                # for kl in range(0, n_kernels):
-                #
-                #     gkernel = kernels[kl]
-                #     ch_bd_gabor_c = ch_bd_gabor.copy()
-                #
-                #     with nogil:
-                #
-                #         _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor_c)
-                #
-                #         out_list[pix_ctr] = _get_mean(ch_bd_gabor_c, bcr, bcc)
-                #         pix_ctr += 1
-                #
-                #         out_list[pix_ctr] = _get_var(ch_bd_gabor_c, bcr, bcc)
-                #         pix_ctr += 1
+                        for pi in range(0, 2):
+
+                            out_list[pix_ctr] = in_zs[pi]
+                            pix_ctr += 1
+
+                    # ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
+                    #
+                    # for kl in range(0, n_kernels):
+                    #
+                    #     gkernel = kernels[kl]
+                    #     ch_bd_gabor_c = ch_bd_gabor.copy()
+                    #
+                    #     with nogil:
+                    #
+                    #         _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor_c)
+                    #
+                    #         out_list[pix_ctr] = _get_mean(ch_bd_gabor_c, bcr, bcc)
+                    #         pix_ctr += 1
+                    #
+                    #         out_list[pix_ctr] = _get_var(ch_bd_gabor_c, bcr, bcc)
+                    #         pix_ctr += 1
 
     return np.float32(out_list)
 
@@ -986,16 +991,9 @@ def feature_gabor(np.ndarray chBd, int blk, list scs, int end_scale, list kernel
         int out_len = 0
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
-        DTYPE_uint16_t[:] scales_array
-        int scale_length
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
+        int scale_length = scales_array.shape[0]
         int n_kernels = len(kernels)
-
-    if scs[0] < 16:
-        scales_array = np.array(scs[1:], dtype='uint16')
-    else:
-        scales_array = np.array(scs, dtype='uint16')
-
-    scale_length = scales_array.shape[0]
 
     with nogil:
 

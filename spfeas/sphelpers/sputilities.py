@@ -103,6 +103,14 @@ def parameter_checks(parameter_object):
             errors.logger.error('The `smooth` parameter should be an odd number.')
             raise ValueError
 
+    # Ensure the smallest scale is
+    #   >= 16 when using Gabor.
+    if 'gabor' in parameter_object.triggers:
+
+        if min(parameter_object.scales) < 16:
+            errors.logger.error('The Gabor feature cannot be computed with scales < 16.')
+            raise ValueError
+
     # Create the output directory.
     if not os.path.isdir(parameter_object.output_dir):
 
