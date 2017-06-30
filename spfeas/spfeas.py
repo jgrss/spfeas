@@ -237,7 +237,7 @@ def main():
                         default=10, type=int)
     parser.add_argument('-lgp', '--hline-gap', dest='hline_gap', help='The Hough line gap',
                         default=2, type=int)
-    parser.add_argument('--weight', dest='weight', help='Whether to weight PanTex by DN', action='store_true')
+    parser.add_argument('--weight', dest='weight', help='Whether to weight PanTex by mean DN', action='store_true')
     parser.add_argument('--sfs-th', dest='sfs_threshold', help='The SFS stopping threshold',
                         default=40, type=int)
     parser.add_argument('--sfs-skip', dest='sfs_skip', help='The SFS angle skip factor',

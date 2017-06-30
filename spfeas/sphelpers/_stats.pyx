@@ -1395,8 +1395,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd,
         Py_ssize_t i, j, ki, k_half, st_
         DTYPE_uint16_t k
         DTYPE_uint8_t[:, :] ch_bd_
-        DTYPE_float32_t[:] out_list = np.empty(out_len, dtype='float32')
+        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         DTYPE_float32_t[:] sts = np.zeros(6, dtype='float32')
+        DTYPE_float32_t[:] this_sts
         int pix_ctr = 0
 
     for i from 0 <= i < rows-scales_block by blk:
@@ -1410,13 +1411,17 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_sfs(DTYPE_uint8_t[:, :] ch_bd,
                 ch_bd_ = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
                                j+scales_half-k_half:j+scales_half-k_half+k]
 
-                _sfs_feas(ch_bd_, blk, thresh_hom, skip_factor, rcc_, hist_, sts)
+                this_sts = sts.copy()
 
-                for st_ in range(0, 6):
+                _sfs_feas(ch_bd_, blk, thresh_hom, skip_factor, rcc_, hist_, this_sts)
 
-                    out_list[pix_ctr] = sts[st_]
+                with nogil:
 
-                    pix_ctr += 1
+                    for st_ in range(0, 6):
+
+                        out_list[pix_ctr] = this_sts[st_]
+
+                        pix_ctr += 1
 
     return np.float32(out_list)
 
@@ -1609,9 +1614,13 @@ cdef DTYPE_float32_t[:] _pyramid_hist_sift(DTYPE_uint8_t[:, :] key_point_array,
 cdef DTYPE_float32_t[:] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
                                      int blk,
                                      DTYPE_uint16_t[:] scales_array,
-                                     int scales_half, int scales_block,
-                                     int scale_length, int out_len,
-                                     int rows, int cols, int scales_length):
+                                     int scales_half,
+                                     int scales_block,
+                                     int scale_length,
+                                     int out_len,
+                                     int rows,
+                                     int cols,
+                                     int scales_length):
 
     cdef:
         Py_ssize_t i, j, ki, st
@@ -1642,11 +1651,13 @@ cdef DTYPE_float32_t[:] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
 
                     _get_moments(_pyramid_hist_sift(ch_bd_sub, levels, block_rows, block_cols), sts)
 
-                    for st in range(0, 7):
+                    with nogil:
 
-                        out_list[pix_ctr] = sts[st]
+                        for st in range(0, 7):
 
-                        pix_ctr += 1
+                            out_list[pix_ctr] = sts[st]
+
+                            pix_ctr += 1
 
                 else:
                     pix_ctr += 7
@@ -1658,7 +1669,9 @@ cdef DTYPE_float32_t[:] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
 @cython.wraparound(False)
 @cython.cdivision(True)
 def feature_orb(DTYPE_uint8_t[:, :] ch_bd,
-                int blk, list scs, int end_scale):
+                int blk,
+                list scs,
+                int end_scale):
 
     cdef:
         Py_ssize_t i, j, ki
@@ -2350,7 +2363,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
                         k = scs[ki]
 
-                        k_half = int(k / 2)
+                        k_half = <int>(k / 2)
 
                         ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
                                      j+scales_half-k_half:j+scales_half-k_half+k]
@@ -2378,7 +2391,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
                         _get_weighted_mean_var_byte(ch_bd, kernel_weight, block_rows, block_cols, in_zs)
 
-                        out_list[pix_ctr] = con_min * in_zs[0]
+                        if not npy_isnan(con_min) and not npy_isinf(con_min):
+                            out_list[pix_ctr] = con_min * in_zs[0]
 
                         pix_ctr += 1
 
@@ -2392,7 +2406,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
                         k = scs[ki]
 
-                        k_half = int(k / 2)
+                        k_half = <int>(k / 2)
 
                         ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
                                      j+scales_half-k_half:j+scales_half-k_half+k]
@@ -2415,7 +2429,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
 
                             con_min = _glcm_contrast(glcm_mat, dists, disp_vect, levels, contrast_weights)
 
-                        out_list[pix_ctr] = con_min
+                        if not npy_isnan(con_min) and not npy_isinf(con_min):
+                            out_list[pix_ctr] = con_min
 
                         pix_ctr += 1
 
