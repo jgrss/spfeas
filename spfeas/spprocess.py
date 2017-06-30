@@ -80,7 +80,7 @@ def _write_section2file(this_parameter_object__,
 
             # Write each scale and feature.
             array_layer_counter = 0
-            for feature_band in range(start_band, start_band+n_bands+1):
+            for feature_band in range(start_band, start_band+n_bands):
 
                 out_raster.write_array(section2write[array_layer_counter], band=feature_band)
                 out_raster.close_band()
