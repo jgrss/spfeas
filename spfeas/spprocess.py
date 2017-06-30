@@ -73,61 +73,69 @@ def _write_section2file(this_parameter_object__,
     start_band = this_parameter_object__.band_info[this_parameter_object__.trigger]
     n_bands = this_parameter_object__.out_bands_dict[this_parameter_object__.trigger]
 
-    if os.path.isfile(this_parameter_object__.out_img):
-
-        # Open the file and write the new bands.
-        with raster_tools.ropen(this_parameter_object__.out_img, open2read=False) as out_raster:
-
-            # Write each scale and feature.
-            array_layer_counter = 0
-            for feature_band in range(start_band, start_band+n_bands):
-
-                out_raster.write_array(section2write[array_layer_counter], band=feature_band)
-                out_raster.close_band()
-
-                array_layer_counter += 1
-
+    if section2write[0].shape[0] == 0 or section2write[0].shape[1] == 0:
+        pass
     else:
 
-        # Create the output raster.
-        with raster_tools.create_raster(this_parameter_object__.out_img, o_info, compress='deflate') as out_raster:
+        if os.path.isfile(this_parameter_object__.out_img):
 
-            # Write each scale and feature.
-            array_layer_counter = 0
-            for feature_band in range(start_band, start_band+n_bands):
+            # Open the file and write the new bands.
+            with raster_tools.ropen(this_parameter_object__.out_img, open2read=False) as out_raster:
 
-                out_raster.write_array(section2write[array_layer_counter], band=feature_band)
-                out_raster.close_band()
+                # Write each scale and feature.
+                array_layer_counter = 0
+                for feature_band in range(start_band, start_band+n_bands):
 
-                array_layer_counter += 1
+                    out_raster.write_array(section2write[array_layer_counter], band=feature_band)
+                    out_raster.close_band()
 
-    out_raster = None
+                    array_layer_counter += 1
 
-    # Check if any of the bands are corrupted.
-    with raster_tools.ropen(this_parameter_object__.out_img) as ob_info:
-
-        ob_info.check_corrupted_bands()
-
-        # Open the status YAML file.
-        mts__ = sputilities.ManageStatus()
-
-        errors.logger.info('  Updating status ...')
-
-        # Load the status dictionary
-        mts__.load_status(this_parameter_object__.status_file)
-
-        # Update the tile status.
-        if this_parameter_object__.out_img_base not in mts__.status_dict:
-            mts__.status_dict[this_parameter_object__.out_img_base] = dict()
-
-        if ob_info.corrupted_bands:
-            mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'corrupt'
         else:
-            mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'complete'
 
-        mts__.dump_status(this_parameter_object__.status_file)
+            # Create the output raster.
+            with raster_tools.create_raster(this_parameter_object__.out_img, o_info, compress='deflate') as out_raster:
 
-    ob_info = None
+                # Write each scale and feature.
+                array_layer_counter = 0
+                for feature_band in range(start_band, start_band+n_bands):
+
+                    out_raster.write_array(section2write[array_layer_counter], band=feature_band)
+                    out_raster.close_band()
+
+                    array_layer_counter += 1
+
+        out_raster = None
+
+    # The tile won't be written to file
+    #   in the case of zero-length sections.
+    if os.path.isfile(this_parameter_object__.out_img):
+
+        # Check if any of the bands are corrupted.
+        with raster_tools.ropen(this_parameter_object__.out_img) as ob_info:
+
+            ob_info.check_corrupted_bands()
+
+            # Open the status YAML file.
+            mts__ = sputilities.ManageStatus()
+
+            errors.logger.info('  Updating status ...')
+
+            # Load the status dictionary
+            mts__.load_status(this_parameter_object__.status_file)
+
+            # Update the tile status.
+            if this_parameter_object__.out_img_base not in mts__.status_dict:
+                mts__.status_dict[this_parameter_object__.out_img_base] = dict()
+
+            if ob_info.corrupted_bands:
+                mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'corrupt'
+            else:
+                mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'complete'
+
+            mts__.dump_status(this_parameter_object__.status_file)
+
+        ob_info = None
 
 
 def _section_read_write(section_counter, section_pair, param_dict):
