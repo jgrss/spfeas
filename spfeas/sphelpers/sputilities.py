@@ -89,8 +89,35 @@ def parameter_checks(parameter_object):
     # Ensure the block size is even if
     #   the scales are even.
     if (parameter_object.block % 2 != 0) and (parameter_object.scales[0] % 2 == 0):
-        errors.logger.error('Please pass an even number for the `block_size` parameter if your `scales` are also even.')
+        errors.logger.error('Please pass an even number for the `block` parameter if your `scales` are also even.')
         raise ValueError
+
+    # Ensure all scales are either odd or even.
+    first_scale = parameter_object.scales[0]
+
+    if len(parameter_object.scales) > 1:
+
+        # Even
+        if first_scale % 2 == 0:
+            for scale in parameter_object.scales:
+                if scale % 2 != 0:
+                    errors.logger.error('All scales should be even or odd.')
+                    raise ValueError
+
+        # Odd
+        if first_scale % 2 != 0:
+            for scale in parameter_object.scales:
+                if scale % 2 == 0:
+                    errors.logger.error('All scales should be even or odd.')
+                    raise ValueError
+
+    # Ensure the section size is divisible
+    #   by the largest scale size.
+    if parameter_object.section_size % parameter_object.scales[-1] != 0:
+
+        # Increase the section size.
+        while parameter_object.section_size % parameter_object.scales[-1] != 0:
+            parameter_object.section_size += 1
 
     # Ensure the correct smoothing parameters.
     if parameter_object.smooth > 0:
@@ -577,7 +604,7 @@ def create_outputs(parameter_object, new_feas_list, image_info):
     return parameter_object
 
 
-def get_sect_chunk_size(image_info, parameter_object):
+def get_section_size(image_info, parameter_object):
 
     """
     Gets section and chunk sizes
@@ -587,7 +614,6 @@ def get_sect_chunk_size(image_info, parameter_object):
         parameter_object (class)
     """
 
-    # get section and chunk size
     if image_info.rows <= parameter_object.section_size:
         sect_row_size = copy.copy(image_info.rows)
     else:
@@ -604,7 +630,7 @@ def get_sect_chunk_size(image_info, parameter_object):
     return parameter_object
 
 
-def get_output_info_tile(meta_info, image_info, tile_parameter_object, i_sect, j_sect, section_shape):
+def get_output_info_tile(meta_info, image_info, tile_parameter_object, i_sect, j_sect, out_rows, out_cols):
 
     """
     Gets the adjusted output image information
@@ -615,31 +641,34 @@ def get_output_info_tile(meta_info, image_info, tile_parameter_object, i_sect, j
         tile_parameter_object
         i_sect (int)
         j_sect (int)
-        section_shape (tuple)
+        out_rows (int)
+        out_cols (int)
 
     Returns:
         Updated `rinfo` object
     """
 
-    if len(section_shape) > 2:
-        __, rows, cols = section_shape
-    else:
-        rows, cols = section_shape
-
+    # The output cell size.
     cell_size_y = float(tile_parameter_object.block) * meta_info.cellY
     cell_size_x = float(tile_parameter_object.block) * meta_info.cellX
 
-    image_info.update_info(rows=rows-1,
-                           cols=cols-1,
-                           left=meta_info.left+(j_sect*meta_info.cellY)+(meta_info.cellY*2),
-                           top=meta_info.top-(i_sect*meta_info.cellY)-(meta_info.cellY*2),
+    block_offset = (tile_parameter_object.scales[-1] / 2) - (tile_parameter_object.block / 2)
+
+    # Adjust the output left and right coordinates.
+    left_coord = meta_info.left + abs(j_sect * meta_info.cellY) + (block_offset * abs(meta_info.cellY))
+    top_coord = meta_info.top - abs(i_sect * meta_info.cellX) - (block_offset * abs(meta_info.cellY))
+
+    image_info.update_info(rows=out_rows,
+                           cols=out_cols,
+                           left=left_coord,
+                           top=top_coord,
                            cellY=cell_size_y,
                            cellX=cell_size_x,
                            bands=tile_parameter_object.band_info['band_count'],
                            storage='float32')
 
-    image_info.update_info(right=image_info.left+(cols*meta_info.cellY),
-                           bottom=image_info.top-(rows*meta_info.cellY))
+    # image_info.update_info(right=image_info.left+(cols*meta_info.cellY),
+    #                        bottom=image_info.top-(rows*meta_info.cellY))
 
     return image_info
 
@@ -724,6 +753,8 @@ def get_stats(image_info, parameter_object):
         image_max = 255
     elif image_info.storage.lower() == 'uint16':
         image_max = 10000
+    elif image_info.storage.lower() in ['float32', 'float64']:
+        image_max = 1.
     else:
 
         errors.logger.error('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
@@ -780,33 +811,27 @@ def get_n_sects(image_info, parameter_object):
         parameter_object (class)
     """
 
-    row_sections = [i_sect for i_sect in range(0, image_info.rows,
-                                               parameter_object.sect_row_size -
-                                               (parameter_object.scales[-1] - parameter_object.block))]
+    rw = image_info.rows
+    cl = image_info.cols
+    bl = parameter_object.block
+    sc = parameter_object.scales[-1]
+    srw = parameter_object.sect_row_size
+    scl = parameter_object.sect_col_size
+    scale_block_diff = sc - bl
 
-    column_sections = [j_sect for j_sect in range(0, image_info.cols,
-                                                  parameter_object.sect_col_size -
-                                                  (parameter_object.scales[-1] -
-                                                  parameter_object.block))]
+    row_range = range(0, rw, srw-scale_block_diff)
+    col_range = range(0, cl, scl-scale_block_diff)
 
-    section_idx_pairs = [(idx, jdx) for idx, jdx in itertools.product(range(0, image_info.rows,
-                                                                            parameter_object.sect_row_size -
-                                                                            (parameter_object.scales[-1] -
-                                                                            parameter_object.block)),
-                                                                      range(0, image_info.cols,
-                                                                            parameter_object.sect_col_size -
-                                                                            (parameter_object.scales[-1] -
-                                                                            parameter_object.block)))]
+    # The section index pairs.
+    section_idx_pairs = [(idx, jdx) for idx, jdx in itertools.product(row_range, col_range)]
 
-    n_row_sects = len(row_sections)
-    n_col_sects = len(column_sections)
+    n_row_sects = len(row_range)
+    n_col_sects = len(col_range)
     n_sects = len(section_idx_pairs)
 
     parameter_object.update_info(n_row_sects=n_row_sects,
                                  n_col_sects=n_col_sects,
                                  n_sects=n_sects,
-                                 row_sections=row_sections,
-                                 column_sections=column_sections,
                                  section_idx_pairs=section_idx_pairs)
 
     return parameter_object

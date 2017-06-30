@@ -256,12 +256,9 @@ def main():
     parser.add_argument('--band-nir', dest='band_nir', help='The NIR band position', default=4, type=int)
     parser.add_argument('--neighbors', dest='neighbors', help='Whether to add features as neighbors',
                         action='store_true')
-    parser.add_argument('--n-jobs-section', dest='n_jobs_section', help='The number of parallel jobs for sections',
+    parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs for sections',
                         default=-1, type=int)
-    parser.add_argument('--n-jobs-chunk', dest='n_jobs_chunk', help='The number of parallel jobs for section chunks',
-                        default=-1, type=int)
-    parser.add_argument('--sect-size', dest='section_size', help='The section size', default=2560, type=int)
-    parser.add_argument('--chunk-size', dest='chunk_size', help='The section chunk size', default=256, type=int)
+    parser.add_argument('--sect-size', dest='section_size', help='The section size', default=1024, type=int)
     parser.add_argument('--gdal-cache', dest='gdal_cache', help='The GDAL cache size (MB)', default=256, type=int)
     parser.add_argument('--reset', dest='reset', help='Whether to reset section memory', action='store_true')
     parser.add_argument('--overwrite', dest='overwrite', help='Whether to overwrite output files', action='store_true')
@@ -306,13 +303,11 @@ def main():
                      band_red=args.band_red,
                      band_nir=args.band_nir,
                      neighbors=args.neighbors,
-                     n_jobs_section=args.n_jobs_section,
-                     n_jobs_chunk=args.n_jobs_chunk,
+                     n_jobs=args.n_jobs,
                      reset=args.reset,
                      image_max=args.image_max,
                      lac_r=args.lac_r,
                      section_size=args.section_size,
-                     chunk_size=args.chunk_size,
                      gdal_cache=args.gdal_cache,
                      overwrite=args.overwrite,
                      overviews=args.overviews)

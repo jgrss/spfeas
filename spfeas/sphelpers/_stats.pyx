@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# import sys
-
 import cython
 cimport cython
 from cpython cimport array
@@ -9,17 +7,13 @@ from cpython cimport array
 import numpy as np
 cimport numpy as np
 
-from copy import copy
-
 # from libc.stdlib cimport free
 from libc.math cimport atan, sqrt, sin, cos, floor, ceil
 # from libc.math cimport isnan as npy_isnan
 # from libc.math cimport isinf as npy_isinf
 
-from cython.parallel import parallel, prange
+# from cython.parallel import parallel, prange
 # from libc.math cimport isnan, isinf
-
-from mpglue.stats import _lin_interp
 
 # OpenCV
 try:
@@ -83,7 +77,7 @@ cdef extern from 'numpy/npy_math.h':
 #     DTYPE_float32_t npy_floor(DTYPE_float32_t x)
 
 
-# @cython.profile(False)
+@cython.profile(False)
 cdef inline DTYPE_float32_t roundd(DTYPE_float32_t val) nogil:
      return floor(val + .5)
 

@@ -80,7 +80,7 @@ which spfeas
 where spfeas
 ```
 
-5) To uninstall SpFeas, type the following line in the terminal
+5) To uninstall SpFeas, type the following line in the terminal:
 
 ```commandline
 pip uninstall spfeas
@@ -104,7 +104,7 @@ spfeas -e
 Full usage:
 
 ```commandline
-spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 4 8 --sect-size 1000 --chunk-size 100 --n-jobs-section -1 --n-jobs-chunk -1 --overviews
+spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 4 8 --sect-size 1000 --n-jobs -1 --overviews
 ```
 
 #### Detailed examples

@@ -35,6 +35,8 @@ def _write_section2file(this_parameter_object__,
                         section2write,
                         i_sect,
                         j_sect,
+                        out_rows,
+                        out_cols,
                         section_counter):
 
     """
@@ -54,14 +56,13 @@ def _write_section2file(this_parameter_object__,
 
     o_info = meta_info.copy()
 
-    section_shape = section2write.shape
-
     o_info = sputilities.get_output_info_tile(meta_info, 
                                               o_info, 
                                               this_parameter_object__,
                                               i_sect, 
                                               j_sect,
-                                              section_shape)
+                                              out_rows,
+                                              out_cols)
 
     if not isinstance(section2write, np.ndarray):
 
@@ -81,7 +82,7 @@ def _write_section2file(this_parameter_object__,
             array_layer_counter = 0
             for feature_band in range(start_band, start_band+n_bands+1):
 
-                out_raster.write_array(section2write[array_layer_counter, 1:, 1:], band=feature_band)
+                out_raster.write_array(section2write[array_layer_counter], band=feature_band)
                 out_raster.close_band()
 
                 array_layer_counter += 1
@@ -95,7 +96,7 @@ def _write_section2file(this_parameter_object__,
             array_layer_counter = 0
             for feature_band in range(start_band, start_band+n_bands):
 
-                out_raster.write_array(section2write[array_layer_counter, 1:, 1:], band=feature_band)
+                out_raster.write_array(section2write[array_layer_counter], band=feature_band)
                 out_raster.close_band()
 
                 array_layer_counter += 1
@@ -215,8 +216,14 @@ def _section_read_write(section_counter, section_pair, param_dict):
         i_sect = section_pair[0]
         j_sect = section_pair[1]
 
-        n_rows = raster_tools.n_rows_cols(i_sect, this_parameter_object_.sect_row_size, this_image_info.rows)
-        n_cols = raster_tools.n_rows_cols(j_sect, this_parameter_object_.sect_col_size, this_image_info.cols)
+        # Row and column section bounds checking
+        n_rows = raster_tools.n_rows_cols(i_sect,
+                                          this_parameter_object_.sect_row_size,
+                                          this_image_info.rows)
+
+        n_cols = raster_tools.n_rows_cols(j_sect,
+                                          this_parameter_object_.sect_col_size,
+                                          this_image_info.cols)
 
         # Open the image array.
         # TODO: add other indices
@@ -284,53 +291,40 @@ def _section_read_write(section_counter, section_pair, param_dict):
                                            rows=n_rows,
                                            cols=n_cols)
 
-        # Pad the array.
-        #   (top, bottom), (left, right)
         this_parameter_object_.update_info(i_sect_blk_ctr=1,
                                            j_sect_blk_ctr=1)
 
-        sect_in = sputilities.pad_array(this_parameter_object_, sect_in, n_rows, n_cols)
-
         if this_parameter_object_.trigger == 'dmp':
-
             l_rows, l_cols = sect_in[0].shape
-            oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows,
-                                                              l_cols,
-                                                              this_parameter_object_)
         else:
-
             l_rows, l_cols = sect_in.shape
-            oR, oC, out_rows, out_cols = spsplit.get_out_dims(l_rows,
-                                                              l_cols,
-                                                              this_parameter_object_)
 
-        # Here we split the current section into
-        #   chunks and process the features.
-
-        # Split image and compute features.
+        # Compute section statistics.
         section_stats_array = spsplit.get_section_stats(sect_in,
                                                         l_rows,
                                                         l_cols,
                                                         this_parameter_object_,
                                                         section_counter)
 
-        # Reshape list of features into
+        # Get the section output rows and columns.
+        out_rows, out_cols = spsplit.get_out_dims(l_rows,
+                                                  l_cols,
+                                                  this_parameter_object_)
+
+        # Reshape the list of features into
         #   <features x rows x columns> array.
-        out_section_array = spreshape.chunks2section(this_parameter_object_.trigger,
-                                                     section_stats_array,
-                                                     oR,
-                                                     oC,
-                                                     l_rows,
-                                                     l_cols,
-                                                     out_rows,
-                                                     out_cols,
-                                                     this_parameter_object_)
+        out_section_array = spreshape.reshape_feature_list(section_stats_array,
+                                                           out_rows,
+                                                           out_cols,
+                                                           this_parameter_object_)
 
         _write_section2file(this_parameter_object_,
                             this_image_info,
                             out_section_array,
                             i_sect,
                             j_sect,
+                            out_rows,
+                            out_cols,
                             section_counter)
 
     this_parameter_object_ = None
@@ -452,8 +446,8 @@ def run(parameter_object):
                         # Get image statistics.
                         parameter_object = sputilities.get_stats(i_info, parameter_object)
 
-                        # Get section and chunk size.
-                        parameter_object = sputilities.get_sect_chunk_size(i_info, parameter_object)
+                        # Get the section size.
+                        parameter_object = sputilities.get_section_size(i_info, parameter_object)
 
                         # Get the number of sections in
                         #   the image (only used as a counter).
@@ -463,7 +457,7 @@ def run(parameter_object):
 
                     parameter_dict = sputilities.class2dict(parameter_object)
 
-                    Parallel(n_jobs=parameter_object.n_jobs_section,
+                    Parallel(n_jobs=parameter_object.n_jobs,
                              max_nbytes=None)(delayed(_section_read_write)(idx_pair,
                                                                            parameter_object.section_idx_pairs[idx_pair-1],
                                                                            parameter_dict)

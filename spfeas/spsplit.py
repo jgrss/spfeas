@@ -6,7 +6,8 @@ Date Created: 7/2/2013
 import os
 import sys
 import subprocess
-from joblib import Parallel, delayed
+import itertools
+# from joblib import Parallel, delayed
 
 from . import spfunctions
 from .paths import get_path
@@ -204,11 +205,11 @@ def get_chunk_indices(rows, cols, block_size, chunk_size, scale):
 
     index_list = list()
 
-    for i in range(0, rows, chunk_size-(scale-block_size)):
+    for i in range(0, rows, chunk_size-scale-block_size):
 
         n_rows = raster_tools.n_rows_cols(i, chunk_size, rows)
 
-        for j in range(0, cols, chunk_size-(scale-block_size)):
+        for j in range(0, cols, chunk_size-scale-block_size):
 
             n_cols = raster_tools.n_rows_cols(j, chunk_size, cols)
 
@@ -218,6 +219,30 @@ def get_chunk_indices(rows, cols, block_size, chunk_size, scale):
 
 
 def get_out_dims(section_rows, section_cols, parameter_object):
+
+    """
+    Gets the output section dimensions
+
+    Args:
+        section_rows (int)
+        section_cols (int)
+        parameter_object (class object)
+
+    Returns:
+        rows, columns
+    """
+
+    bl = parameter_object.block
+    sc = parameter_object.scales[-1]
+    scale_block_diff = sc - bl
+
+    out_rows = len(range(0, section_rows-scale_block_diff, bl))
+    out_cols = len(range(0, section_cols-scale_block_diff, bl))
+
+    return out_rows, out_cols
+
+
+def _get_out_dims(section_rows, section_cols, parameter_object):
 
     bd_idx = get_chunk_indices(section_rows, section_cols,
                                parameter_object.block,
@@ -678,10 +703,11 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
         test_plot(bd, bdOrig, parameter_object.trigger, parameter_object)
 
     # Get the row and column section chunk indices.
-    chunk_indices = get_chunk_indices(section_rows, section_cols,
-                                      parameter_object.block,
-                                      parameter_object.chunk_size,
-                                      parameter_object.scales[-1])
+    # chunk_indices = get_chunk_indices(section_rows,
+    #                                   section_cols,
+    #                                   parameter_object.block,
+    #                                   parameter_object.chunk_size,
+    #                                   parameter_object.scales[-1])
 
     func_dict = dict(dmp=dict(name='Differential Morphological Profiles',
                               args=dict()),
@@ -717,17 +743,24 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                               args=dict(sfs_threshold=parameter_object.sfs_threshold,
                                         sfs_skip=parameter_object.sfs_skip)))
 
-    print('\n Processing {} for section {:d} of {:d} ...'.format(func_dict[parameter_object.trigger]['name'],
-                                                                 section_counter,
-                                                                 parameter_object.n_sects))
+    print('\n Processing {} for section {:,d} of {:,d} ...'.format(func_dict[parameter_object.trigger]['name'],
+                                                                   section_counter,
+                                                                   parameter_object.n_sects))
 
     other_args = func_dict[parameter_object.trigger]['args']
 
-    return Parallel(n_jobs=parameter_object.n_jobs_chunk,
-                    max_nbytes=None)(delayed(call_func)(bd[chi[0]:chi[1],
-                                                        chi[2]:chi[3]],
-                                                        parameter_object.block,
-                                                        parameter_object.scales,
-                                                        parameter_object.scales[-1],
-                                                        parameter_object.trigger,
-                                                        **other_args) for chi in chunk_indices)
+    return call_func(bd,
+                     parameter_object.block,
+                     parameter_object.scales,
+                     parameter_object.scales[-1],
+                     parameter_object.trigger,
+                     **other_args)
+
+    # return Parallel(n_jobs=parameter_object.n_jobs_chunk,
+    #                 max_nbytes=None)(delayed(call_func)(bd[chi[0]:chi[1],
+    #                                                     chi[2]:chi[3]],
+    #                                                     parameter_object.block,
+    #                                                     parameter_object.scales,
+    #                                                     parameter_object.scales[-1],
+    #                                                     parameter_object.trigger,
+    #                                                     **other_args) for chi in chunk_indices)

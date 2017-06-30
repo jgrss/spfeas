@@ -9,6 +9,32 @@ except ImportError:
     raise ImportError('NumPy must be installed')
 
 
+def reshape_feature_list(features2reshape, out_rows, out_cols, parameter_object):
+
+    """
+    Reshapes a feature statistic list
+
+    Args:
+        features2reshape (1d array)
+        out_rows (int)
+        out_cols (int)
+        parameter_object (class object)
+    """
+
+    # The number of dimensions
+    #   for the current feature.
+    out_dims = parameter_object.out_bands_dict[parameter_object.trigger]
+
+    # The output section array.
+    out_sect_array = np.empty((out_dims, out_rows, out_cols), dtype='float32')
+
+    # Reshape each feature vector.
+    for bd2wr in range(0, out_dims):
+        out_sect_array[bd2wr, :, :] = np.asarray(features2reshape[bd2wr::out_dims]).reshape(out_rows, out_cols)
+
+    return out_sect_array
+
+
 def chunks2section(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, parameter_object):
 
     """
@@ -29,12 +55,20 @@ def chunks2section(trigger, tk, o_r, o_c, l_rows, l_cols, out_rows, out_cols, pa
 
     out_dims = parameter_object.out_bands_dict[trigger]
 
+    # The output section array.
     out_sect_arr = np.empty((out_dims, out_rows, out_cols), dtype='float32')
 
-    tk_ctr = 0	    # the index writer for the feature vector
+    # The index writer for
+    #   the feature vector.
+    tk_ctr = 0
 
-    row_chunk_ctr = 0	    # the index writer for the chunk rows
-    i_sect_idx = 0	    # the current section row index
+    # The index writer for
+    #   the chunk rows.
+    row_chunk_ctr = 0
+
+    # The current section
+    #   row index.
+    i_sect_idx = 0
 
     scales_blk = parameter_object.scales[-1] - parameter_object.block
 
