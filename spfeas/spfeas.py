@@ -186,6 +186,7 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'evi2' + Style.RESET_ALL + '    -- EVI2 mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'fourier' + Style.RESET_ALL + ' -- Fourier transform (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'gabor' + Style.RESET_ALL + '   -- Gabor filter bank (n scales x 2 x kernels(Default=24))',
+                  Fore.GREEN + Style.BRIGHT + 'gndvi' + Style.RESET_ALL + '   -- GNDVI mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'grad' + Style.RESET_ALL + '    -- Edge gradient magnitude (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'hog' + Style.RESET_ALL + '     -- Histogram of Oriented Gradients (7 (max,m1,m2,m3,m4,skew,kurtosis) x n scales)',
                   Fore.RED + Style.BRIGHT + 'hough' + Style.RESET_ALL + '   -- Local line statistics from Probabilistic Hough Transform (4 x n scales)' + Fore.RED + ' **Currently out of order**',
