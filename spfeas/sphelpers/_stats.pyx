@@ -364,6 +364,28 @@ cdef DTYPE_float32_t _get_mean(DTYPE_float32_t[:, :] block, int rs, int cs) nogi
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef void _get_mean_var(DTYPE_float32_t[:, :] block,
+                        int rs,
+                        int cs,
+                        DTYPE_float32_t[:] out_values_) nogil:
+
+    cdef:
+        Py_ssize_t bi, bj
+        DTYPE_float32_t n_samps = float(rs*cs)
+        DTYPE_float32_t mu = _get_mean(block, rs, cs)
+        DTYPE_float32_t block_var = 0.
+
+    for bi in range(0, rs):
+        for bj in range(0, cs):
+            block_var += pow2(float(block[bi, bj]) - mu)
+
+    out_values_[0] = mu
+    out_values_[1] = block_var / n_samps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef DTYPE_float32_t _get_weighted_sum(DTYPE_float32_t[:, :] block, DTYPE_float32_t[:, :] weights, int rs, int cs) nogil:
 
     cdef:
@@ -947,6 +969,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
                             dw = dist_weights_m[ki]
 
                         _get_weighted_mean_var(ch_bd, dw, bcr, bcc, in_zs)
+                        # _get_mean_var(ch_bd, bcr, bcc, in_zs)
 
                         for pi in range(0, 2):
 

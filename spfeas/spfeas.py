@@ -44,28 +44,29 @@ class SPParameters(object):
             setattr(self, k, v)
 
         # Set the features dictionary.
-        self.features_dict = dict(mean=2,
-                                  pantex=1,
-                                  ctr=1,
-                                  lsr=3,
+        self.features_dict = dict(ctr=1,
+                                  dmp=2,
+                                  evi2=2,
+                                  fourier=2,
+                                  gabor=2*8,
+                                  gndvi=2,
                                   grad=2,
                                   hough=4,
                                   hog=7,
+                                  lac=1,
                                   lbp=62,
                                   lbpm=7,
-                                  gabor=2*8,
-                                  surf=4,
-                                  seg=1,
-                                  fourier=2,
-                                  sfs=6,
-                                  evi2=2,
+                                  lsr=3,
+                                  mean=2,
                                   ndvi=2,
-                                  dmp=2,
-                                  xy=2,
-                                  lac=1,
                                   orb=7,
+                                  pantex=1,
                                   saliency=2,
-                                  sfsorf=6)
+                                  seg=1,
+                                  sfs=6,
+                                  sfsorf=6,
+                                  surf=4,
+                                  xy=2)
 
         # Set the output bands based on the trigger.
         self.out_bands_dict = dict(ctr=len(self.scales)*self.features_dict['ctr'],
@@ -73,6 +74,7 @@ class SPParameters(object):
                                    evi2=len(self.scales)*self.features_dict['evi2'],
                                    fourier=len(self.scales)*self.features_dict['fourier'],
                                    gabor=len(self.scales)*self.features_dict['gabor'],
+                                   gndvi=len(self.scales) * self.features_dict['gndvi'],
                                    grad=len(self.scales)*self.features_dict['grad'],
                                    hog=len(self.scales)*self.features_dict['hog'],
                                    hough=len(self.scales)*self.features_dict['hough'],
@@ -244,7 +246,8 @@ def main():
                         default=0., type=float)
     parser.add_argument('--lac-r', dest='lac_r', help='The lacunarity box r parameter', default=2, type=int)
     parser.add_argument('--smooth', dest='smooth', help='The smoothing kernel size', default=0, type=int)
-    parser.add_argument('--image-max', dest='image_max', help='A user-defined image maximum', default=0, type=int)
+    parser.add_argument('--image-min', dest='image_min', help='A user-defined image minimum', default=-999, type=int)
+    parser.add_argument('--image-max', dest='image_max', help='A user-defined image maximum', default=-999, type=int)
     parser.add_argument('--equalize', dest='equalize', help='Whether to do histogram equalization', action='store_true')
     parser.add_argument('--equalize-adapt', dest='equalize_adapt',
                         help='Whether to do adaptive histogram equalization', action='store_true')
@@ -252,6 +255,7 @@ def main():
     parser.add_argument('--convert', dest='convert', help='Whether to convert the feature stack', action='store_true')
     parser.add_argument('--stack', dest='stack', help='Whether to stack features', action='store_true')
     parser.add_argument('--stack-only', dest='stack_only', help='Whether to only stack features', action='store_true')
+    parser.add_argument('--band-green', dest='band_green', help='The green band position', default=2, type=int)
     parser.add_argument('--band-red', dest='band_red', help='The red band position', default=3, type=int)
     parser.add_argument('--band-nir', dest='band_nir', help='The NIR band position', default=4, type=int)
     parser.add_argument('--neighbors', dest='neighbors', help='Whether to add features as neighbors',
@@ -300,11 +304,13 @@ def main():
                      vis_order=args.vis_order,
                      stack=args.stack,
                      stack_only=args.stack_only,
+                     band_green=args.band_green,
                      band_red=args.band_red,
                      band_nir=args.band_nir,
                      neighbors=args.neighbors,
                      n_jobs=args.n_jobs,
                      reset=args.reset,
+                     image_min=args.image_min,
                      image_max=args.image_max,
                      lac_r=args.lac_r,
                      section_size=args.section_size,

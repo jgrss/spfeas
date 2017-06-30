@@ -528,8 +528,10 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
         errors.logger.info('\nCalculating average RGB ...\n'.format(rgb.upper()))
 
         im_block = i_info.read(bands2open=[1, 2, 3],
-                               i=i_sect, j=j_sect,
-                               rows=n_rows, cols=n_cols,
+                               i=i_sect,
+                               j=j_sect,
+                               rows=n_rows,
+                               cols=n_cols,
                                d_type='float32')
 
         luminosity = get_luminosity(im_block)
@@ -746,24 +748,28 @@ def get_stats(image_info, parameter_object):
          parameter_object (class)
     """
 
-    image_min = 0
+    # Set the image minimum.
+    if parameter_object.image_min == -999:
+        parameter_object.update_info(image_min=0)
 
-    # Let's make some assumptions
-    if image_info.storage.lower() == 'byte':
-        image_max = 255
-    elif image_info.storage.lower() == 'uint16':
-        image_max = 10000
-    elif image_info.storage.lower() in ['float32', 'float64']:
-        image_max = 1.
-    else:
+    # Set the image maximum.
+    if parameter_object.image_max == -999:
 
-        errors.logger.error('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
-                                                                                      image_info.file_name))
+        # Let's make some assumptions
+        if image_info.storage.lower() == 'byte':
+            image_max = 255
+        elif image_info.storage.lower() == 'uint16':
+            image_max = 10000
+        elif image_info.storage.lower() in ['float32', 'float64']:
+            image_max = 1.
+        else:
 
-        raise NotImplementedError
+            errors.logger.error('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
+                                                                                          image_info.file_name))
 
-    parameter_object.update_info(min=image_min,
-                                 max=image_max)
+            raise NotImplementedError
+
+        parameter_object.update_info(image_max=image_max)
 
     return parameter_object
 

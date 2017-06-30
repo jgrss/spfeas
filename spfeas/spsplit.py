@@ -175,8 +175,8 @@ def get_orb_keypoints(in_block, parameter_object):
     orb = cv2.ORB_create(nfeatures=20000, edgeThreshold=31, patchSize=31, WTA_K=4)
 
     in_block = np.uint8(rescale_intensity(in_block,
-                                          in_range=(parameter_object.min,
-                                                    parameter_object.max),
+                                          in_range=(parameter_object.image_min,
+                                                    parameter_object.image_max),
                                           out_range=(0, 255)))
 
     # Compute ORB keypoints
@@ -369,8 +369,10 @@ def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
 
     # Read the section.
     layers = i_info.read(bands2open=[1, 2, 3],
-                         i=i_sect, j=j_sect,
-                         rows=n_rows, cols=n_cols,
+                         i=i_sect,
+                         j=j_sect,
+                         rows=n_rows,
+                         cols=n_cols,
                          d_type='float32')
 
     layers = scale_rgb(layers, min_max, lidx)
@@ -652,8 +654,8 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
     if bd.dtype != 'uint8':
 
         bd = np.uint8(rescale_intensity(bd,
-                                        in_range=(parameter_object.min,
-                                                  parameter_object.max),
+                                        in_range=(parameter_object.image_min,
+                                                  parameter_object.image_max),
                                         out_range=out_d_range))
 
     # Apply histogram equalization.

@@ -227,21 +227,30 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
         # Open the image array.
         # TODO: add other indices
-        if this_parameter_object_.trigger in ['ndvi', 'evi2']:
+        if this_parameter_object_.trigger in ['evi2', 'gndvi', 'ndvi']:
 
-            sect_in = this_image_info.read(bands2open=[this_parameter_object_.band_red,
-                                                       this_parameter_object_.band_nir],
+            if this_parameter_object_.trigger == 'gndvi':
+
+                spectral_bands = [this_parameter_object_.band_green,
+                                  this_parameter_object_.band_red]
+
+            else:
+
+                spectral_bands = [this_parameter_object_.band_red,
+                                  this_parameter_object_.band_nir]
+
+            sect_in = this_image_info.read(bands2open=spectral_bands,
                                            i=i_sect,
                                            j=j_sect,
                                            rows=n_rows,
                                            cols=n_cols,
                                            d_type='float32')
 
-            vie = VegIndicesEquations(sect_in, chunk_size=-1)
-            sect_in = vie.compute(this_parameter_object_.trigger.upper(), out_type=2)
+            vie = VegIndicesEquations(sect_in/this_parameter_object_.image_max, chunk_size=-1)
+            sect_in = vie.compute(this_parameter_object_.trigger.upper(), out_type=1)
 
-            this_parameter_object_.min = 0
-            this_parameter_object_.max = 255
+            this_parameter_object_.update_info(image_min=0,
+                                               image_max=1)
 
         elif this_parameter_object_.trigger == 'dmp':
 
@@ -264,18 +273,33 @@ def _section_read_write(section_counter, section_pair, param_dict):
                                        n_rows,
                                        n_cols)
 
+            this_parameter_object_.update_info(image_min=0,
+                                               image_max=255)
+
         elif this_parameter_object_.trigger == 'grad':
 
-            sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
-                                                           i_sect,
-                                                           j_sect,
-                                                           n_rows,
-                                                           n_cols)
+            if this_image_info.bands >= 3:
+
+                sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
+                                                               i_sect,
+                                                               j_sect,
+                                                               n_rows,
+                                                               n_cols)
+
+            else:
+
+                sect_in = this_image_info.read(bands2open=this_parameter_object_.band_position,
+                                               i=i_sect,
+                                               j=j_sect,
+                                               rows=n_rows,
+                                               cols=n_cols)
 
             sect_in = get_mag_avg(sect_in)
-            this_parameter_object_.update_info(min=0, max=255)
+            this_parameter_object_.update_info(image_min=0,
+                                               image_max=255)
 
-        elif this_parameter_object_.use_rgb and this_parameter_object_.trigger not in ['grad', 'ndvi', 'evi2', 'dmp', 'saliency']:
+        elif this_parameter_object_.use_rgb and this_parameter_object_.trigger \
+                not in ['grad', 'ndvi', 'gndvi', 'evi2', 'dmp', 'saliency']:
 
             sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
                                                            i_sect,
