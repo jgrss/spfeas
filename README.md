@@ -46,7 +46,7 @@ Installation
 
 #### Installing or upgrading from source
 
-Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
+##### Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
 
 ```commandline
 pip uninstall spfeas
@@ -56,7 +56,7 @@ python setup.py build
 python setup.py install
 ```
 
-Dependencies:
+##### Dependencies:
 
 ```commandline
 pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL
@@ -89,19 +89,27 @@ pip uninstall spfeas
 Usage examples
 -----
 
-Print help:
+#### Print help:
 
 ```commandline
 spfeas -h
 ```
 
-Print examples:
+#### Print examples:
 
 ```commandline
 spfeas -e
 ```
 
-Full usage:
+#### Full usage:
+
+##### Traditional single pixel moving window
+
+```commandline
+spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 1 --scales 5 7 --sect-size 1000 --n-jobs -1 --overviews
+```
+
+##### Pixel block moving window
 
 ```commandline
 spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 4 8 --sect-size 1000 --n-jobs -1 --overviews
@@ -113,4 +121,4 @@ Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/
 
 Development
 -----------
-For questions or bugs, contact Jordan Graesser (graesser@bu.edu).
+For questions or bugs, please [**submit an issue**](https://github.com/jgrss/spfeas/issues).
