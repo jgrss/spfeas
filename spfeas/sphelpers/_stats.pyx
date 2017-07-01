@@ -1211,7 +1211,7 @@ cdef void _get_direction(DTYPE_uint8_t[:, :] chunk, int chunk_shape,
             if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
                 values_[0] = sfs_max
 
-            if (sfs_min != 0) not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
+            if (sfs_min != 0) and not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
                 values_[1] = sfs_min
 
             if not npy_isnan(d_i) and not npy_isinf(d_i):

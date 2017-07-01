@@ -136,7 +136,7 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_sk
 
 def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs):
 
-    if trigger_ in ['dmp', 'evi2', 'grad', 'mean', 'ndvi', 'saliency']:
+    if trigger_ in ['dmp', 'evi2', 'gndvi', 'grad', 'mean', 'ndvi', 'saliency']:
         return call_mean(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'fourier':
         return call_fourier(block_array_, block_size_, scales_, end_scale_)
@@ -327,7 +327,7 @@ def scale_rgb(layers, min_max, lidx):
     layers_c = np.empty(layers.shape, dtype='float32')
 
     # Rescale and blur.
-    for li in xrange(0, 3):
+    for li in range(0, 3):
 
         layer = layers[li]
 
@@ -360,7 +360,8 @@ def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
 
     # Read the entire image to get the
     #   min/max for each band.
-    min_max = sputilities.get_layer_min_max(i_info)
+    # min_max = sputilities.get_layer_min_max(i_info)
+    min_max = [(parameter_object.image_min, parameter_object.image_max)] * 3
 
     if parameter_object.vis_order == 'bgr':
         lidx = [2, 1, 0]
@@ -651,7 +652,7 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
         out_d_range = (0, 255)
 
     # Scale the data to an 8-bit range.
-    if bd.dtype != 'uint8':
+    if (bd.dtype != 'uint8') and (parameter_object.trigger not in parameter_object.spectral_indices):
 
         bd = np.uint8(rescale_intensity(bd,
                                         in_range=(parameter_object.image_min,
@@ -719,6 +720,8 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                                   args=dict()),
                      gabor=dict(name='Gabor filters',
                                 args=dict(kernels=prep_gabor(n_orientations=32, sigmas=[1, 2, 4]))),
+                     gndvi=dict(name='Green Normalized Difference Vegetation Index',
+                                args=dict()),
                      grad=dict(name='Gradient magnitude',
                                args=dict()),
                      hog=dict(name='Histogram of Oriented Gradients',

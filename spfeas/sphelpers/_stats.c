@@ -9716,7 +9716,7 @@ __pyx_v_line_sd = __pyx_f_6spfeas_9sphelpers_6_stats__get_std_1d_uint16(__pyx_t_
  *             if not npy_isnan(sfs_max) and not npy_isinf(sfs_max):
  *                 values_[0] = sfs_max             # <<<<<<<<<<<<<<
  * 
- *             if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
+ *             if (sfs_min != 0) and not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
  */
             __pyx_t_19 = 0;
             *((__pyx_t_6spfeas_9sphelpers_6_stats_DTYPE_float32_t *) ( /* dim=0 */ (__pyx_v_values_.data + __pyx_t_19 * __pyx_v_values_.strides[0]) )) = __pyx_v_sfs_max;
@@ -9733,10 +9733,16 @@ __pyx_v_line_sd = __pyx_f_6spfeas_9sphelpers_6_stats__get_std_1d_uint16(__pyx_t_
           /* "spfeas/sphelpers/_stats.pyx":1214
  *                 values_[0] = sfs_max
  * 
- *             if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):             # <<<<<<<<<<<<<<
+ *             if (sfs_min != 0) and not npy_isnan(sfs_min) and not npy_isinf(sfs_min):             # <<<<<<<<<<<<<<
  *                 values_[1] = sfs_min
  * 
  */
+          __pyx_t_17 = ((__pyx_v_sfs_min != 0.0) != 0);
+          if (__pyx_t_17) {
+          } else {
+            __pyx_t_3 = __pyx_t_17;
+            goto __pyx_L26_bool_binop_done;
+          }
           __pyx_t_17 = ((!(npy_isnan(__pyx_v_sfs_min) != 0)) != 0);
           if (__pyx_t_17) {
           } else {
@@ -9750,7 +9756,7 @@ __pyx_v_line_sd = __pyx_f_6spfeas_9sphelpers_6_stats__get_std_1d_uint16(__pyx_t_
 
             /* "spfeas/sphelpers/_stats.pyx":1215
  * 
- *             if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
+ *             if (sfs_min != 0) and not npy_isnan(sfs_min) and not npy_isinf(sfs_min):
  *                 values_[1] = sfs_min             # <<<<<<<<<<<<<<
  * 
  *             if not npy_isnan(d_i) and not npy_isinf(d_i):
@@ -9761,7 +9767,7 @@ __pyx_v_line_sd = __pyx_f_6spfeas_9sphelpers_6_stats__get_std_1d_uint16(__pyx_t_
             /* "spfeas/sphelpers/_stats.pyx":1214
  *                 values_[0] = sfs_max
  * 
- *             if not npy_isnan(sfs_min) and not npy_isinf(sfs_min):             # <<<<<<<<<<<<<<
+ *             if (sfs_min != 0) and not npy_isnan(sfs_min) and not npy_isinf(sfs_min):             # <<<<<<<<<<<<<<
  *                 values_[1] = sfs_min
  * 
  */
@@ -9778,11 +9784,11 @@ __pyx_v_line_sd = __pyx_f_6spfeas_9sphelpers_6_stats__get_std_1d_uint16(__pyx_t_
           if (__pyx_t_17) {
           } else {
             __pyx_t_3 = __pyx_t_17;
-            goto __pyx_L29_bool_binop_done;
+            goto __pyx_L30_bool_binop_done;
           }
           __pyx_t_17 = ((!(npy_isinf(__pyx_v_d_i) != 0)) != 0);
           __pyx_t_3 = __pyx_t_17;
-          __pyx_L29_bool_binop_done:;
+          __pyx_L30_bool_binop_done:;
           if (__pyx_t_3) {
 
             /* "spfeas/sphelpers/_stats.pyx":1218
@@ -9815,11 +9821,11 @@ __pyx_v_line_sd = __pyx_f_6spfeas_9sphelpers_6_stats__get_std_1d_uint16(__pyx_t_
           if (__pyx_t_17) {
           } else {
             __pyx_t_3 = __pyx_t_17;
-            goto __pyx_L32_bool_binop_done;
+            goto __pyx_L33_bool_binop_done;
           }
           __pyx_t_17 = ((!(npy_isinf(__pyx_v_sfs_w_mean) != 0)) != 0);
           __pyx_t_3 = __pyx_t_17;
-          __pyx_L32_bool_binop_done:;
+          __pyx_L33_bool_binop_done:;
           if (__pyx_t_3) {
 
             /* "spfeas/sphelpers/_stats.pyx":1221

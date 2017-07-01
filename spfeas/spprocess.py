@@ -235,7 +235,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
         # Open the image array.
         # TODO: add other indices
-        if this_parameter_object_.trigger in ['evi2', 'gndvi', 'ndvi']:
+        if this_parameter_object_.trigger in this_parameter_object_.spectral_indices:
 
             if this_parameter_object_.trigger == 'gndvi':
 
@@ -254,7 +254,10 @@ def _section_read_write(section_counter, section_pair, param_dict):
                                            cols=n_cols,
                                            d_type='float32')
 
-            vie = VegIndicesEquations(sect_in/this_parameter_object_.image_max, chunk_size=-1)
+            sect_in[sect_in >= this_parameter_object_.image_max] = this_parameter_object_.image_max
+            sect_in /= this_parameter_object_.image_max
+
+            vie = VegIndicesEquations(sect_in, chunk_size=-1)
             sect_in = vie.compute(this_parameter_object_.trigger.upper(), out_type=1)
 
             this_parameter_object_.update_info(image_min=0,
@@ -303,11 +306,12 @@ def _section_read_write(section_counter, section_pair, param_dict):
                                                cols=n_cols)
 
             sect_in = get_mag_avg(sect_in)
+
             this_parameter_object_.update_info(image_min=0,
-                                               image_max=255)
+                                               image_max=30)
 
         elif this_parameter_object_.use_rgb and this_parameter_object_.trigger \
-                not in ['grad', 'ndvi', 'gndvi', 'evi2', 'dmp', 'saliency']:
+                not in this_parameter_object_.spectral_indices + ['grad', 'dmp', 'saliency']:
 
             sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
                                                            i_sect,

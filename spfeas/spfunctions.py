@@ -71,14 +71,14 @@ def get_mag_avg(img):
 
     for kernel_filter in kernels:
 
-        gx = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[1], borderType=cv2.BORDER_CONSTANT)
-        gy = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[0], borderType=cv2.BORDER_CONSTANT)
+        gx = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[1], borderType=cv2.BORDER_REFLECT)
+        gy = cv2.filter2D(np.float32(img), cv2.CV_32F, kernel_filter[0], borderType=cv2.BORDER_REFLECT)
 
         mag += cv2.magnitude(gx, gy)
 
     mag /= len(kernels)
 
-    return np.uint8(rescale_intensity(mag, out_range=(0, 255)))
+    return mag
 
 
 def get_mag_ang(img):

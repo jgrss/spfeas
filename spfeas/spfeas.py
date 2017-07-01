@@ -95,6 +95,8 @@ class SPParameters(object):
 
         self.band_info = dict(band_count=0)
 
+        self.spectral_indices = ['evi2', 'gndvi', 'ndvi']
+
         for trigger in self.triggers:
 
             # The starting band position for each trigger.
@@ -229,7 +231,7 @@ def main():
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
-                        nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'grad', 'hog', 'lac',
+                        nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'gndvi', 'grad', 'hog', 'lac',
                                             'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb',
                                             'pantex', 'saliency', 'sfs'])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
