@@ -3,17 +3,20 @@ import itertools
 from joblib import Parallel, delayed
 
 from .sphelpers import lsr
-
-from skimage.exposure import rescale_intensity
+from .sphelpers._stats import fill_labels
 
 try:
+    from skimage.exposure import rescale_intensity
     from skimage.feature import hog as HOG
     from skimage.feature import local_binary_pattern as LBP
     from skimage.feature import greycomatrix, greycoprops
     from skimage.exposure import histogram
+    from skimage.color import rgb2rgbcie
+    from skimage.segmentation import felzenszwalb
+    from skimage.measure import regionprops
 except ImportError:
     raise ImportError('Scikits-image must be installed')
-    
+
 try:
     import numpy as np
 except ImportError:
@@ -178,21 +181,21 @@ def fourier_transform(ch_bd):
 def feature_fourier(chBd, blk, scs, end_scale):
 
     rows, cols = chBd.shape
-    scales_half = end_scale / 2
+    scales_half = int(end_scale / 2)
     scales_blk = end_scale - blk
     out_len = 0
     pix_ctr = 0
 
-    for i in xrange(0, rows-scales_blk, blk):
-        for j in xrange(0, cols-scales_blk, blk):
+    for i in range(0, rows-scales_blk, blk):
+        for j in range(0, cols-scales_blk, blk):
             for k in scs:
                 out_len += 2
 
     # set the output list
     out_list = np.zeros(out_len).astype(np.float32)
 
-    for i in xrange(0, rows-scales_blk, blk):
-        for j in xrange(0, cols-scales_blk, blk):
+    for i in range(0, rows-scales_blk, blk):
+        for j in range(0, cols-scales_blk, blk):
             for k in scs:
 
                 ch_bd = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, j+scales_half-(k/2):j+scales_half-(k/2)+k]
@@ -232,7 +235,7 @@ def feature_fourier(chBd, blk, scs, end_scale):
 
 def call_lsr(edoim_s, edmim_s, dx_s, dy_s, scs, scales_half):
 
-    scale_stats = []
+    scale_stats = list()
 
     for k in scs:
 
@@ -256,17 +259,17 @@ def call_lsr(edoim_s, edmim_s, dx_s, dy_s, scs, scales_half):
 def feature_lsr(ch_bd, blk, scs, end_scale):
 
     rows, cols = ch_bd.shape
-    out_list = []
+    out_list = list()
     scales_half = int(end_scale / 2)
 
     edge_mag, edge_ori, deriv_x, deriv_y = grad_mag(ch_bd)
     
-    for i in xrange(0, rows-(end_scale-blk), blk):
+    for i in range(0, rows-(end_scale-blk), blk):
 
         ifst_ = scales_half - scales_half
         isnd_ = scales_half - scales_half + end_scale
 
-        out_list += list(itertools.chain.from_iterable(Parallel(n_jobs=64,
+        out_list += list(itertools.chain.from_iterable(Parallel(n_jobs=-1,
                                                                 max_nbytes=None)(delayed(call_lsr)(edge_ori[i+ifst_:i+isnd_,
                                                                                                             j+ifst_:j+isnd_],
                                                                                                    edge_mag[i+ifst_:i+isnd_,
@@ -276,9 +279,9 @@ def feature_lsr(ch_bd, blk, scs, end_scale):
                                                                                                    deriv_y[i+ifst_:i+isnd_,
                                                                                                            j+ifst_:j+isnd_],
                                                                                                    scs, scales_half)
-                                                                                 for j in xrange(0, cols-(end_scale-blk), blk))))
+                                                                                 for j in range(0, cols-(end_scale-blk), blk))))
 
-        # for j in xrange(0, cols-(end_scale-blk), blk):
+        # for j in range(0, cols-(end_scale-blk), blk):
         #
         #
         #     sts = Parallel(n_jobs=len(scs),
@@ -299,39 +302,82 @@ def feature_lsr(ch_bd, blk, scs, end_scale):
     return out_list
 
 
-# def surfFunc(surfArr, kPts, j, i, k, scs):
-#
-#     """
-#     Get the moments
-#     """
-#
-#     start_y = i+(scs[-1]/2)-(k/2)
-#     start_x = j+(scs[-1]/2)-(k/2)
-#
-#     if surfArr.max() == 0:
-#         return 0.	# 21 length vector to match pyramid histogram length (1+4+16)
-#     else:
-#         if kPts:
-#             # return desc_stats[m](pyramid_hist_sift(surfArr, kPts, start_x, start_y).sp_hist)
-#             return get_moments(pyramid_hist_sift(surfArr, kPts, start_x, start_y).sp_hist)
-#         else:
-#             return [0., 0., 0., 0.]
+def scale_rgb(layers, min_max, lidx):
+
+    layers_c = np.empty(layers.shape, dtype='float32')
+
+    # Rescale and blur.
+    for li in range(0, 3):
+
+        layer = layers[li]
+
+        layer = np.float32(rescale_intensity(layer,
+                                             in_range=(min_max[li][0],
+                                                       min_max[li][1]),
+                                             out_range=(0, 1)))
+
+        layers_c[lidx[li]] = rescale_intensity(cv2.GaussianBlur(layer,
+                                                                ksize=(3, 3),
+                                                                sigmaX=3),
+                                               in_range=(0, 1),
+                                               out_range=(-1, 1))
+
+    return layers_c
 
 
-# def feaSURF(chBd, blk, scs):
-#
-#     rows, cols	= chBd.shape
-#
-#     # compute SURF features
-#     kPts, descrip = cv2.SURF(50).detectAndCompute(chBd, None)
-#
-#     for i in xrange(0, rows-scales_blk, blk):
-#         for j in xrange(0, cols-scales_blk, blk):
-#             for k in scs:
-#
-#                 sts = surfFunc(chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, \
-#                                j+scales_half-(k/2):j+scales_half-(k/2)+k], kPts, j, i, k, scs)
-#
-#
-#     return [ surfFunc(chBd[i+(scs[-1]/2)-(k/2):i+(scs[-1]/2)-(k/2)+k, j+(scs[-1]/2)-(k/2):j+(scs[-1]/2)-(k/2)+k], kPts, j, i, k, scs, m) \
-#             for k in scs for m in xrange(0, 4) for (i,j) in itertools.product(xrange(0, rows-(scs[-1]-blk), blk), xrange(0, cols-(scs[-1]-blk), blk)) ]
+def get_saliency_tile_mean(im, min_max=None, vis_order=None):
+
+    """
+    Gets the mean lab averages per tile
+    """
+
+    if vis_order == 'bgr':
+        lidx = [2, 1, 0]
+    else:
+        lidx = [0, 1, 2]
+
+    layers = scale_rgb(im[0], min_max, lidx)
+
+    # Transpose the image to RGB
+    layers = layers.transpose(1, 2, 0)
+
+    # Perform RGB to CIE Lab color space conversion
+    layers = rgb2rgbcie(layers)
+
+    # Compute Lab average values
+    lm = layers[:, :, 0].mean(axis=0).mean()
+    am = layers[:, :, 1].mean(axis=0).mean()
+    bm = layers[:, :, 2].mean(axis=0).mean()
+
+    lab_means = (lm, am, bm)
+
+    return None, lab_means
+
+
+def segment_image(im, parameter_object):
+
+    dims, rows, cols = im.shape
+
+    image2segment = np.dstack((rescale_intensity(im[0],
+                                                 in_range=(parameter_object.image_min,
+                                                           parameter_object.image_max),
+                                                 out_range=(0, 255)),
+                               rescale_intensity(im[1],
+                                                 in_range=(parameter_object.image_min,
+                                                           parameter_object.image_max),
+                                                 out_range=(0, 255)),
+                               rescale_intensity(im[2],
+                                                 in_range=(parameter_object.image_min,
+                                                           parameter_object.image_max),
+                                                 out_range=(0, 255))))
+
+    felzer = felzenszwalb(np.uint8(image2segment),
+                          scale=85,
+                          sigma=.01,
+                          min_size=5,
+                          multichannel=True).reshape(rows, cols)
+
+    props = regionprops(felzer)
+    props = np.array([p.area for p in props], dtype='uint64')
+
+    return fill_labels(np.uint64(felzer), props)

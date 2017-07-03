@@ -53,6 +53,9 @@ ctypedef np.uint16_t DTYPE_uint16_t
 DTYPE_uint32 = np.uint32
 ctypedef np.uint32_t DTYPE_uint32_t
 
+DTYPE_uint64 = np.uint64
+ctypedef np.uint64_t DTYPE_uint64_t
+
 DTYPE_float32 = np.float32
 ctypedef np.float32_t DTYPE_float32_t
 
@@ -898,7 +901,7 @@ cdef void _convolution(DTYPE_float32_t[:, :] block2convolve,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] chBd, int blk,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch_bdka, int blk,
                                                         DTYPE_uint16_t[:] scs, int out_len, int scales_half,
                                                         int scales_block, list kernels, int rows, int cols,
                                                         int scale_length):
@@ -918,15 +921,15 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         int n_kernels = np.asarray(kernels).shape[0]
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         # list ch_bd_k = []
-        np.ndarray[DTYPE_float32_t, ndim=3] ch_bdka_array = np.zeros((n_kernels, rows, cols), dtype='float32')
-        DTYPE_float32_t[:, :, :] ch_bdka = np.zeros((n_kernels, rows, cols), dtype='float32')
-        # DTYPE_float32_t[:, :] ch_bd_gabor, ch_bd_gabor_c
+        # np.ndarray[DTYPE_float32_t, ndim=3] ch_bdka_array = np.zeros((n_kernels, rows, cols), dtype='float32')
+        # DTYPE_float32_t[:, :, :] ch_bdka = np.zeros((n_kernels, rows, cols), dtype='float32')
+        DTYPE_float32_t[:, :] ch_bd_gabor
         # DTYPE_float32_t[:] sts
         # list st
         int pix_ctr = 0
-        # int knr = kernels[0].shape[0]
-        # int knc = kernels[0].shape[1]
-        # DTYPE_float32_t[:, :] gkernel
+        int knr = kernels[0].shape[0]
+        int knc = kernels[0].shape[1]
+        DTYPE_float32_t[:, :] gkernel
         # DTYPE_float32_t[:] out_values
         int bcr, bcc
         DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
@@ -934,6 +937,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         list dist_weights_m = []
 
     for ki in range(0, scale_length):
+
         k = scs[ki]
         k_half = <int>(k / 2)
         rs = (scales_half - k_half + k) - (scales_half - k_half)
@@ -942,56 +946,65 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         dist_weights = np.empty((rs, cs), dtype='float32')
         dist_weights_m.append(_create_weights(dist_weights, rs, cs))
 
-    for kl in range(0, n_kernels):
-        ch_bdka_array[kl] = cv2.filter2D(np.float32(chBd), cv2.CV_32F, np.float32(kernels[kl]))
+    # for kl in range(0, n_kernels):
+    #     ch_bdka_array[kl] = cv2.filter2D(np.float32(chBd), cv2.CV_32F, np.float32(kernels[kl]))
+    #
+    # ch_bdka = ch_bdka_array
 
-    ch_bdka = ch_bdka_array
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in range(0, scale_length):
+                # for kl in range(0, n_kernels):
+                #
+                #     k = scs[ki]
+                #
+                #     k_half = <int>(k / 2)
+                #
+                #     ch_bd = ch_bdka[kl,
+                #                     i+scales_half-k_half:i+scales_half-k_half+k,
+                #                     j+scales_half-k_half:j+scales_half-k_half+k]
+                #
+                #     bcr = ch_bd.shape[0]
+                #     bcc = ch_bd.shape[1]
+                #
+                #     with gil:
+                #         dw = dist_weights_m[ki]
+                #
+                #     _get_weighted_mean_var(ch_bd, dw, bcr, bcc, in_zs)
+                #     # _get_mean_var(ch_bd, bcr, bcc, in_zs)
+                #
+                #     for pi in range(0, 2):
+                #
+                #         out_list[pix_ctr] = in_zs[pi]
+                #         pix_ctr += 1
 
-    with nogil:
+                for kl in range(0, n_kernels):
 
-        for i from 0 <= i < rows-scales_block by blk:
-            for j from 0 <= j < cols-scales_block by blk:
-                for ki in range(0, scale_length):
-                    for kl in range(0, n_kernels):
+                    k = scs[ki]
 
-                        k = scs[ki]
+                    k_half = <int>(k / 2)
 
-                        k_half = <int>(k / 2)
+                    ch_bd = ch_bdka[i+scales_half-k_half:i+scales_half-k_half+k,
+                                    j+scales_half-k_half:j+scales_half-k_half+k]
 
-                        ch_bd = ch_bdka[kl,
-                                        i+scales_half-k_half:i+scales_half-k_half+k,
-                                        j+scales_half-k_half:j+scales_half-k_half+k]
+                    gkernel = kernels[kl]
+                    dw = dist_weights_m[ki]
 
-                        bcr = ch_bd.shape[0]
-                        bcc = ch_bd.shape[1]
+                    bcr = ch_bd.shape[0]
+                    bcc = ch_bd.shape[1]
 
-                        with gil:
-                            dw = dist_weights_m[ki]
+                    ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
 
-                        _get_weighted_mean_var(ch_bd, dw, bcr, bcc, in_zs)
-                        # _get_mean_var(ch_bd, bcr, bcc, in_zs)
+                    with nogil:
+
+                        _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor)
+
+                        _get_weighted_mean_var(ch_bd_gabor, dw, bcr, bcc, in_zs)
 
                         for pi in range(0, 2):
 
                             out_list[pix_ctr] = in_zs[pi]
                             pix_ctr += 1
-
-                    # ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
-                    #
-                    # for kl in range(0, n_kernels):
-                    #
-                    #     gkernel = kernels[kl]
-                    #     ch_bd_gabor_c = ch_bd_gabor.copy()
-                    #
-                    #     with nogil:
-                    #
-                    #         _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor_c)
-                    #
-                    #         out_list[pix_ctr] = _get_mean(ch_bd_gabor_c, bcr, bcc)
-                    #         pix_ctr += 1
-                    #
-                    #         out_list[pix_ctr] = _get_var(ch_bd_gabor_c, bcr, bcc)
-                    #         pix_ctr += 1
 
     return np.float32(out_list)
 
@@ -2942,3 +2955,48 @@ def feature_fourier(np.ndarray chunk_block, int blk, list scales, int end_scale)
 
     return _feature_fourier(np.uint8(chunk_block), blk, scale_array, scales_half, scales_block,
                                rows, cols, out_len, scale_length)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.ndarray[DTYPE_uint64_t, ndim=2] _fill_labels(DTYPE_uint64_t[:, :] im,
+                                                     DTYPE_uint64_t[:, :] area_im,
+                                                     DTYPE_uint64_t[:] props,
+                                                     DTYPE_uint64_t[:] unique_labels,
+                                                     int n_unique,
+                                                     int rows,
+                                                     int cols):
+
+    cdef:
+        Py_ssize_t ui, i, j
+        int unq, uli_area
+
+    for uli in range(0, n_unique):
+
+        unq = unique_labels[uli]
+
+        if unq > 0:
+
+            uli_area = props[uli]
+
+            for i in range(0, rows):
+                for j in range(0, cols):
+
+                    if im[i, j] == unq:
+                        area_im[i, j] = uli_area
+
+    return np.uint64(area_im)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def fill_labels(DTYPE_uint64_t[:, :] im, DTYPE_uint64_t[:] props):
+
+    cdef:
+        rows = im.shape[0]
+        cols = im.shape[1]
+        DTYPE_uint64_t[:, :] area_im = np.zeros((rows, cols), dtype='uint64')
+        DTYPE_uint64_t[:] unique_labels = np.uint64(np.unique(im))
+        int n_unique = unique_labels.shape[0]
+
+    return _fill_labels(im, area_im, props, unique_labels, n_unique, rows, cols)

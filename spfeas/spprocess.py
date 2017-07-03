@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from .sphelpers import sputilities
 from . import spsplit
 from .sphelpers import spreshape
-from .spfunctions import get_mag_avg
+from .spfunctions import get_mag_avg, get_saliency_tile_mean, segment_image
 from . import errors
 
 from mpglue import raster_tools, VegIndicesEquations, vrt_builder
@@ -287,6 +287,16 @@ def _section_read_write(section_counter, section_pair, param_dict):
             this_parameter_object_.update_info(image_min=0,
                                                image_max=255)
 
+        elif this_parameter_object_.trigger == 'seg':
+
+            sect_in = this_image_info.read(bands2open=[1, 2, 3],
+                                           i=i_sect,
+                                           j=j_sect,
+                                           rows=n_rows,
+                                           cols=n_cols)
+
+            sect_in = segment_image(sect_in, this_parameter_object_)
+
         elif this_parameter_object_.trigger == 'grad':
 
             if this_image_info.bands >= 3:
@@ -311,7 +321,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
                                                image_max=30)
 
         elif this_parameter_object_.use_rgb and this_parameter_object_.trigger \
-                not in this_parameter_object_.spectral_indices + ['grad', 'dmp', 'saliency']:
+                not in this_parameter_object_.spectral_indices + ['grad', 'dmp', 'saliency', 'seg']:
 
             sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
                                                            i_sect,
@@ -488,6 +498,30 @@ def run(parameter_object):
                         # Get the number of sections in
                         #   the image (only used as a counter).
                         parameter_object = sputilities.get_n_sects(i_info, parameter_object)
+
+                        if parameter_object.trigger == 'saliency':
+
+                            bp = raster_tools.BlockFunc(get_saliency_tile_mean,
+                                                        [i_info],
+                                                        None,
+                                                        None,
+                                                        band_list=[[1, 2, 3]],
+                                                        d_types=['float32'],
+                                                        write_array=False,
+                                                        close_files=False,
+                                                        be_quiet=True,
+                                                        print_statement='\nGetting tile lab means for saliency',
+                                                        out_attributes=['lab_means'],
+                                                        block_rows=parameter_object.sect_row_size,
+                                                        block_cols=parameter_object.sect_col_size,
+                                                        min_max=[(parameter_object.image_min,
+                                                                  parameter_object.image_max)]*3,
+                                                        vis_order=parameter_object.vis_order)
+
+                            bp.run()
+
+                            parameter_object.update_info(lab_means=np.array(bp.lab_means,
+                                                                            dtype='float32').mean(axis=0))
 
                     i_info = None
 

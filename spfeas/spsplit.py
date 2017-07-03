@@ -6,12 +6,12 @@ Date Created: 7/2/2013
 import os
 import sys
 import subprocess
-import itertools
+# import itertools
 # from joblib import Parallel, delayed
 
 from . import spfunctions
 from .paths import get_path
-from .sphelpers import sputilities
+from .spfunctions import scale_rgb
 # from .sphelpers import _hog
 
 from mpglue import raster_tools
@@ -136,7 +136,7 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_sk
 
 def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs):
 
-    if trigger_ in ['dmp', 'evi2', 'gndvi', 'grad', 'mean', 'ndvi', 'saliency']:
+    if trigger_ in ['dmp', 'evi2', 'gndvi', 'grad', 'mean', 'ndvi', 'saliency', 'seg']:
         return call_mean(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'fourier':
         return call_fourier(block_array_, block_size_, scales_, end_scale_)
@@ -322,29 +322,6 @@ def sfs_orfeo(parameter_object):
     i_info = None
 
 
-def scale_rgb(layers, min_max, lidx):
-
-    layers_c = np.empty(layers.shape, dtype='float32')
-
-    # Rescale and blur.
-    for li in range(0, 3):
-
-        layer = layers[li]
-
-        layer = np.float32(rescale_intensity(layer,
-                                             in_range=(min_max[li][0],
-                                                       min_max[li][1]),
-                                             out_range=(0, 1)))
-
-        layers_c[lidx[li]] = rescale_intensity(cv2.GaussianBlur(layer,
-                                                                ksize=(3, 3),
-                                                                sigmaX=3),
-                                               in_range=(0, 1),
-                                               out_range=(-1, 1))
-
-    return layers_c
-
-
 def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
 
     """
@@ -385,9 +362,12 @@ def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
     layers = rgb2rgbcie(layers)
 
     # Compute Lab average values
-    lm = layers[:, :, 0].mean(axis=0).mean()
-    am = layers[:, :, 1].mean(axis=0).mean()
-    bm = layers[:, :, 2].mean(axis=0).mean()
+    # lm = layers[:, :, 0].mean(axis=0).mean()
+    # am = layers[:, :, 1].mean(axis=0).mean()
+    # bm = layers[:, :, 2].mean(axis=0).mean()
+    lm = parameter_object.lab_means[0]
+    am = parameter_object.lab_means[1]
+    bm = parameter_object.lab_means[2]
 
     return np.uint8(rescale_intensity((layers[:, :, 0] - lm)**2. +
                                       (layers[:, :, 1] - am)**2. +
@@ -744,6 +724,8 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                               args=dict()),
                      saliency=dict(name='Image saliency',
                                    args=dict()),
+                     seg=dict(name='Segmentation',
+                              args=dict()),
                      sfs=dict(name='Structural Feature Sets',
                               args=dict(sfs_threshold=parameter_object.sfs_threshold,
                                         sfs_skip=parameter_object.sfs_skip)))
