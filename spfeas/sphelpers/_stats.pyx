@@ -556,7 +556,7 @@ cdef DTYPE_float32_t _get_std_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs) nogil:
+cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs, DTYPE_float32_t ddof=1.) nogil:
 
     cdef:
         Py_ssize_t bi, bj
@@ -567,13 +567,13 @@ cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs) nogil
         for bj in range(0, cs):
             block_var += pow2(float(block[bi, bj]) - mu)
 
-    return block_var / (rs*cs)
+    return block_var / ((rs*cs) - ddof)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef DTYPE_float32_t _get_var_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
+cdef DTYPE_float32_t _get_var_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs, DTYPE_float32_t ddof=1.):
 
     cdef:
         Py_ssize_t bi, bj
@@ -586,7 +586,7 @@ cdef DTYPE_float32_t _get_var_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs):
             for bj in range(0, cs):
                 block_var += pow2(float(block[bi, bj]) - mu)
 
-    return block_var / (rs*cs)
+    return block_var / ((rs*cs) - ddof)
 
 
 @cython.boundscheck(False)
@@ -622,6 +622,19 @@ cdef DTYPE_float32_t _get_sum1d(DTYPE_float32_t[:] block, int cs) nogil:
 @cython.cdivision(True)
 cdef DTYPE_float32_t _get_mean_1d(DTYPE_float32_t[:] block, int cs) nogil:
     return _get_sum1d(block, cs) / cs
+
+
+@cython.cdivision(True)
+cdef DTYPE_float32_t _get_var_1d(DTYPE_float32_t[:] block, int cs, DTYPE_float32_t mu, DTYPE_float32_t ddof=1.) nogil:
+
+    cdef:
+        Py_ssize_t bj
+        DTYPE_float32_t block_var = 0.
+
+    for bj in range(0, cs):
+        block_var += pow2(float(block[bj]) - mu)
+
+    return block_var / (cs - ddof)
 
 
 @cython.boundscheck(False)
@@ -814,43 +827,34 @@ cdef void draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1, 
 @cython.cdivision(True)
 cdef void _get_stats(DTYPE_float32_t[:] block, int samps, DTYPE_float32_t[:] output_array) nogil:
 
-    """
-    Calculate the moments 1-4, skewness, and kurtosis
-    """
+    """Calculate the central moments 1-4"""
 
     cdef:
-        DTYPE_float32_t the_mean = _get_mean_1d(block, samps)
-        DTYPE_float32_t the_max = _get_max_f(block, samps)
         Py_ssize_t idx
+        DTYPE_float32_t m1 = _get_mean_1d(block, samps)         # 1st moment (mean)
+        DTYPE_float32_t m2 = _get_var_1d(block, samps, m1)      # 2nd moment (variance)
+        DTYPE_float32_t stdev = sqrt_f(m2)                      # standard deviation
         DTYPE_float32_t bx = block[0]
-        DTYPE_float32_t val_dev = bx - the_mean
-        DTYPE_float32_t m1 = bx - the_mean      # 1st moment
-        DTYPE_float32_t m2 = pow2(val_dev)      # 2nd moment
-        DTYPE_float32_t m3 = pow3(val_dev)      # 3rd moment
-        DTYPE_float32_t m4 = pow4(val_dev)      # 4th moment
+        DTYPE_float32_t val_dev = bx - m1
+        DTYPE_float32_t m3 = pow3(val_dev)                      # 3rd moment (standard deviation)
+        DTYPE_float32_t m4 = pow4(val_dev)                      # 4th moment (kurtosis)
 
     for idx in range(1, samps):
 
         bx = block[idx]
-        val_dev = bx - the_mean
+        val_dev = bx - m1
 
-        m1 += val_dev
-        m2 += pow2(val_dev)
         m3 += pow3(val_dev)
         m4 += pow4(val_dev)
 
-    m1 /= samps
-    m2 /= samps
     m3 /= samps
     m4 /= samps
 
-    output_array[0] = the_max
-    output_array[1] = m1
-    output_array[2] = m2
-    output_array[3] = m3
-    output_array[4] = m4
-    output_array[5] = m3 / pow3(sqrt(m2))    # skewness: ratio of 3rd moment and standard dev. cubed
-    output_array[6] = m4 / pow2(m2)          # kurtosis
+    output_array[0] = m1                    # mean
+    output_array[1] = m2                    # variance
+    output_array[2] = stdev                 # standard deviation
+    output_array[3] = m3 / pow3(stdev)      # skewness: ratio of 3rd moment and standard dev. cubed
+    output_array[4] = m4 / pow4(stdev)      # kurtosis
 
 
 @cython.boundscheck(False)
@@ -1080,7 +1084,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
         int pix_ctr = 0
         DTYPE_float32_t pi2 = 3.14159 / 2.
         bin_n = 9
-        DTYPE_float32_t[:] sts = np.zeros(7, dtype='float32')
+        DTYPE_float32_t[:] sts = np.zeros(5, dtype='float32')
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -1103,14 +1107,14 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
                                                 cells_per_block=(1, 1))),
                                  sts)
 
-                    for sti in range(0, 7):
+                    for sti in range(0, 5):
 
                         out_list[pix_ctr] = sts[sti]
 
                         pix_ctr += 1
 
                 else:
-                    pix_ctr += 7
+                    pix_ctr += 5
 
     return np.float32(out_list)
 
@@ -1128,7 +1132,7 @@ def feature_hog(np.ndarray chbd,
         int cols = chbd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 7)
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
 
     return _feature_hog(np.float32(chbd), blk, scales_array, end_scale,
                         scales_half, scales_block, out_len, rows, cols, scale_length)
@@ -1644,7 +1648,7 @@ cdef DTYPE_float32_t[:] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
         Py_ssize_t pix_ctr = 0
         int block_rows, block_cols
         DTYPE_uint8_t[:, :] ch_bd_sub
-        DTYPE_float32_t[:] sts = np.zeros(7, dtype='float32')
+        DTYPE_float32_t[:] sts = np.zeros(5, dtype='float32')
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -1666,14 +1670,14 @@ cdef DTYPE_float32_t[:] _feature_orb(DTYPE_uint8_t[:, :] ch_bd,
 
                     with nogil:
 
-                        for st in range(0, 7):
+                        for st in range(0, 5):
 
                             out_list[pix_ctr] = sts[st]
 
                             pix_ctr += 1
 
                 else:
-                    pix_ctr += 7
+                    pix_ctr += 5
 
     return out_list
 
@@ -1694,7 +1698,7 @@ def feature_orb(DTYPE_uint8_t[:, :] ch_bd,
         int cols = ch_bd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 7)
+        out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
 
     return np.float32(_feature_orb(ch_bd, blk, scales_array,
                                    scales_half, scales_block, scale_length,
@@ -1823,8 +1827,8 @@ cdef list _feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list sc
         DTYPE_uint16_t k, k_half
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        DTYPE_float32_t[:] sts = np.zeros(7, dtype='float32')
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 7)
+        DTYPE_float32_t[:] sts = np.zeros(5, dtype='float32')
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
 
     # get the LBP images
     lbpBd, p_range = _set_lbp(chBd, rows, cols)
@@ -1847,7 +1851,7 @@ cdef list _feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list sc
                 _get_moments(np.concatenate([np.bincount(ch_bd[p_range.index(pc)].flat, minlength=pc+2)
                                              for pc in p_range]).astype(np.float32), sts)
 
-                for sti in range(0, 7):
+                for sti in range(0, 5):
 
                     out_list[pix_ctr] = sts[sti]
 
@@ -2932,7 +2936,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_fourier(DTYPE_uint8_t[:, :] ch
 
                 out_list[pixel_counter] = _get_mean(ch_bd_transform, bcr, bcc)
                 pixel_counter += 1
-                out_list[pixel_counter] = _get_mean(ch_bd_transform, bcr, bcc)
+
+                out_list[pixel_counter] = _get_var(ch_bd_transform, bcr, bcc)
                 pixel_counter += 1
 
     return np.float32(out_list)

@@ -119,6 +119,74 @@ spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 
 
 Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks/examples.ipynb).
 
+#### Spatial features
+
+##### Processing
+> Graesser, Jordan, Cheriyadat, Anil, Vatsavai, Ranga Raju, Chandola, Varun, Long, Jordan, and Bright, Eddie (2012) Image based characterization of formal and informal neighborhoods in an urban landscape. _IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing_, 5(4), 1164--1176.
+
+##### Differential Morphological Profiles (dmp)
+`mean` `variance`
+> Pesaresi, Martino and Benediktsson, Jon Atli (2001) A New Approach for the Morphological Segmentation of High-Resolution Satellite Imagery. _IEEE Transactions on Geoscience and Remote Sensing_, 39(2), FEBRUARY.
+
+##### Two-band Enhanced Vegetation Index (evi2)
+`mean` `variance`
+> Jiang, Zhangyan, Huete, Alfredo R, Didan, Kamel, and Miura, Tomoaki (2008) Development of a two-band enhanced vegetation index without a blue band. _Remote Sensing of Environment_, 112, 3833--3845.
+
+##### Fourier Transform (fourier)
+`mean` `variance`
+> Measure of local energy (power spectrum) 
+
+##### Gabor filter (gabor)
+`mean` `variance` x `n filters`
+> Image convolution with a series of 2d Gabor filters
+
+##### Edge gradient magnitude (grad)
+`mean` `variance`
+> Edge gradient magnitude
+  
+##### Histogram of Oriented Gradients (hog)
+`mean` `variance` `standard deviation` `skew` `kurtosis`
+> Dalal, N and Triggs, B (2005) Histograms of Oriented Gradients for Human Detection. _IEEE Computer Society Conference on Computer Vision and Pattern Recognition_, 2005, San Diego, CA, USA.
+
+##### Lacunarity (lac)
+`lacunarity`
+> Myint, Soe W, Mesev, Victor, and Lam, Nina (2006) Urban Textural Analysis from Remote Sensor Data: Lacunarity Measurements Based on the Differential Box Counting Method. _Geographical Analysis_, ISSN 0016-7363.
+
+##### Local Binary Patterns (lbpm)
+`mean` `variance` `standard deviation` `skew` `kurtosis`
+> Ojala, Timo, Pietikainen, Matti, and Maenpaa, Topi (2002) Multiresolution gray-scale and rotation invariant texture classification with local binary patterns. _IEEE Transactions on Pattern Analysis and Machine Intelligence_, 24(7), 971--987.
+
+##### Line Support Regions (lsr)
+`line length` `line mean` `line contrast`
+> Ünsalan, Cem (2006) Gradient-Magnitude-Based Support Regions in Structural Land Use Classification. _IEEE Geoscience and Remote Sensing Letters_, 3(4), OCTOBER.
+
+##### Inverse distance weighted mean and variance (mean)
+`mean` `variance`
+> Pixels near the center of the local scale/window are given inversely higher weights to the farthest pixel in the window.
+
+##### Normalized Difference Vegetation Index (ndvi)
+`mean` `variance`
+> Tucker, CJ (1979) Red and photographic red linear combinations for monitoring vegetation. _Remote Sensing of Environment_, 8, 127--150.
+
+##### Built-up presence index (pantex)
+`min contrast`
+> Pesaresi, Martino, Gerhardinger, Andrea, and Kayitakire, François (2008) A Robust Built-Up Area Presence Index by
+Anisotropic Rotation-Invariant Textural Measure. _IEEE JOURNAL OF SELECTED TOPICS IN APPLIED EARTH OBSERVATIONS AND REMOTE SENSING_, 1(3), SEPTEMBER.
+
+##### Oriented FAST and Rotated BRIEF (orb)
+`mean` `variance` `standard deviation` `skew` `kurtosis`
+> Rublee, Ethan, Rabaud, Vincent, Konolige, Kurt, and Bradski, Gary R (2011) ORB: An efficient alternative to SIFT or SURF. _ICCV 2011_, 2564-2571.
+
+##### Image saliency (saliency)
+`mean` `variance`
+> Perazzi, Federico, Krahenb, Philipp, Pritch, Yael, and Hornung, Alexander (2012) Contrast Based Filtering for Salient Region Detection. _IEEE CVPR_, Providence, Rhode Island, USA, June 16-21.
+
+> Cheng, Ming-Ming, Mitra, Niloy J, Huang, Xiaolei, Torr, Philip HS, and Hu, Shi-Min (2015) Global Contrast based Salient Region detection. _IEEE Transactions on Pattern Analysis and Machine Intelligence_, 37(3), 569--582.
+
+##### Structural Feature Sets (sfs)
+`max line length` `min line length` `mean` `w-mean` `standard deviation` ` max ratio of orthogonal angles`
+> Huang, Xin, Zhang, Liangpei, and Li, Pingxiang (2007) Classification and Extraction of Spatial Features in Urban Areas Using High-Resolution Multispectral Imagery. _IEEE Geoscience and Remote Sensing Letters_, 4(2), April.
+
 Development
 -----------
 For questions or bugs, please [**submit an issue**](https://github.com/jgrss/spfeas/issues).
