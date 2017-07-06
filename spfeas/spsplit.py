@@ -720,7 +720,7 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                                args=dict()),
                      pantex=dict(name='PanTex',
                                  args=dict(weight=parameter_object.weight)),
-                     orb=dict(name='Oriented BRIEF key points',
+                     orb=dict(name='Oriented FAST and Rotated BRIEF key points',
                               args=dict()),
                      saliency=dict(name='Image saliency',
                                    args=dict()),

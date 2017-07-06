@@ -563,7 +563,7 @@ class ManageStatus(object):
         if not isinstance(self.status_dict, dict):
             errors.logger.error('The loaded object was not a dictionary.')
 
-    @retry(wait_fixed=3000, retry_on_result=_retry_if_not_dict, stop_max_attempt_number=10)
+    @retry(wait_fixed=3000, retry_on_result=_retry_if_not_dict, stop_max_attempt_number=20)
     def _load_status(self, status2load):
 
         with open(status2load, 'r') as pf:

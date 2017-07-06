@@ -831,6 +831,7 @@ cdef void _get_stats(DTYPE_float32_t[:] block, int samps, DTYPE_float32_t[:] out
 
     cdef:
         Py_ssize_t idx
+        DTYPE_float32_t the_max = _get_max_f(block, samps)
         DTYPE_float32_t m1 = _get_mean_1d(block, samps)         # 1st moment (mean)
         DTYPE_float32_t m2 = _get_var_1d(block, samps, m1)      # 2nd moment (variance)
         DTYPE_float32_t stdev = sqrt_f(m2)                      # standard deviation
@@ -850,9 +851,9 @@ cdef void _get_stats(DTYPE_float32_t[:] block, int samps, DTYPE_float32_t[:] out
     m3 /= samps
     m4 /= samps
 
-    output_array[0] = m1                    # mean
-    output_array[1] = m2                    # variance
-    output_array[2] = stdev                 # standard deviation
+    output_array[0] = the_max               # max
+    output_array[1] = m1                    # mean
+    output_array[2] = m2                    # variance
     output_array[3] = m3 / pow3(stdev)      # skewness: ratio of 3rd moment and standard dev. cubed
     output_array[4] = m4 / pow4(stdev)      # kurtosis
 
@@ -1082,7 +1083,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
         np.ndarray[DTYPE_float32_t, ndim=2] ch_bd
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         int pix_ctr = 0
-        DTYPE_float32_t pi2 = 3.14159 / 2.
+        DTYPE_float32_t pi2 = 3.141`9 / 2.
         bin_n = 9
         DTYPE_float32_t[:] sts = np.zeros(5, dtype='float32')
 
@@ -1834,7 +1835,7 @@ cdef list _feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list sc
     lbpBd, p_range = _set_lbp(chBd, rows, cols)
 
     # set the output list
-    out_list = np.zeros(out_len).astype(np.float64)
+    out_list = np.zeros(out_len, 'float64')
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:

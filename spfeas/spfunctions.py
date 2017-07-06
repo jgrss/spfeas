@@ -372,7 +372,7 @@ def segment_image(im, parameter_object):
                                                  out_range=(0, 255))))
 
     felzer = felzenszwalb(np.uint8(image2segment),
-                          scale=85,
+                          scale=50,
                           sigma=.01,
                           min_size=5,
                           multichannel=True).reshape(rows, cols)
