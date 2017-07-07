@@ -498,6 +498,51 @@ cdef void _get_weighted_mean_var_byte(DTYPE_uint8_t[:, :] block,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef void _get_angle_stats(DTYPE_float32_t[:, :] block,
+                           int rs,
+                           int cs,
+                           DTYPE_float32_t[:] out_values_) nogil:
+
+    cdef:
+        Py_ssize_t i, j, jc
+        int rsh = <int>(rs / 2)
+        int csh = <int>(cs / 2)
+        DTYPE_float32_t line_sum
+
+    # Center horizontal
+    line_sum = 0.
+    for j in range(0, cs):
+        line_sum += block[rsh, j]
+
+    out_values_[0] = line_sum / cs
+
+    # Center vertical
+    line_sum = 0.
+    for i in range(0, rs):
+        line_sum += block[i, csh]
+
+    out_values_[1] = line_sum / rs
+
+    # Top left to bottom right
+    line_sum = 0.
+    for i in range(0, rs):
+        line_sum += block[i, i]
+
+    out_values_[2] = line_sum / rs
+
+    # Top right to bottom left
+    line_sum = 0.
+    jc = cs - 1
+    for i in range(0, rs):
+        line_sum += block[i, jc]
+        jc -= 1
+
+    out_values_[3] = line_sum / rs
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
@@ -624,6 +669,7 @@ cdef DTYPE_float32_t _get_mean_1d(DTYPE_float32_t[:] block, int cs) nogil:
     return _get_sum1d(block, cs) / cs
 
 
+@cython.boundscheck(False)
 @cython.cdivision(True)
 cdef DTYPE_float32_t _get_var_1d(DTYPE_float32_t[:] block, int cs, DTYPE_float32_t mu, DTYPE_float32_t ddof=1.) nogil:
 
@@ -878,27 +924,29 @@ cdef void _get_moments(DTYPE_float32_t[:] img_arr, DTYPE_float32_t[:] output) no
 @cython.wraparound(False)
 cdef void _convolution(DTYPE_float32_t[:, :] block2convolve,
                        DTYPE_float32_t[:, :] gkernel,
-                       int br, int bc, int knr, int knc,
+                       int br, int bc,
+                       int knr, int knc,
+                       int knrh, int knch,
                        DTYPE_float32_t[:, :] out_convolved) nogil:
 
-    """"
-    2d convolution of a Gabor kernel over a local window
-    """
+    """"2d convolution of a Gabor kernel over a local window"""
 
     cdef:
         Py_ssize_t bi, bj, bki, bkj
         DTYPE_float32_t kernel_sum
 
+    # Move the kernel
     for bi in range(0, br-knr):
         for bj in range(0, bc-knc):
 
             kernel_sum = 0.
 
+            # Process the kernel
             for bki in range(0, knr):
                 for bkj in range(0, knc):
                     kernel_sum += block2convolve[bi+bki, bj+bkj] * gkernel[bki, bkj]
 
-            out_convolved[bi, bj] = kernel_sum
+            out_convolved[bi+knrh, bj+knch] = kernel_sum
 
 
 @cython.boundscheck(False)
@@ -932,6 +980,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         int pix_ctr = 0
         int knr = kernels[0].shape[0]
         int knc = kernels[0].shape[1]
+        int knrh = <int>(knr / 2)
+        int knch = <int>(knc / 2)
         DTYPE_float32_t[:, :] gkernel
         # DTYPE_float32_t[:] out_values
         int bcr, bcc
@@ -1000,9 +1050,12 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
 
                     with nogil:
 
-                        _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, ch_bd_gabor)
+                        _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, knrh, knch, ch_bd_gabor)
 
                         _get_weighted_mean_var(ch_bd_gabor, dw, bcr, bcc, in_zs)
+                        # _get_angle_stats(ch_bd_gabor, bcr, bcc, in_zs)
+
+                        # _get_moments(in_zs, sts)
 
                         for pi in range(0, 2):
 
@@ -1135,6 +1188,8 @@ def feature_hog(np.ndarray chbd,
                         scales_half, scales_block, out_len, rows, cols, scale_length)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef void _add_dmps(DTYPE_float32_t[:, :, :] ch_bd_array,
                     int dims,
                     int block_rows,

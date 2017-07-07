@@ -217,7 +217,7 @@ class BinQ(object):
 
             lsfarr_row = np.zeros(6, dtype='float32')
 
-            for cl in xrange(0, 6):
+            for cl in range(0, 6):
                 lsfarr_row[cl] = cl_list[cl]
             
             lsfarr = np.vstack((lsfarr, lsfarr_row))

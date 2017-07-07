@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from .sphelpers import sputilities
 from . import spsplit
 from .sphelpers import spreshape
-from .spfunctions import get_mag_avg, get_saliency_tile_mean, saliency, segment_image, get_dmp
+from .spfunctions import get_mag_avg, get_saliency_tile_mean, saliency, segment_image, get_dmp, get_orb_keypoints
 from . import errors
 
 from mpglue import raster_tools, VegIndicesEquations, vrt_builder
@@ -332,6 +332,9 @@ def _section_read_write(section_counter, section_pair, param_dict):
             # where,
             #   D = the opening/closing derivative.
             sect_in = get_dmp(sect_in)
+
+        if this_parameter_object_.trigger == 'orb':
+            sect_in = get_orb_keypoints(sect_in, this_parameter_object_)
 
         this_parameter_object_.update_info(i_sect_blk_ctr=1,
                                            j_sect_blk_ctr=1)

@@ -544,17 +544,33 @@ def get_orb_keypoints(in_block, parameter_object):
     Computes the ORB key points
     """
 
+    # We want odd patch sizes.
+    # if parameter_object.scales[-1] % 2 == 0:
+    #     patch_size = parameter_object.scales[-1] - 1
+
+    patch_size = 31
+    patch_size_d = patch_size * 3
+
     # Initiate ORB detector
-    orb = cv2.ORB_create(nfeatures=20000, edgeThreshold=31, patchSize=31, WTA_K=4)
+    orb = cv2.ORB_create(nfeatures=int(.25*(in_block.shape[0]*in_block.shape[1])),
+                         edgeThreshold=patch_size,
+                         scaleFactor=1.2,
+                         nlevels=8,
+                         patchSize=patch_size,
+                         WTA_K=4,
+                         scoreType=cv2.ORB_FAST_SCORE)
 
     in_block = np.uint8(rescale_intensity(in_block,
                                           in_range=(parameter_object.image_min,
                                                     parameter_object.image_max),
                                           out_range=(0, 255)))
 
+    # Add padding because ORB ignores edges.
+    in_block = cv2.copyMakeBorder(in_block, patch_size_d, patch_size_d, patch_size_d, patch_size_d, cv2.BORDER_REFLECT)
+
     # Compute ORB keypoints
-    key_points, __ = orb.detectAndCompute(in_block, None)
+    key_points = orb.detectAndCompute(in_block, None)[0]
 
     # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
 
-    return fill_key_points(np.float32(in_block), key_points)
+    return fill_key_points(np.float32(in_block), key_points)[patch_size_d:-patch_size_d, patch_size_d:-patch_size_d]
