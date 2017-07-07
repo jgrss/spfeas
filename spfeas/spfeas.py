@@ -45,7 +45,7 @@ class SPParameters(object):
 
         # Set the features dictionary.
         self.features_dict = dict(ctr=1,
-                                  dmp=2,
+                                  dmp=5,
                                   evi2=2,
                                   fourier=2,
                                   gabor=2*8,

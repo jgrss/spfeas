@@ -3,7 +3,7 @@ import itertools
 from joblib import Parallel, delayed
 
 from .sphelpers import lsr
-from .sphelpers._stats import fill_labels
+from .sphelpers._stats import fill_labels, fill_key_points
 
 try:
     from skimage.exposure import rescale_intensity
@@ -14,6 +14,7 @@ try:
     from skimage.color import rgb2rgbcie
     from skimage.segmentation import felzenszwalb
     from skimage.measure import regionprops
+    from skimage.morphology import reconstruction
 except ImportError:
     raise ImportError('Scikits-image must be installed')
 
@@ -354,6 +355,60 @@ def get_saliency_tile_mean(im, min_max=None, vis_order=None):
     return None, lab_means
 
 
+def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
+
+    """
+    References:
+        Federico Perazzi, Philipp Krahenbul, Yael Pritch, Alexander Hornung. Saliency Filters. (2012).
+            Contrast Based Filtering for Salient Region Detection. IEEE CVPR, Providence, Rhode Island, USA, June 16-21.
+
+            https://graphics.ethz.ch/~perazzif/saliency_filters/
+
+        Ming-Ming Cheng, Niloy J. Mitra, Xiaolei Huang, Philip H. S. Torr, Shi-Min Hu. (2015).
+            Global Contrast based Salient Region detection. IEEE TPAMI.
+    """
+
+    # Read the entire image to get the
+    #   min/max for each band.
+    # min_max = sputilities.get_layer_min_max(i_info)
+    min_max = [(parameter_object.image_min, parameter_object.image_max)] * 3
+
+    if parameter_object.vis_order == 'bgr':
+        lidx = [2, 1, 0]
+    else:
+        lidx = [0, 1, 2]
+
+    # Read the section.
+    layers = i_info.read(bands2open=[1, 2, 3],
+                         i=i_sect,
+                         j=j_sect,
+                         rows=n_rows,
+                         cols=n_cols,
+                         d_type='float32')
+
+    layers = scale_rgb(layers, min_max, lidx)
+
+    # Transpose the image to RGB
+    layers = layers.transpose(1, 2, 0)
+
+    # Perform RGB to CIE Lab color space conversion
+    layers = rgb2rgbcie(layers)
+
+    # Compute Lab average values
+    # lm = layers[:, :, 0].mean(axis=0).mean()
+    # am = layers[:, :, 1].mean(axis=0).mean()
+    # bm = layers[:, :, 2].mean(axis=0).mean()
+    lm = parameter_object.lab_means[0]
+    am = parameter_object.lab_means[1]
+    bm = parameter_object.lab_means[2]
+
+    return np.uint8(rescale_intensity((layers[:, :, 0] - lm)**2. +
+                                      (layers[:, :, 1] - am)**2. +
+                                      (layers[:, :, 2] - bm)**2.,
+                                      in_range=(-1, 1),
+                                      out_range=(0, 255)))
+
+
 def segment_image(im, parameter_object):
 
     dims, rows, cols = im.shape
@@ -381,3 +436,125 @@ def segment_image(im, parameter_object):
     props = np.array([p.area for p in props], dtype='uint64')
 
     return fill_labels(np.uint64(felzer), props)
+
+
+def get_slopes(xv, yv):
+
+    """
+    Args:
+        xv (2d array): Samples X M
+        yv (1d array): M
+    """
+
+    return ((xv*yv).mean(axis=1) - xv.mean() * yv.mean(axis=1)) / ((xv**2).mean() - (xv.mean())**2)
+
+
+def get_dmp(bd, ses=None):
+
+    """
+    Calculates the Differential Morphological Profile
+
+    Args:
+        bd (2d array)
+        ses (Optional[list]): The structuring elements.
+
+    Returns:
+
+    """
+
+    if not ses:
+        ses = [3, 5, 7, 9, 11]
+
+    section_rows, section_cols = bd.shape
+
+    dmp_counter = 0
+
+    marker = bd.copy()
+    previous = bd.copy()
+
+    # The DMP holder
+    # closings --> 1st len(ses) bands
+    # openings --> last len(ses) bands
+    dims = len(ses) * 2
+
+    dmp_array = np.uint8(np.empty((dims, section_rows, section_cols)))
+
+    # Morphological opening
+    for se_size in ses:
+
+        se = cv2.getStructuringElement(cv2.MORPH_RECT, (se_size, se_size))
+
+        marker = cv2.erode(marker, se, iterations=1)
+
+        current = reconstruction(marker, bd, method='dilation', selem=se)
+
+        dmp_array[dmp_counter] = previous - current
+
+        previous = current.copy()
+
+        dmp_counter += 1
+
+    marker = bd.copy()
+    previous = bd.copy()
+
+    # Morphological closing
+    for se_size in ses:
+
+        se = cv2.getStructuringElement(cv2.MORPH_RECT, (se_size, se_size))
+
+        marker = cv2.dilate(marker, se, iterations=1)
+
+        current = reconstruction(marker, bd, method='erosion', selem=se)
+
+        dmp_array[dmp_counter] = current - previous
+
+        previous = current.copy()
+
+        dmp_counter += 1
+
+    # Reshape to [samples X dimensions].
+    dmp_array = dmp_array.reshape(dims,
+                                  section_rows,
+                                  section_cols).transpose(1, 2, 0).reshape(section_rows*section_cols,
+                                                                           dims)
+
+    # Get the derivative of the
+    #   morphological openings
+    #   and closings.
+    return np.uint8(rescale_intensity(np.gradient(dmp_array,
+                                                  axis=1).T.reshape(dims,
+                                                                    section_rows,
+                                                                    section_cols),
+                                      in_range=(0, 200),
+                                      out_range=(0, 255)))
+
+    # Reshape to [samples X dimensions] and
+    #   get the slope for each sample.
+    # return get_slopes(np.arange(dims, dtype='float32'),
+    #                   dmp_array.reshape(dims,
+    #                                     section_rows,
+    #                                     section_cols).transpose(1, 2, 0).reshape(section_rows*section_cols,
+    #                                                                              dims)).reshape(section_rows,
+    #                                                                                             section_cols)
+
+
+def get_orb_keypoints(in_block, parameter_object):
+
+    """
+    Computes the ORB key points
+    """
+
+    # Initiate ORB detector
+    orb = cv2.ORB_create(nfeatures=20000, edgeThreshold=31, patchSize=31, WTA_K=4)
+
+    in_block = np.uint8(rescale_intensity(in_block,
+                                          in_range=(parameter_object.image_min,
+                                                    parameter_object.image_max),
+                                          out_range=(0, 255)))
+
+    # Compute ORB keypoints
+    key_points, __ = orb.detectAndCompute(in_block, None)
+
+    # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
+
+    return fill_key_points(np.float32(in_block), key_points)

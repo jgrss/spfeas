@@ -12,7 +12,7 @@ from joblib import Parallel, delayed
 from .sphelpers import sputilities
 from . import spsplit
 from .sphelpers import spreshape
-from .spfunctions import get_mag_avg, get_saliency_tile_mean, segment_image
+from .spfunctions import get_mag_avg, get_saliency_tile_mean, saliency, segment_image, get_dmp
 from . import errors
 
 from mpglue import raster_tools, VegIndicesEquations, vrt_builder
@@ -263,26 +263,14 @@ def _section_read_write(section_counter, section_pair, param_dict):
             this_parameter_object_.update_info(image_min=0,
                                                image_max=1)
 
-        elif this_parameter_object_.trigger == 'dmp':
-
-            sect_in = np.asarray([this_image_info.read(bands2open=dmp_bd,
-                                                       i=i_sect,
-                                                       j=j_sect,
-                                                       rows=n_rows,
-                                                       cols=n_cols,
-                                                       d_type='float32')
-                                  for dmp_bd in range(1, this_image_info.bands+1)]).reshape(this_image_info.bands,
-                                                                                            n_rows,
-                                                                                            n_cols)
-
         elif this_parameter_object_.trigger == 'saliency':
 
-            sect_in = spsplit.saliency(this_image_info,
-                                       this_parameter_object_,
-                                       i_sect,
-                                       j_sect,
-                                       n_rows,
-                                       n_cols)
+            sect_in = saliency(this_image_info,
+                               this_parameter_object_,
+                               i_sect,
+                               j_sect,
+                               n_rows,
+                               n_cols)
 
             this_parameter_object_.update_info(image_min=0,
                                                image_max=255)
@@ -336,6 +324,14 @@ def _section_read_write(section_counter, section_pair, param_dict):
                                            j=j_sect,
                                            rows=n_rows,
                                            cols=n_cols)
+
+        if this_parameter_object_.trigger == 'dmp':
+
+            # The Differential Morphological Profile
+            #   is a [D x M x N] array
+            # where,
+            #   D = the opening/closing derivative.
+            sect_in = get_dmp(sect_in)
 
         this_parameter_object_.update_info(i_sect_blk_ctr=1,
                                            j_sect_blk_ctr=1)

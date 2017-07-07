@@ -862,9 +862,7 @@ cdef void _get_stats(DTYPE_float32_t[:] block, int samps, DTYPE_float32_t[:] out
 @cython.wraparound(False)
 cdef void _get_moments(DTYPE_float32_t[:] img_arr, DTYPE_float32_t[:] output) nogil:
 
-    """
-    Get the moments for 1d array
-    """
+    """Get the moments for 1d array"""
 
     cdef:
         int img_arr_cols = img_arr.shape[0]
@@ -1083,7 +1081,6 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
         np.ndarray[DTYPE_float32_t, ndim=2] ch_bd
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         int pix_ctr = 0
-        DTYPE_float32_t pi2 = 3.141`9 / 2.
         bin_n = 9
         DTYPE_float32_t[:] sts = np.zeros(5, dtype='float32')
 
@@ -1093,7 +1090,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
 
                 k = scs[ki]
 
-                k_half = k / 2
+                k_half = <int>(k / 2)
 
                 ch_bd = chbd[i+scales_half-k_half:i+scales_half-k_half+k,
                              j+scales_half-k_half:j+scales_half-k_half+k]
@@ -1105,8 +1102,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hog(np.ndarray[DTYPE_float32_t
 
                     _get_moments(np.float32(HOG(ch_bd,
                                                 pixels_per_cell=(block_rows, block_cols),
-                                                cells_per_block=(1, 1))),
-                                 sts)
+                                                cells_per_block=(1, 1))), sts)
 
                     for sti in range(0, 5):
 
@@ -1137,6 +1133,97 @@ def feature_hog(np.ndarray chbd,
 
     return _feature_hog(np.float32(chbd), blk, scales_array, end_scale,
                         scales_half, scales_block, out_len, rows, cols, scale_length)
+
+
+cdef void _add_dmps(DTYPE_float32_t[:, :, :] ch_bd_array,
+                    int dims,
+                    int block_rows,
+                    int block_cols,
+                    DTYPE_float32_t[:] dmp_vector_array) nogil:
+
+    cdef:
+        Py_ssize_t d, ri, cj
+
+    for d in range(0, dims):
+        for ri in range(0, block_rows):
+            for cj in range(0, block_cols):
+                dmp_vector_array[d] += ch_bd_array[d, ri, cj]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_dmp(DTYPE_float32_t[:, :, :] chbd,
+                                                      int blk, DTYPE_uint16_t[:] scs,
+                                                      int end_scale, int scales_half,
+                                                      int scales_block, int out_len,
+                                                      int dims, int rows, int cols,
+                                                      int scale_length):
+
+    cdef:
+        Py_ssize_t i, j, ki, sti, block_rows, block_cols
+        DTYPE_uint16_t k, k_half
+        DTYPE_float32_t[:, :, :] ch_bd
+        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
+        int pix_ctr = 0
+        DTYPE_float32_t[:] sts = np.zeros(5, dtype='float32')
+        DTYPE_float32_t[:] dmp_vector = np.zeros(dims, dtype='float32')
+
+    for i from 0 <= i < rows-scales_block by blk:
+        for j from 0 <= j < cols-scales_block by blk:
+            for ki in range(0, scale_length):
+
+                k = scs[ki]
+
+                k_half = <int>(k / 2)
+
+                # Get the DMPS.
+                ch_bd = chbd[:, i+scales_half-k_half:i+scales_half-k_half+k,
+                             j+scales_half-k_half:j+scales_half-k_half+k]
+
+                block_rows = ch_bd.shape[1]
+                block_cols = ch_bd.shape[2]
+
+                # Add the DMPs for the local scale.
+                dmp_vector_ = dmp_vector.copy()
+
+                with nogil:
+
+                    _add_dmps(ch_bd, dims, block_rows, block_cols, dmp_vector_)
+
+                    # Get the DMP vector
+                    #   central moments.
+                    _get_moments(dmp_vector_, sts)
+
+                    # Fill the output.
+                    for sti in range(0, 5):
+
+                        out_list[pix_ctr] = sts[sti]
+
+                        pix_ctr += 1
+
+    return np.float32(out_list)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def feature_dmp(np.ndarray chbd, int blk, list scs, int end_scale):
+
+    cdef:
+        Py_ssize_t i, j, ki
+        int scales_half = int(end_scale / 2)
+        int scales_block = end_scale - blk
+        int dims = chbd.shape[0]    # number of Structuring Elements
+        int rows = chbd.shape[1]
+        int cols = chbd.shape[2]
+        DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
+        int scale_length = scales_array.shape[0]
+        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
+
+    return _feature_dmp(np.float32(chbd), blk, scales_array, end_scale,
+                        scales_half, scales_block, out_len, dims,
+                        rows, cols, scale_length)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1543,16 +1630,16 @@ def fill_key_points(DTYPE_float32_t[:, :] in_block, list key_point_list):
         Py_ssize_t n_key_points = len(key_point_list)
         int brows = in_block.shape[0]
         int bcols = in_block.shape[1]
-        DTYPE_uint8_t[:, :] key_point_array = np.empty((brows, bcols), dtype='uint8')
+        DTYPE_uint8_t[:, :] key_point_array = np.zeros((brows, bcols), dtype='uint8')
 
     for key_point_index in range(0, n_key_points):
 
         key_x, key_y = key_point_list[key_point_index].pt
 
-        key_y_idx = int(floor(key_y))
-        key_x_idx = int(floor(key_x))
+        key_y_idx = <int>(floor(key_y))
+        key_x_idx = <int>(floor(key_x))
 
-        key_point_array[key_y_idx, key_x_idx] = 255
+        key_point_array[key_y_idx, key_x_idx] = 1
 
     return np.uint8(key_point_array)
 

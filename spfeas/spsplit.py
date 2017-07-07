@@ -6,13 +6,9 @@ Date Created: 7/2/2013
 import os
 import sys
 import subprocess
-# import itertools
-# from joblib import Parallel, delayed
 
 from . import spfunctions
 from .paths import get_path
-from .spfunctions import scale_rgb
-# from .sphelpers import _hog
 
 from mpglue import raster_tools
 
@@ -32,7 +28,6 @@ except:
 # Scikit-image
 try:
     from skimage.exposure import equalize_hist, rescale_intensity, equalize_adapthist
-    from skimage.color import rgb2rgbcie
 except ImportError:
     raise ImportError('Scikit-learn must be installed')
 
@@ -90,6 +85,10 @@ def call_fourier(block_array_, block_size_, scales_, end_scale_):
     return spfunctions.feature_fourier(block_array_, block_size_, scales_, end_scale_)
 
 
+def call_dmp(block_array_, block_size_, scales_, end_scale_):
+    return _stats.feature_dmp(block_array_, block_size_, scales_, end_scale_)
+
+
 # def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_):
 #     return _hog.feature_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_)
 
@@ -136,8 +135,10 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_sk
 
 def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs):
 
-    if trigger_ in ['dmp', 'evi2', 'gndvi', 'grad', 'mean', 'ndvi', 'saliency', 'seg']:
+    if trigger_ in ['evi2', 'gndvi', 'grad', 'mean', 'ndvi', 'saliency', 'seg']:
         return call_mean(block_array_, block_size_, scales_, end_scale_)
+    elif trigger_ == 'dmp':
+        return call_dmp(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'fourier':
         return call_fourier(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'gabor':
@@ -159,32 +160,11 @@ def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs
     elif trigger_ == 'sfs':
         return call_sfs(block_array_, block_size_, scales_, end_scale_, kwargs['sfs_threshold'], kwargs['sfs_skip'])
 
-
 # def call_surf(block_array_, block_size_, scales_, end_scale_):
 #     return _stats.feature_surf(block_array_, block_size_, scales_, end_scale_)
 
 # def startCtr(bd_blk_scs):
 #     return feaCtr(*bd_blk_scs)
-
-
-def get_orb_keypoints(in_block, parameter_object):
-
-    # Compute the ORB keypoints
-    # Initiate ORB detector
-
-    orb = cv2.ORB_create(nfeatures=20000, edgeThreshold=31, patchSize=31, WTA_K=4)
-
-    in_block = np.uint8(rescale_intensity(in_block,
-                                          in_range=(parameter_object.image_min,
-                                                    parameter_object.image_max),
-                                          out_range=(0, 255)))
-
-    # Compute ORB keypoints
-    key_points, __ = orb.detectAndCompute(in_block, None)
-
-    # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
-
-    return _stats.fill_key_points(np.float32(in_block), key_points)
 
 
 def get_out_rows(in_bd, blk, end_scale):
@@ -322,208 +302,6 @@ def sfs_orfeo(parameter_object):
     i_info = None
 
 
-def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
-
-    """
-    References:
-        Federico Perazzi, Philipp Krahenbul, Yael Pritch, Alexander Hornung. Saliency Filters. (2012).
-            Contrast Based Filtering for Salient Region Detection. IEEE CVPR, Providence, Rhode Island, USA, June 16-21.
-
-            https://graphics.ethz.ch/~perazzif/saliency_filters/
-
-        Ming-Ming Cheng, Niloy J. Mitra, Xiaolei Huang, Philip H. S. Torr, Shi-Min Hu. (2015).
-            Global Contrast based Salient Region detection. IEEE TPAMI.
-    """
-
-    # Read the entire image to get the
-    #   min/max for each band.
-    # min_max = sputilities.get_layer_min_max(i_info)
-    min_max = [(parameter_object.image_min, parameter_object.image_max)] * 3
-
-    if parameter_object.vis_order == 'bgr':
-        lidx = [2, 1, 0]
-    else:
-        lidx = [0, 1, 2]
-
-    # Read the section.
-    layers = i_info.read(bands2open=[1, 2, 3],
-                         i=i_sect,
-                         j=j_sect,
-                         rows=n_rows,
-                         cols=n_cols,
-                         d_type='float32')
-
-    layers = scale_rgb(layers, min_max, lidx)
-
-    # Transpose the image to RGB
-    layers = layers.transpose(1, 2, 0)
-
-    # Perform RGB to CIE Lab color space conversion
-    layers = rgb2rgbcie(layers)
-
-    # Compute Lab average values
-    # lm = layers[:, :, 0].mean(axis=0).mean()
-    # am = layers[:, :, 1].mean(axis=0).mean()
-    # bm = layers[:, :, 2].mean(axis=0).mean()
-    lm = parameter_object.lab_means[0]
-    am = parameter_object.lab_means[1]
-    bm = parameter_object.lab_means[2]
-
-    return np.uint8(rescale_intensity((layers[:, :, 0] - lm)**2. +
-                                      (layers[:, :, 1] - am)**2. +
-                                      (layers[:, :, 2] - bm)**2.,
-                                      in_range=(-1, 1),
-                                      out_range=(0, 255)))
-
-
-def get_dmp(bd, section_rows, section_cols):
-    
-    # if bd.dtype != np.uint8:
-    #     bd = raster_tools.rescale_intensity(bd, 256, maxI=mx, minI=mn, dType='i').astype(np.uint8)
-
-    # set the structuring element
-    # se = cv2.getStructuringElement(cv2.MORPH_RECT, (se_size, se_size))
-    # er = cv2.erode(sect_in, se, iterations=3)
-    # di = cv2.dilate(sect_in, se, iterations=3)
-    # # op = cv2.morphologyEx(sect_in, cv2.MORPH_OPEN, se, iterations=3)
-    #
-    # ## reconstruction
-    # ## choose a random seed point and check for clouds
-    # ## the seed point should be non-cloud
-    # rws, cls = se.shape
-    # no_seed = True
-    # while no_seed:
-    #
-    #     row_seed = np.random.choice(range(rws), size=1, replace=False)[0]
-    #     col_seed = np.random.choice(range(cls), size=1, replace=False)[0]
-    #
-    #     if se[row_seed, col_seed] != 0:
-    #         no_seed = False
-    #
-    # sect_in_openrc_cv = np.pad(er, ((1, 1), (1, 1)), 'edge').astype(np.uint8)
-    # cv2.floodFill(sect_in.astype(np.uint8), sect_in_openrc_cv, (col_seed, row_seed), (0, 0, 255), \
-    #               flags=cv2.FLOODFILL_MASK_ONLY)
-
-    ses = [3, 5, 7, 9, 11]
-    X = np.float32(np.arange(len(ses) * 2))
-
-    # holder for DMP
-    # closings --> 1st len(ses) bands
-    # openings --> last len(ses) bands
-    dmp = np.uint8(np.empty((len(ses) * 2, section_rows, section_cols)))
-
-    dmp_pos = 0
-    for se_size in ses:
-
-        se = cv2.getStructuringElement(cv2.MORPH_RECT, (se_size, se_size))
-
-        # OpenCV morphological reconstruction
-
-        # open by reconstruction
-
-        # bd = mask
-        # er = marker
-
-        dmp_lyr = np.uint8(np.empty((bd.shape[0], section_rows, section_cols)))
-
-        for lyr in xrange(0, bd.shape[0]):
-
-            er_openrc = cv2.erode(bd[lyr], se, iterations=1)
-
-            # changes = np.zeros((section_rows, section_cols)).astype(np.uint8)
-
-            # stable = False
-            max_iters = 5
-            for iters in xrange(0, max_iters):
-                # geodesic_er = np.logical_or(bd, er_openrc).astype(int)
-                geodesic_er = np.where(np.abs(np.subtract(bd[lyr], er_openrc)) < 100, 1, 0)
-
-                # changes = np.subtract(geodesic_er, changes)
-
-                # if changes.max() == 0:
-                #     stable = True
-                # else:
-                er_openrc = cv2.erode(np.where(geodesic_er == 1, bd[lyr], 0), se, iterations=1)
-
-            dmp_lyr[lyr] = er_openrc
-
-        dmp[dmp_pos + len(ses)] = -dmp_lyr.mean(axis=0)
-
-        # closing by reconstruction
-
-        for lyr in xrange(0, bd.shape[0]):
-
-            di_closerc = cv2.dilate(bd[lyr], se, iterations=1)
-
-            # changes = np.zeros((section_rows, section_cols)).astype(np.uint8)
-
-            # stable = False
-            for iters in xrange(0, max_iters):
-                # geodesic_di = np.logical_and(bd, di_closerc).astype(int)
-                geodesic_di = np.where(np.abs(np.subtract(bd[lyr], di_closerc)) < 100, 1, 0)
-
-                # changes = np.subtract(geodesic_di, changes)
-
-                # if changes.max() == 0:
-                #     stable = True
-                # else:
-                di_closerc = cv2.dilate(np.where(geodesic_di == 1, bd[lyr], 0), se, iterations=1)
-
-            dmp_lyr[lyr] = di_closerc
-
-        dmp[dmp_pos] = dmp_lyr.mean(axis=0)
-
-        dmp_pos += 1
-
-    close_mean = dmp[:len(ses)].mean(axis=0)
-    open_mean = dmp[len(ses):].mean(axis=0)
-
-    return np.float32(np.multiply(close_mean, open_mean))
-
-    # plt.subplot(221)
-    # plt.imshow(bd[2])
-    # plt.subplot(222)
-    # plt.imshow(close_mean)
-    # plt.subplot(223)
-    # plt.imshow(open_mean)
-    # plt.subplot(224)
-    # plt.imshow(open_mean * close_mean)
-    # plt.show()
-    # sys.exit()
-
-    # dmp = dmp.reshape(len(X), section_rows*section_cols).T
-    # dmp = [dm for dm in dmp]
-    #
-    # X = np.indices((section_rows*section_cols, len(X)))[1]
-    # X = [x for x in X]
-    #
-    # # create the multiprocessing pool object
-    # if n_jobs == -1:
-    #     pool = M.Pool(processes=M.cpu_count())
-    # else:
-    #     pool = M.Pool(processes=n_jobs)
-    #
-    # slopes = pool.map(start_regress, itertools.izip(X, dmp))
-    # pool.close()
-    #
-    # del dmp, X
-    #
-    # bd = np.asarray(slopes).astype(np.float32).reshape(section_rows, section_cols)
-    #
-    # del slopes
-
-    # else:
-    #
-    #     if bd.dtype != np.uint8:
-    # bd = rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 255))
-    # bd = raster_tools.rescale_intensity(bd, 256, maxI=mx, minI=mn, dType='i').astype(np.uint8)
-    # bd = rescale_intensity(bd, in_range=(mn, mx), out_range=(0, 255))
-
-
-def getDist(line):
-    return np.sqrt(((line[0][0] - line[1][0])**2.) + ((line[0][1] - line[1][1])**2.))
-
-
 def test_plot(bd, bdOrig, trigger, parameter_object):
     
     import matplotlib.cm as cm
@@ -659,31 +437,28 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                                             in_range=(0., 1.),
                                             out_range=(0, 255)))
 
-    # Remove image noise.
-    if parameter_object.smooth > 0:
-        bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, .1, .1))
+        # Remove image noise.
+        if parameter_object.smooth > 0:
+            bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, .1, .1))
 
-    elif parameter_object.trigger == 'lbp':
-        
-        if parameter_object.visualize:
-            bdOrig = bd.copy()
-
-    elif parameter_object.trigger == 'hough':
-
-        # for display (testing) purposes only
-        if parameter_object.visualize:
-            bdOrig = bd.copy()
-
-    elif parameter_object.trigger == 'dmp':
-        bd = get_dmp(bd, section_rows, section_cols)
-
-    # test canny and hough lines
-    if parameter_object.visualize:
-
-        # for display purposes only
-        bdOrig = bd.copy()
-
-        test_plot(bd, bdOrig, parameter_object.trigger, parameter_object)
+    # elif parameter_object.trigger == 'lbp':
+    #
+    #     if parameter_object.visualize:
+    #         bdOrig = bd.copy()
+    #
+    # elif parameter_object.trigger == 'hough':
+    #
+    #     # for display (testing) purposes only
+    #     if parameter_object.visualize:
+    #         bdOrig = bd.copy()
+    #
+    # # test canny and hough lines
+    # if parameter_object.visualize:
+    #
+    #     # for display purposes only
+    #     bdOrig = bd.copy()
+    #
+    #     test_plot(bd, bdOrig, parameter_object.trigger, parameter_object)
 
     # Get the row and column section chunk indices.
     # chunk_indices = get_chunk_indices(section_rows,
