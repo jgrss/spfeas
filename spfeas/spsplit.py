@@ -19,12 +19,6 @@ try:
 except:
     raise ImportError('The stats functions did not load')
 
-try:
-    from .sphelpers.gabor_filter_bank import prep_gabor
-except:
-    print('\n!!!\nWarning: skimage.filter.gabor_kernel did not load\n \
-    Cannot compute Gabor features\n Upgrade to latest scikit-image')
-
 # Scikit-image
 try:
     from skimage.exposure import equalize_hist, rescale_intensity, equalize_adapthist
@@ -77,8 +71,8 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-def call_gabor(block_array_, block_size_, scales_, end_scale_, kernels_):
-    return _stats.feature_gabor(block_array_, block_size_, scales_, end_scale_, kernels_)
+def call_gabor(block_array_, block_size_, scales_, end_scale_):
+    return _stats.feature_gabor(block_array_, block_size_, scales_, end_scale_)
 
 
 def call_fourier(block_array_, block_size_, scales_, end_scale_):
@@ -142,7 +136,7 @@ def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs
     elif trigger_ == 'fourier':
         return call_fourier(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'gabor':
-        return call_gabor(block_array_, block_size_, scales_, end_scale_, kwargs['kernels'])
+        return call_gabor(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'hog':
         return call_hog(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'lbp':
@@ -474,7 +468,7 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                      fourier=dict(name='Fourier transfrom',
                                   args=dict()),
                      gabor=dict(name='Gabor filters',
-                                args=dict(kernels=prep_gabor(n_orientations=32, sigmas=[1, 2, 4]))),
+                                args=dict()),
                      gndvi=dict(name='Green Normalized Difference Vegetation Index',
                                 args=dict()),
                      grad=dict(name='Gradient magnitude',

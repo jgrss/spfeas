@@ -128,6 +128,8 @@ Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/
 `mean` `variance`
 > Pesaresi, Martino and Benediktsson, Jon Atli (2001) A New Approach for the Morphological Segmentation of High-Resolution Satellite Imagery. _IEEE Transactions on Geoscience and Remote Sensing_, 39(2).
 
+> Pesaresi, Martino et al. (2013) A Global Human Settlement Layer From Optical HR/VHR RS Data: Concept and First Results. _IEEE Transactions on Geoscience and Remote Sensing_, 6(5).
+
 ##### Two-band Enhanced Vegetation Index (evi2)
 `mean` `variance`
 > Jiang, Zhangyan, Huete, Alfredo R, Didan, Kamel, and Miura, Tomoaki (2008) Development of a two-band enhanced vegetation index without a blue band. _Remote Sensing of Environment_, 112, 3833--3845.
@@ -158,6 +160,8 @@ Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/
 
 ##### Line Support Regions (lsr)
 `line length` `line mean` `line contrast`
+> Ünsalan, Cem and Boyer, KL (2004) Classifying Land Development in High-Resolution Satellite Imagery Using Hybrid Structural–Multispectral Features. _IEEE Transactions on Geoscience and Remote Sensing_, 42(12). 
+
 > Ünsalan, Cem (2006) Gradient-Magnitude-Based Support Regions in Structural Land Use Classification. _IEEE Geoscience and Remote Sensing Letters_, 3(4).
 
 ##### Inverse distance weighted mean and variance (mean)

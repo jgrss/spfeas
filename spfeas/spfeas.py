@@ -13,10 +13,10 @@ import copy
 import platform
 import ctypes
 
-if platform.system() == 'Darwin':
-
-    GEOS_DIR = '/usr/lib/libc.dylib'
-    ctypes.CDLL(GEOS_DIR)
+# if platform.system() == 'Darwin':
+#
+#     GEOS_DIR = '/usr/lib/libc.dylib'
+#     ctypes.CDLL(GEOS_DIR)
 
 from . import spprocess
 from .sphelpers.sputilities import set_yaml_file
@@ -48,7 +48,7 @@ class SPParameters(object):
                                   dmp=5,
                                   evi2=2,
                                   fourier=2,
-                                  gabor=2*8,
+                                  gabor=8*2,
                                   gndvi=2,
                                   grad=2,
                                   hough=4,

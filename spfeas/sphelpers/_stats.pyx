@@ -484,15 +484,57 @@ cdef void _get_weighted_mean_var_byte(DTYPE_uint8_t[:, :] block,
     cdef:
         Py_ssize_t bi, bj
         DTYPE_float32_t n_samps = float(rs*cs)
-        DTYPE_float32_t mu = _get_weighted_mean_byte(block, weights, rs, cs)
+        DTYPE_float32_t block_mu = _get_weighted_mean_byte(block, weights, rs, cs)
         DTYPE_float32_t block_var = 0.
 
     for bi in range(0, rs):
         for bj in range(0, cs):
-            block_var += pow2(float(block[bi, bj]) - mu)
+            block_var += pow2(float(block[bi, bj]) - block_mu)
 
-    out_values_[0] = mu
+    out_values_[0] = block_mu
     out_values_[1] = block_var / n_samps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void _get_directional_weighted_mean_var(DTYPE_float32_t[:, :] block,
+                                             int rs,
+                                             int cs,
+                                             DTYPE_float32_t[:] out_values_) nogil:
+
+    cdef:
+        int rs_half = <int>(rs / 2)
+        int cs_half = <int>(cs / 2)
+        int rs_qu = <int>(rs_half / 2)
+        int cs_qu = <int>(cs_half / 2)
+
+    # Upper left box
+    out_values_[0] = _get_mean(block[:rs_half, :cs_half], rs_half, cs_half)
+
+    # Upper center box
+    out_values_[1] = _get_mean(block[:rs_half, cs_qu:cs_qu+cs_half], rs_half, cs_half)
+
+    # Upper right box
+    out_values_[2] = _get_mean(block[:rs_half, cs_half:], rs_half, cs_half)
+
+    # Left box
+    out_values_[3] = _get_mean(block[rs_qu:rs_qu+rs_half, :cs_half], rs_half, cs_half)
+
+    # Center box
+    out_values_[4] = _get_mean(block[rs_qu:rs_qu+rs_half, cs_qu:cs_qu+cs_half], rs_half, cs_half)
+
+    # Right box
+    out_values_[5] = _get_mean(block[rs_qu:rs_qu+rs_half, cs_half:], rs_half, cs_half)
+
+    # Lower left box
+    out_values_[6] = _get_mean(block[rs_half:, :cs_half], rs_half, cs_half)
+
+    # Lower center box
+    out_values_[7] = _get_mean(block[rs_half:, cs_qu:cs_qu+cs_half], rs_half, cs_half)
+
+    # Lower right box
+    out_values_[8] = _get_mean(block[rs_half:, cs_half:], rs_half, cs_half)
 
 
 @cython.boundscheck(False)
@@ -952,9 +994,15 @@ cdef void _convolution(DTYPE_float32_t[:, :] block2convolve,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch_bdka, int blk,
-                                                        DTYPE_uint16_t[:] scs, int out_len, int scales_half,
-                                                        int scales_block, list kernels, int rows, int cols,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :, :] ch_bdka,
+                                                        int blk,
+                                                        DTYPE_uint16_t[:] scs,
+                                                        int out_len,
+                                                        int scales_half,
+                                                        int scales_block,
+                                                        int n_kernels,
+                                                        int rows,
+                                                        int cols,
                                                         int scale_length):
 
     """
@@ -969,25 +1017,25 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
         DTYPE_uint16_t k
         int k_half
         DTYPE_float32_t[:, :] ch_bd
-        int n_kernels = np.asarray(kernels).shape[0]
         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
         # list ch_bd_k = []
         # np.ndarray[DTYPE_float32_t, ndim=3] ch_bdka_array = np.zeros((n_kernels, rows, cols), dtype='float32')
         # DTYPE_float32_t[:, :, :] ch_bdka = np.zeros((n_kernels, rows, cols), dtype='float32')
-        DTYPE_float32_t[:, :] ch_bd_gabor
+        # DTYPE_float32_t[:, :] ch_bd_gabor
         # DTYPE_float32_t[:] sts
         # list st
         int pix_ctr = 0
-        int knr = kernels[0].shape[0]
-        int knc = kernels[0].shape[1]
-        int knrh = <int>(knr / 2)
-        int knch = <int>(knc / 2)
-        DTYPE_float32_t[:, :] gkernel
+        # int knr = kernels[0].shape[0]
+        # int knc = kernels[0].shape[1]
+        # int knrh = <int>(knr / 2)
+        # int knch = <int>(knc / 2)
+        # DTYPE_float32_t[:, :] gkernel
         # DTYPE_float32_t[:] out_values
         int bcr, bcc
         DTYPE_float32_t[:] in_zs = np.zeros(2, dtype='float32')
         DTYPE_float32_t[:, :] dist_weights, dw
         list dist_weights_m = []
+        int scale_kernel
 
     for ki in range(0, scale_length):
 
@@ -1006,30 +1054,10 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
+
+            scale_kernel = 0
+
             for ki in range(0, scale_length):
-                # for kl in range(0, n_kernels):
-                #
-                #     k = scs[ki]
-                #
-                #     k_half = <int>(k / 2)
-                #
-                #     ch_bd = ch_bdka[kl,
-                #                     i+scales_half-k_half:i+scales_half-k_half+k,
-                #                     j+scales_half-k_half:j+scales_half-k_half+k]
-                #
-                #     bcr = ch_bd.shape[0]
-                #     bcc = ch_bd.shape[1]
-                #
-                #     with gil:
-                #         dw = dist_weights_m[ki]
-                #
-                #     _get_weighted_mean_var(ch_bd, dw, bcr, bcc, in_zs)
-                #     # _get_mean_var(ch_bd, bcr, bcc, in_zs)
-                #
-                #     for pi in range(0, 2):
-                #
-                #         out_list[pix_ctr] = in_zs[pi]
-                #         pix_ctr += 1
 
                 for kl in range(0, n_kernels):
 
@@ -1037,23 +1065,24 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
 
                     k_half = <int>(k / 2)
 
-                    ch_bd = ch_bdka[i+scales_half-k_half:i+scales_half-k_half+k,
+                    ch_bd = ch_bdka[scale_kernel,
+                                    i+scales_half-k_half:i+scales_half-k_half+k,
                                     j+scales_half-k_half:j+scales_half-k_half+k]
 
-                    gkernel = kernels[kl]
+                    # gkernel = kernels[kl]
                     dw = dist_weights_m[ki]
 
                     bcr = ch_bd.shape[0]
                     bcc = ch_bd.shape[1]
 
-                    ch_bd_gabor = np.zeros((bcr, bcc), dtype='float32')
-
                     with nogil:
 
-                        _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, knrh, knch, ch_bd_gabor)
+                        # _convolution(ch_bd, gkernel, bcr, bcc, knr, knc, knrh, knch, ch_bd_gabor)
 
-                        _get_weighted_mean_var(ch_bd_gabor, dw, bcr, bcc, in_zs)
+                        _get_weighted_mean_var(ch_bd, dw, bcr, bcc, in_zs)
                         # _get_angle_stats(ch_bd_gabor, bcr, bcc, in_zs)
+
+                        # _get_directional_weighted_mean_var(ch_bd_gabor, bcr, bcc, in_zs)
 
                         # _get_moments(in_zs, sts)
 
@@ -1062,24 +1091,26 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_gabor(DTYPE_float32_t[:, :] ch
                             out_list[pix_ctr] = in_zs[pi]
                             pix_ctr += 1
 
+                    scale_kernel += 1
+
     return np.float32(out_list)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def feature_gabor(np.ndarray chBd, int blk, list scs, int end_scale, list kernels):
+def feature_gabor(np.ndarray ch_band, int blk, list scs, int end_scale):
 
     cdef:
         Py_ssize_t i, j, ki, kl
         int scales_half = int(end_scale / 2)
         int scales_block = end_scale - blk
         int out_len = 0
-        int rows = chBd.shape[0]
-        int cols = chBd.shape[1]
+        int rows = ch_band.shape[1]
+        int cols = ch_band.shape[2]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        int n_kernels = len(kernels)
+        int n_kernels = 8
 
     with nogil:
 
@@ -1089,8 +1120,8 @@ def feature_gabor(np.ndarray chBd, int blk, list scs, int end_scale, list kernel
                     for kl in range(0, n_kernels):
                         out_len += 2
 
-    return _feature_gabor(np.float32(chBd), blk, scales_array, out_len, scales_half,
-                          scales_block, kernels, rows, cols, scale_length)
+    return _feature_gabor(np.float32(ch_band), blk, scales_array, out_len, scales_half,
+                          scales_block, n_kernels, rows, cols, scale_length)
 
 
 # Histogram of Oriented Gradients

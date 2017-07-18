@@ -2,6 +2,7 @@ import sys
 import itertools
 from joblib import Parallel, delayed
 
+from .sphelpers.gabor_filter_bank import prep_gabor
 from .sphelpers import lsr
 from .sphelpers._stats import fill_labels, fill_key_points
 
@@ -368,8 +369,6 @@ def saliency(i_info, parameter_object, i_sect, j_sect, n_rows, n_cols):
             Global Contrast based Salient Region detection. IEEE TPAMI.
     """
 
-    # Read the entire image to get the
-    #   min/max for each band.
     # min_max = sputilities.get_layer_min_max(i_info)
     min_max = [(parameter_object.image_min, parameter_object.image_max)] * 3
 
@@ -574,3 +573,38 @@ def get_orb_keypoints(in_block, parameter_object):
     # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
 
     return fill_key_points(np.float32(in_block), key_points)[patch_size_d:-patch_size_d, patch_size_d:-patch_size_d]
+
+
+def convolve_gabor(in_block, scales):
+
+    """
+    Convolves an image with a series of Gabor kernels
+    """
+
+    # Each set of Gabor kernels
+    #   has 8 orientations.
+    out_block = np.empty((8*len(scales),
+                          in_block.shape[0],
+                          in_block.shape[1]), dtype='float32')
+
+    ki = 0
+
+    for scale in scales:
+
+        # Check for even or
+        #   odd scale size.
+        if scale % 2 == 0:
+            ssub = 1
+        else:
+            ssub = 0
+
+        gabor_kernels = prep_gabor(kernel_size=(scale-ssub, scale-ssub))
+
+        for kernel in gabor_kernels:
+
+            # TODO: pad array?
+            out_block[ki] = cv2.filter2D(in_block, cv2.CV_32F, kernel)
+
+            ki += 1
+
+    return out_block

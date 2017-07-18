@@ -4,38 +4,71 @@ except ImportError:
     raise ImportError('NumPy must be installed')
 
 try:
-    from skimage.filters import gabor_kernel
-    from skimage.transform import resize
+    import cv2
 except ImportError:
-    raise ImportWarning('Skimage.filter.gabor_kernel did not load')
+    raise ImportError('OpenCV must be installed')
+
+# try:
+#     from skimage.filters import gabor_kernel
+#     from skimage.transform import resize
+# except ImportError:
+#     raise ImportWarning('Skimage.filter.gabor_kernel did not load')
 
 
-def prep_gabor(n_orientations=32, frequency=.2, sigmas=[1, 2, 4], kernel_size=(15, 15)):
+def prep_gabor(n_orientations=32, sigma=3., lambd=10., gamma=.33, psi=1., kernel_size=None, theta_skip=4):
 
     """
     Prepare the Gabor kernels
+
+    Args:
+        n_orientations (int)
+        sigma (float): The standard deviation.
+        lambd (float): The wavelength of the sinusoidal factor.
+        gamma (float): The spatial aspect ratio.
+        psi (float): The phase offset.
+        kernel_size (tuple): The Gabor kernel size.
+        theta_skip (int): The `theta` skip factor.
     """
 
-    # prepare filter bank kernels
-    kernels = []
+    if not isinstance(kernel_size, tuple):
+        kernel_size = (15, 15)
 
-    theta = np.pi * 0 / n_orientations
+    # Prepare Gabor kernels.
+    kernels = list()
 
-    kernel = resize(gabor_kernel(frequency, theta=theta, sigma_x=sigmas[1], sigma_y=sigmas[1]).real, kernel_size, order=3)
+    # kernel = resize(gabor_kernel(frequency,
+    #                              theta=theta,
+    #                              bandwidth=lambd,
+    #                              sigma_x=sigma,
+    #                              sigma_y=sigma,
+    #                              offset=psi)
 
-    kernels.append(np.float32(kernel))
+    for th in range(0, n_orientations, theta_skip):
 
-    for th in xrange(3, n_orientations, 4):
-
+        # The kernel orientation.
         theta = np.pi * th / n_orientations
 
-        # for sigma in sigmas:
+        kernel = cv2.getGaborKernel(kernel_size, sigma, theta, lambd, gamma, psi, ktype=cv2.CV_32F)
 
-        # for gamma in frequencies:
-
-        kernel = resize(gabor_kernel(frequency, theta=theta, sigma_x=sigmas[1], sigma_y=sigmas[1]).real, kernel_size, order=3)
-        # kernel = cv2.getGaborKernel((21, 21), sigmas[1], th, 10, frequencies[1])	# kernel size, std dev, direction, wavelength, frequency
+        kernel /= 1.5 * kernel.sum()
 
         kernels.append(np.float32(kernel))
 
-    return kernels[:-1]
+    return kernels
+
+
+def visualize(**kwargs):
+
+    import matplotlib.pyplot as plt
+
+    gabor_kernels = prep_gabor(**kwargs)
+
+    fig = plt.figure()
+
+    for gi, gabor_kernel in enumerate(gabor_kernels):
+
+        ax = fig.add_subplot(3, 3, gi+1)
+
+        ax.imshow(gabor_kernel, interpolation='none', cmap='plasma')
+
+    plt.show()
