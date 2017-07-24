@@ -15,7 +15,7 @@ except ImportError:
 #     raise ImportWarning('Skimage.filter.gabor_kernel did not load')
 
 
-def prep_gabor(n_orientations=32, sigma=3., lambd=10., gamma=.33, psi=1., kernel_size=None, theta_skip=4):
+def prep_gabor(n_orientations=32, sigma=3., lambd=10., gamma=.5, psi=1., kernel_size=None, theta_skip=4):
 
     """
     Prepare the Gabor kernels
@@ -57,7 +57,7 @@ def prep_gabor(n_orientations=32, sigma=3., lambd=10., gamma=.33, psi=1., kernel
     return kernels
 
 
-def visualize(**kwargs):
+def visualize(out_fig, cmap, grid_rows, grid_cols, **kwargs):
 
     import matplotlib.pyplot as plt
 
@@ -67,8 +67,15 @@ def visualize(**kwargs):
 
     for gi, gabor_kernel in enumerate(gabor_kernels):
 
-        ax = fig.add_subplot(3, 3, gi+1)
+        ax = fig.add_subplot(grid_rows, grid_cols, gi+1)
 
-        ax.imshow(gabor_kernel, interpolation='none', cmap='plasma')
+        ax.imshow(gabor_kernel, interpolation='lanczos', cmap=cmap)
 
-    plt.show()
+        plt.axis('off')
+
+    plt.tight_layout(h_pad=.1,
+                     w_pad=.1)
+
+    plt.savefig(out_fig,
+                transparent=True,
+                dpi=300)

@@ -132,11 +132,11 @@ def parameter_checks(parameter_object):
 
     # Ensure the smallest scale is
     #   >= 16 when using Gabor.
-    if 'gabor' in parameter_object.triggers:
-
-        if min(parameter_object.scales) < 16:
-            errors.logger.error('The Gabor feature cannot be computed with scales < 16.')
-            raise ValueError
+    # if 'gabor' in parameter_object.triggers:
+    #
+    #     if min(parameter_object.scales) < 16:
+    #         errors.logger.error('The Gabor feature cannot be computed with scales < 16.')
+    #         raise ValueError
 
     # Create the output directory.
     if not os.path.isdir(parameter_object.output_dir):
@@ -246,10 +246,13 @@ def scale_fea_check(parameter_object, is_image=True):
 
     feature_str = 'ST1-{:03}'.format(parameter_object.band_info['band_count'])
 
+    # Get the output image extension.
+    driver_dict_r = {v: k for k, v in raster_tools.DRIVER_DICT.iteritems()}
+    image_extension = driver_dict_r[parameter_object.format]
+
     if is_image:
 
         section_counter_ = 'TL{:06}'.format(parameter_object.section_counter)
-        image_extension = parameter_object.f_ext
 
         out_img = os.path.join(parameter_object.feas_dir,
                                '{}__BD{}_BK{:d}_SC{}__{}__{}{}'.format(parameter_object.f_base,
@@ -268,11 +271,12 @@ def scale_fea_check(parameter_object, is_image=True):
 
     else:
 
-        search_wildcard = '{}__BD{}_BK{:d}_SC{}__{}__*.tif'.format(parameter_object.f_base,
-                                                                   band_pos_str,
-                                                                   parameter_object.block,
-                                                                   '-'.join(map(str, parameter_object.scales)),
-                                                                   feature_str)
+        search_wildcard = '{}__BD{}_BK{:d}_SC{}__{}__*{}'.format(parameter_object.f_base,
+                                                                 band_pos_str,
+                                                                 parameter_object.block,
+                                                                 '-'.join(map(str, parameter_object.scales)),
+                                                                 feature_str,
+                                                                 image_extension)
 
         parameter_object.update_info(search_wildcard=search_wildcard)
 

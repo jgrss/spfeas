@@ -221,6 +221,8 @@ def main():
     parser.add_argument('-e', '--examples', dest='examples', action='store_true', help='Show usage examples and exit')
     parser.add_argument('-i', '--input', dest='input', help='The input image', default=None)
     parser.add_argument('-o', '--output', dest='output', help='The output directory', default=None)
+    parser.add_argument('-f', '--format', dest='format', help='The output raster format', default='GTiff',
+                        choices=['ECW', 'GTiff', 'HFA', 'KEA', 'NITF', 'PCRaster'])
     parser.add_argument('-bp', '--band-positions', dest='band_positions', help='The band to process', default=[1],
                         type=int, nargs='+')
     parser.add_argument('--rgb', dest='use_rgb', help='Whether to use the full RGB spectrum in place of -bp',
@@ -287,6 +289,7 @@ def main():
 
     spatial_features(args.input,
                      args.output,
+                     format=args.format,
                      band_positions=args.band_positions,
                      block=args.block,
                      scales=args.scales,

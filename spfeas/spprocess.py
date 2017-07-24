@@ -94,7 +94,7 @@ def _write_section2file(this_parameter_object__,
         else:
 
             # Create the output raster.
-            with raster_tools.create_raster(this_parameter_object__.out_img, o_info, compress='deflate') as out_raster:
+            with raster_tools.create_raster(this_parameter_object__.out_img, o_info) as out_raster:
 
                 # Write each scale and feature.
                 array_layer_counter = 0
