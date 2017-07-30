@@ -191,6 +191,17 @@ Anisotropic Rotation-Invariant Textural Measure. _IEEE Journal of Selected Topic
 `max line length` `min line length` `mean` `w-mean` `standard deviation` ` max ratio of orthogonal angles`
 > Huang, Xin, Zhang, Liangpei, and Li, Pingxiang (2007) Classification and Extraction of Spatial Features in Urban Areas Using High-Resolution Multispectral Imagery. _IEEE Geoscience and Remote Sensing Letters_, 4(2).
 
+#### 'To Read' list
+> Hoberg, Thorsten, Rottensteiner, Franz, Feitosa, Raul Queiroz, and Heipke, Christian (2015) Conditional Random Fields for multitemporal and multiscale classification of optical satellite imagery. _IEEE Transactions on Geoscience and Remote Sensing_, 53(2). 
+
+> Kenduiywo, Benson Kipkemboi, Bargiel, Damian, and Soergel, Uwe (2017) Higher order Dynamic Conditional Random Fields ensemble for crop type classification in radar images. _IEEE Transactions on Geoscience and Remote Sensing_, 55(8).
+
+> Volpi, Michele and Ferrari, Vittorio (2015) Semantic segmentation of urban scenes by learning local class interactions. _Computer Vision Foundation_.
+
+> Benedeka, Csaba, Shadaydeha, Maha, Katob, Zoltan, Sziranyi, Tamas, and Zerubia, Josiane (2015) Multilayer Markov Random Field models for change detection in optical remote sensing images. _ISPRS Journal of Photogrammetry and Remote Sensing_.
+
+> Wehmann, Adam and Liu, Desheng (2015) A spatial–temporal contextual Markovian kernel method for multi-temporal land cover mapping. _ISPRS Journal of Photogrammetry and Remote Sensing_, 107, 77--89.
+
 Development
 -----------
 For questions or bugs, please [**submit an issue**](https://github.com/jgrss/spfeas/issues).
