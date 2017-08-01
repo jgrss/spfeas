@@ -18,7 +18,7 @@ else
   /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 fi
 
-# Create the .profile
+# Create the .profile if it doesn't exist
 if [ ! -f ~/.profile ]; then
   touch ~/.profile
 fi
@@ -33,9 +33,9 @@ else
   echo "CFLAGS is already set to '$CFLAGS'"
 fi
 
-# gcc 6
+# gcc
 if [ -z ${CC} ]; then
-  echo 'export CC=gcc-6' >>~/.profile
+  echo 'export CC=gcc' >>~/.profile
   source ~/.profile
 else
   echo "CC is already set to '$CC'"
@@ -45,25 +45,22 @@ fi
 brew tap osgeo/osgeo4mac
 brew tap homebrew/science
 brew tap homebrew/versions
-#brew install wget
 brew install gcc hdf4 hdf5 spatialindex
 
 # Python from Homebrew
-#if which python >/dev/null; then
-#  echo 'Python is already installed'
-brew install python
-brew linkapps python
+if which python >/dev/null; then
+  echo 'Python is already installed'
+else
+  brew install python
+  brew linkapps python
+fi
 
 # Python pip
 if which pip >/dev/null; then
   echo 'pip is already installed'
-  sudo -H pip install --upgrade pip
 else
   sudo -H easy_install pip
 fi
-
-# Upgrade Python setuptools
-pip install --upgrade setuptools
 
 LINE_BREAK1='========================================='
 
@@ -73,21 +70,24 @@ echo 'If prompted, enter your computer password'
 echo $LINE_BREAK1
 echo
 
-# Python libraries
-sudo -H pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL
+# Upgrade Python setuptools
+sudo -H pip install --upgrade pip
+sudo -H pip install --upgrade setuptools
 
-# Statsmodels (0.8 is not available from pip)
-git clone https://github.com/statsmodels/statsmodels.git
-cd statsmodels/
-python setup.py build
-python setup.py install
-cd ..
-rm -rf statsmodels/
+# Python libraries
+sudo -H pip install --upgrade --no-cache-dir cython
+sudo -H pip install --upgrade --no-cache-dir beautifulsoup4 colorama joblib psutil retrying six xmltodict PyYAML
+sudo -H pip install --upgrade --no-cache-dir Bottleneck matplotlib numexpr PySAL Rtree tables
+sudo -H pip install --upgrade --no-cache-dir numpy GDAL
+sudo -H pip install --upgrade --no-cache-dir scikit-image scikit-learn
+sudo -H pip install --upgrade --no-cache-dir opencv-python pandas statsmodels
+sudo -H pip install --upgrade --no-cache-dir scipy
 
 # GDAL from Homebrew
 if which gdalinfo >/dev/null; then
-  echo 'GDAL is already installed'
+  echo 'GDAL binaries are already installed'
 else
+
   brew install gdal2 --with-hdf4 --with-hdf5
   # echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
   brew link --force gdal2
@@ -122,11 +122,16 @@ echo 'If prompted, enter your GitHub username and password'
 echo $LINE_BREAK3
 echo
 
-pip install git+https://github.com/jgrss/mpglue.git
-# pip install ~/Downloads/MpGlue-0.0.1.tar.gz
+cd ~/Documents/
+git clone https://github.com/jgrss/mpglue.git
+cd mpglue/
+python setup.py build
+python setup.py install
+cd ~/Documents/
+rm -rf mpglue/
 
 # SpFeas
-if which classify >/dev/null; then
+if which spfeas >/dev/null; then
   pip uninstall spfeas
 fi
 
@@ -136,8 +141,13 @@ echo 'If prompted, enter your GitHub username and password'
 echo $LINE_BREAK
 echo
 
-pip install git+https://github.com/jgrss/spfeas.git
-# pip install ~/Downloads/SpFeas-0.0.1.tar.gz
+cd ~/Documents/
+git clone https://github.com/jgrss/spfeas.git
+cd spfeas/
+python setup.py build
+python setup.py install
+cd ~/Documents/
+rm -rf spfeas/
 
 echo
 
