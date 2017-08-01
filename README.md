@@ -78,7 +78,7 @@ On Windows, the following line should print **_Python path_\Scripts\spfeas**:
 where spfeas
 ```
 
-##### To uninstall SpFeas, type the following line in the terminal:
+#### To uninstall SpFeas, type the following line in the terminal:
 
 ```commandline
 pip uninstall spfeas
