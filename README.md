@@ -46,7 +46,8 @@ Installation
 
 #### Installing or upgrading from source
 
-##### Upgrade [`mpglue`](https://github.com/jgrss/mpglue)
+1. Upgrade [`mpglue`](https://github.com/jgrss/mpglue).
+2. Clone and install SpFeas using the commands below.
 
 ```commandline
 pip uninstall spfeas
@@ -56,31 +57,28 @@ python setup.py build
 python setup.py install
 ```
 
-##### Dependencies:
-
-```commandline
-pip install beautifulsoup4 Bottleneck colorama cython joblib matplotlib numexpr numpy opencv-python pandas psutil PySAL PyYAML retrying Rtree scikit-image scikit-learn scipy six tables xmltodict GDAL
-```
-
 #### Installing with the bash or CMD installers
 
-1) Open INSTALLATION.ipynb under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
+##### The installers are intended to streamline the installation process, particularly if you are installing SpFeas for the first time. Please report bugs [here](https://github.com/jgrss/spfeas/issues).
 
+1) Open **INSTALLATION.ipynb** under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
 2) Follow the instructions to install SpFeas for your operating system.
 
-3) On OSX, the following line should print **/usr/local/bin/spfeas**:
+##### Testing the installation
+
+On OSX, the following line should print **/usr/local/bin/spfeas**:
 
 ```bash
 which spfeas
 ```
 
-4) On Windows, the following line should print **C:\<Python path>\Scripts\spfeas**:
+On Windows, the following line should print **_Python path_\Scripts\spfeas**:
 
 ```bash
 where spfeas
 ```
 
-5) To uninstall SpFeas, type the following line in the terminal:
+##### To uninstall SpFeas, type the following line in the terminal:
 
 ```commandline
 pip uninstall spfeas
