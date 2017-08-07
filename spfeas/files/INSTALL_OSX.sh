@@ -45,7 +45,7 @@ fi
 brew tap osgeo/osgeo4mac
 brew tap homebrew/science
 brew tap homebrew/versions
-brew install gcc hdf4 hdf5 spatialindex
+brew install gcc hdf5 spatialindex
 
 # Python from Homebrew
 if which python >/dev/null; then
@@ -53,6 +53,31 @@ if which python >/dev/null; then
 else
   brew install python
   brew linkapps python
+fi
+
+# GDAL from Homebrew
+if which gdalinfo --version >/dev/null; then
+  echo 'GDAL binaries are already installed'
+else
+
+  # Upgrade with Homebrew and Sierra breaks privileges.
+  mkdir /usr/local/lib/gdalplugins
+  sudo chown -R $(whoami) /usr/local/lib/gdalplugins
+
+  mkdir /usr/local/lib/gdalplugins/2.2
+  sudo chown -R $(whoami) /usr/local/lib/gdalplugins/2.2
+
+  brew install gdal2 --with-complete --with-unsupported
+  # echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
+  brew link --force gdal2
+
+  if [ -z ${GDAL_DRIVER_PATH} ]; then
+    echo 'export GDAL_DRIVER_PATH=/usr/local/lib/gdalplugins' >>~/.profile
+    source ~/.profile
+  else
+    echo "GDAL_DRIVER_PATH is already set to '$GDAL_DRIVER_PATH'"
+  fi
+
 fi
 
 # Python pip
@@ -82,24 +107,6 @@ sudo -H pip install --upgrade --no-cache-dir numpy GDAL
 sudo -H pip install --upgrade --no-cache-dir scikit-image scikit-learn
 sudo -H pip install --upgrade --no-cache-dir opencv-python pandas statsmodels
 sudo -H pip install --upgrade --no-cache-dir scipy
-
-# GDAL from Homebrew
-if which gdalinfo >/dev/null; then
-  echo 'GDAL binaries are already installed'
-else
-
-  brew install gdal2 --with-hdf4 --with-hdf5
-  # echo /usr/local/opt/gdal2/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/gdal2.pth
-  brew link --force gdal2
-
-  if [ -z ${GDAL_DRIVER_PATH} ]; then
-    echo 'export GDAL_DRIVER_PATH=/usr/local/lib/gdalplugins' >>~/.profile
-    source ~/.profile
-  else
-    echo "GDAL_DRIVER_PATH is already set to '$GDAL_DRIVER_PATH'"
-  fi
-
-fi
 
 LINE_BREAK2='======================================='
 
