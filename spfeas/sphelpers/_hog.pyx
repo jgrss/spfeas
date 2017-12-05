@@ -97,28 +97,6 @@ cdef DTYPE_float32_t _get_block_sum3d(DTYPE_float32_t[:, :, :] block_, int ds, i
     return block_sum
 
 
-#cdef void _3d_block_division(DTYPE_float32_t[:, :, :, :, :] normalized_blocks_,
-#                             DTYPE_float32_t[:, :, :] block_,
-#                             DTYPE_float32_t eps,
-#                             Py_ssize_t y, Py_ssize_t x,
-#                             int br_shape, int bc_shape,
-#                             int by_, int bx, int orientations):
-
-    #cdef:
-    #    Py_ssize_t qq, rr, ss
-    #    DTYPE_float32_t block_sum = sqrt(pow2(_get_block_sum3d(block_, ds, rs, cs)) + eps)
-
-    #for qq in range(0, ds):
-    #    for rr in range(0, rs):
-    #        for ss in range(0, cs):
-    #            block_[qq, rr, ss] /= block_sum
-
-    #for qq in range(0, by_):
-    #    for rr in range(0, bx):
-    #        for ss in range(0, orientations):
-    #            normalized_blocks_[y, x, qq, rr, ss]
-
-
 cdef DTYPE_float32_t cell_hog(DTYPE_float32_t[:, :] magnitude,
                               DTYPE_float32_t[:, :] orientation,
                               DTYPE_float32_t ori1, DTYPE_float32_t ori2,

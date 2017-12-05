@@ -139,7 +139,7 @@ ctypedef DTYPE_float32_t (*metric_ptr)(DTYPE_float32_t[:, :], DTYPE_intp_t, DTYP
 cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1):
 
     """
-    Graciously adapated from the Scikit-image team
+    *Graciously adapted from the Scikit-image team @ https://github.com/scikit-image/scikit-image/blob/master/skimage/draw/_draw.pyx
 
     Generate line pixel coordinates.
 
@@ -215,7 +215,7 @@ cdef tuple draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1)
     # rr = clone(template, int(dx)+1, True)
     # cc = clone(template, int(dx)+1, True)
 
-    for i in xrange(0, dx):
+    for i in range(0, dx):
 
         if steep:
             rr[i] = x
@@ -296,27 +296,6 @@ cdef dict _direction_dict():
                          [0, 0, 0, 0, 0]], dtype='uint8')}
 
 
-# cdef inline DTYPE_uint8_t n_rows_cols(int pixel_index, int rows_cols, int block_size):
-#     return rows_cols if (pixel_index + rows_cols) < block_size else block_size - pixel_index
-
-# return 1. - exp(-eu_dist / y)
-
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# cdef DTYPE_float32_t get_contrast(DTYPE_float32_t cvg, DTYPE_float32_t[:] gbl):
-#
-#     cdef:
-#         Py_ssize_t ii
-#         v_length = gbl.shape[0] - 1
-#         DTYPE_float32_t mu = gbl[0]
-#
-#     for ii in xrange(1, gbl):
-#         mu += pow(cvg - gbl[ii], 2)
-#
-#     return mu / (v_length + 1)
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -326,7 +305,7 @@ cdef DTYPE_uint8_t _get_mean1d_int(DTYPE_uint8_t[:] block_list, int length):
         Py_ssize_t ii
         DTYPE_uint8_t s = block_list[0]
 
-    for ii in xrange(1, length):
+    for ii in range(1, length):
         s += block_list[ii]
 
     return s / length
@@ -341,7 +320,7 @@ cdef DTYPE_float32_t _get_mean1d(DTYPE_float32_t[:] block_list, int length):
         Py_ssize_t ii
         DTYPE_float32_t s = block_list[0]
 
-    for ii in xrange(1, length):
+    for ii in range(1, length):
         s += block_list[ii]
 
     return s / length
@@ -355,7 +334,7 @@ cdef DTYPE_uint8_t _get_sum1d(DTYPE_uint8_t[:] block_list, int length):
         Py_ssize_t fi
         DTYPE_uint8_t s = block_list[0]
 
-    for fi in xrange(1, length):
+    for fi in range(1, length):
         s += block_list[fi]
 
     return s
@@ -369,7 +348,7 @@ cdef DTYPE_float32_t _get_sum1d_f(DTYPE_float32_t[:] block_list, int length):
         Py_ssize_t fi
         DTYPE_float32_t s = block_list[0]
 
-    for fi in xrange(1, length):
+    for fi in range(1, length):
         s += block_list[fi]
 
     return s
@@ -385,7 +364,7 @@ cdef DTYPE_float32_t _get_std1d(DTYPE_float32_t[:] block_list, int length):
         DTYPE_float32_t block_list_mean = _get_mean1d(block_list, length)
         DTYPE_float32_t s = (block_list[0] - block_list_mean) ** 2.
 
-    for ii in xrange(1, length):
+    for ii in range(1, length):
         s += pow(block_list[ii] - block_list_mean, 2.)
 
     return (s / length) ** .5
@@ -401,7 +380,7 @@ cdef DTYPE_uint8_t _get_argmin1d(DTYPE_float32_t[:] block_list, int length):
         DTYPE_uint8_t argmin = 0
         DTYPE_float32_t b_samp
 
-    for ii in xrange(1, length-1):
+    for ii in range(1, length-1):
 
         b_samp = block_list[ii]
 
@@ -500,18 +479,18 @@ cdef DTYPE_float32_t _get_min(DTYPE_float32_t[:, :] block, DTYPE_intp_t window_i
 
     if ignore_value != -9999:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 if block[ii, jj] != ignore_value:
                     su = int_min(block[ii, jj], su)
 
     else:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 su = int_min(block[ii, jj], su)
 
@@ -530,18 +509,18 @@ cdef DTYPE_float32_t _get_max(DTYPE_float32_t[:, :] block, DTYPE_intp_t window_i
 
     if ignore_value != -9999:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 if block[ii, jj] != ignore_value:
                     su = int_max(block[ii, jj], su)
 
     else:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 su = int_max(block[ii, jj], su)
 
@@ -562,7 +541,7 @@ cdef DTYPE_uint8_t _fill_holes(DTYPE_uint8_t[:, :] block, DTYPE_uint8_t[:] rr, D
 
     if fill_value == 0:
 
-        for ii in xrange(0, n_neighbors):
+        for ii in range(0, n_neighbors):
             s += block[rr[ii], cc[ii]]
 
         # fill the pixel if it is surrounded
@@ -583,9 +562,9 @@ cdef DTYPE_uint8_t _get_sum_int(DTYPE_uint8_t[:, :] block, unsigned int window_i
     # with nogil, parallel(num_threads=window_i):
     #
     #     for ii in prange(0, window_i, schedule='static'):
-    for ii in xrange(0, window_i):
+    for ii in range(0, window_i):
 
-        for jj in xrange(0, window_j):
+        for jj in range(0, window_j):
 
             su += block[ii, jj]
 
@@ -603,9 +582,9 @@ cdef DTYPE_uint8_t _get_sum_uint8(DTYPE_uint8_t[:, :] block, DTYPE_intp_t window
     # with nogil, parallel(num_threads=window_i):
     #
     #     for ii in prange(0, window_i, schedule='static'):
-    for ii in xrange(0, window_i):
+    for ii in range(0, window_i):
 
-        for jj in xrange(0, window_j):
+        for jj in range(0, window_j):
 
             su += block[ii, jj]
 
@@ -627,9 +606,9 @@ cdef DTYPE_float32_t _get_sum(DTYPE_float32_t[:, :] block, DTYPE_intp_t window_i
         # with nogil, parallel(num_threads=window_i):
         #
         #     for ii in prange(0, window_i, schedule='static'):
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 if block[ii, jj] != ignore_value:
                     su += block[ii, jj]
@@ -639,9 +618,9 @@ cdef DTYPE_float32_t _get_sum(DTYPE_float32_t[:, :] block, DTYPE_intp_t window_i
         # with nogil, parallel(num_threads=window_i):
         #
         #     for ii in prange(0, window_i, schedule='static'):
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 su += block[ii, jj]
 
@@ -669,9 +648,9 @@ cdef DTYPE_float32_t _get_mean(DTYPE_float32_t[:, :] block, DTYPE_intp_t window_
         # with nogil, parallel(num_threads=window_i):
         #
         #     for ii in prange(0, window_i, schedule='static'):
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 if block[ii, jj] != ignore_value:
 
@@ -683,9 +662,9 @@ cdef DTYPE_float32_t _get_mean(DTYPE_float32_t[:, :] block, DTYPE_intp_t window_
         # with nogil, parallel(num_threads=window_i):
         #
         #     for ii in prange(0, window_i, schedule='static'):
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 su += block[ii, jj] * weights[ii, jj]
 
@@ -716,9 +695,9 @@ cdef DTYPE_float32_t _get_distance(DTYPE_float32_t[:, :] block, DTYPE_intp_t win
         # DTYPE_float32_t max_color_dist = euclidean_distance_color(block_min, block_max, 1.)
         DTYPE_float32_t max_color_dist = euclidean_distance_color(0., 1., 1.)
 
-    for ii in xrange(0, window_i):
+    for ii in range(0, window_i):
 
-        for jj in xrange(0, window_j):
+        for jj in range(0, window_j):
 
             if (ii == hw) and (jj == hw):
                 continue
@@ -763,9 +742,9 @@ cdef DTYPE_float32_t _get_distance_rgb(DTYPE_float32_t[:, :, :] block,
     hw_values[1] = block[1, hw, hw]
     hw_values[2] = block[2, hw, hw]
 
-    for ii in xrange(0, window_i):
+    for ii in range(0, window_i):
 
-        for jj in xrange(0, window_j):
+        for jj in range(0, window_j):
 
             if (ii == hw) and (jj == hw):
                 continue
@@ -795,16 +774,18 @@ cdef DTYPE_float32_t _get_distance_rgb(DTYPE_float32_t[:, :, :] block,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int cy_argwhere(DTYPE_uint8_t[:, :] array1, DTYPE_uint8_t[:, :] array2, int dims,
+cdef int cy_argwhere(DTYPE_uint8_t[:, :] array1,
+                     DTYPE_uint8_t[:, :] array2,
+                     int dims,
                      DTYPE_int16_t[:, :] angles_dict):
 
     cdef:
         Py_ssize_t i_, j_, i_idx, j_idx
         int counter = 1
 
-    for i_ in xrange(0, dims):
+    for i_ in range(0, dims):
 
-        for j_ in xrange(0, dims):
+        for j_ in range(0, dims):
 
             if (array1[i_, j_] == 1) and (array2[i_, j_] == 0):
 
@@ -901,7 +882,7 @@ cdef tuple close_end(DTYPE_uint8_t[:, :] edge_block,
     else:
         return dummy, dummy, 0, 9999
 
-    for ip in xrange(1, max_gap-2):
+    for ip in range(1, max_gap-2):
 
         if edge_block[center+(ip*ip_), center+(ip*jp_)] == 1:
 
@@ -948,7 +929,7 @@ cdef DTYPE_float32_t[:] extract_values_f(DTYPE_float32_t[:, :] block, DTYPE_intp
         Py_ssize_t fi, fi_, fj_
         DTYPE_float32_t[:] values = np.zeros(fl, dtype='float32')
 
-    for fi in xrange(0, fl):
+    for fi in range(0, fl):
 
         fi_ = rr_[fi]
         fj_ = cc_[fi]
@@ -966,7 +947,7 @@ cdef DTYPE_uint8_t[:] extract_values(DTYPE_uint8_t[:, :] block, DTYPE_intp_t[:] 
         Py_ssize_t fi, fi_, fj_
         DTYPE_uint8_t[:] values = np.zeros(fl, dtype='uint8')
 
-    for fi in xrange(0, fl):
+    for fi in range(0, fl):
 
         fi_ = rr_[fi]
         fj_ = cc_[fi]
@@ -985,7 +966,7 @@ cdef DTYPE_uint8_t[:, :] fill_block(DTYPE_uint8_t[:, :] block2fill, DTYPE_intp_t
         Py_ssize_t fi, fi_, fj_
         int fl = rr_.shape[0]
 
-    for fi in xrange(0, fl):
+    for fi in range(0, fl):
 
         fi_ = rr_[fi]
         fj_ = cc_[fi]
@@ -993,211 +974,6 @@ cdef DTYPE_uint8_t[:, :] fill_block(DTYPE_uint8_t[:, :] block2fill, DTYPE_intp_t
         block2fill[fi_, fj_] = fill_value
 
     return block2fill
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef tuple _link_endpoints(DTYPE_uint8_t[:, :] edge_block,
-                           DTYPE_uint8_t[:, :] endpoints_block,
-                           DTYPE_uint8_t[:, :] gradient_block,
-                           unsigned int window_size,
-                           DTYPE_int16_t[:, :] angles_dict,
-                           DTYPE_intp_t[:] h_r, DTYPE_intp_t[:] h_c, DTYPE_intp_t[:] d_c,
-                           int min_egm, int smallest_allowed_gap, int medium_allowed_gap):
-
-    cdef:
-        Py_ssize_t ii, jj, ii_, jj_, rr_shape
-        unsigned int smallest_gap = window_size * window_size   # The smallest gap found
-        unsigned int center = int(window_size / 2)
-        int center_angle, connect_angle, ss, match
-        DTYPE_intp_t[:] rr, cc, rr_, cc_
-        DTYPE_intp_t[:] dummy = np.array([], dtype='intp')
-
-    if smallest_allowed_gap > window_size:
-        smallest_allowed_gap = window_size
-
-    if medium_allowed_gap > window_size:
-        medium_allowed_gap = window_size
-
-    # Get the origin angle of the center endpoint.
-    center_angle = cy_argwhere(edge_block[center-1:center+2, center-1:center+2],
-                               endpoints_block[center-1:center+2, center-1:center+2],
-                               3, angles_dict)
-
-    if center_angle == 9999:
-        return edge_block, endpoints_block
-
-    # There must be at least two endpoints
-    #   in the block.
-    if _get_sum_int(endpoints_block, window_size, window_size) > 1:
-
-        for ii in xrange(0, window_size-2):
-
-            for jj in xrange(0, window_size-2):
-
-                # Cannot connect to direct neighbors or itself.
-                if (abs(float(ii) - float(center)) <= 1) and (abs(float(jj) - float(center)) <= 1):
-                    continue
-
-                # Cannot connect with edges because we cannot
-                #   get the angle.
-                if (ii == 0) or (ii == window_size-1) or (jj == 0) or (jj == window_size-1):
-                    continue
-
-                # Located another endpoint.
-                if endpoints_block[ii, jj] == 1:
-
-                    # CONNECT ENDPOINTS WITH SMALL GAP
-
-                    # Draw a line between the two endpoints.
-                    rr, cc = draw_line(center, center, ii, jj)
-
-                    rr_shape = rr.shape[0]
-
-                    # (2) ONLY CONNECT THE SMALLEST LINE POSSIBLE
-                    if rr_shape >= smallest_gap:
-                        continue
-
-                    # (3) CHECK IF THE CONNECTING LINE CROSSES OTHER EDGES
-                    if _get_sum1d(extract_values(edge_block, rr, cc, rr_shape), rr_shape) > 2:
-                        continue
-
-                    # Check the angles if the gap is large.
-
-                    # 3) CONNECT POINTS WITH SIMILAR ANGLES
-                    connect_angle = cy_argwhere(edge_block[ii-1:ii+2, jj-1:jj+2],
-                                                endpoints_block[ii-1:ii+2, jj-1:jj+2],
-                                                3, angles_dict)
-
-                    if connect_angle == 9999:
-                        continue
-
-                    # Don't accept same angles.
-                    if center_angle == connect_angle:
-                        continue
-
-                    # For small gaps allow any angle as long
-                    #   as there is sufficient EGM.
-                    if rr_shape <= smallest_allowed_gap:
-
-                        # There must be edge contrast along the line.
-                        if _get_mean1d_int(extract_values(gradient_block, rr, cc, rr_shape), rr_shape) > min_egm:
-
-                            rr_, cc_ = rr.copy(), cc.copy()
-
-                            ii_ = copy(ii)  # ii + 0
-                            jj_ = copy(jj)  # jj + 0
-
-                            smallest_gap = min(rr_shape, smallest_gap)
-
-                    # For medium-sized gaps allow similar angles, but no
-                    #   asymmetric angles.
-                    elif rr_shape <= medium_allowed_gap:
-
-                        match = 0
-
-                        # Northwest or southeast of center point
-                        if ((ii < center-2) and (jj < center-2)) or ((ii > center+2) and (jj > center+2)):
-
-                            if (center_angle + connect_angle == 0) or \
-                                ((center_angle == 180) and (connect_angle == -135)) or \
-                                ((center_angle == 90) and (connect_angle == -135)) or \
-                                ((center_angle == -180) and (connect_angle == 135)) or \
-                                ((center_angle == -90) and (connect_angle == 135)):
-
-                                match = 1
-
-                        # North or south of center point
-                        elif ((ii < center-2) and (center-2 < jj < center+2)) or \
-                            ((ii > center+2) and (center-2 < jj < center + 2)):
-
-                            if (center_angle + connect_angle == 0) or \
-                                ((center_angle == 90) and (connect_angle == -135)) or \
-                                ((center_angle == 90) and (connect_angle == -45)) or \
-                                ((center_angle == -90) and (connect_angle == 135)) or \
-                                ((center_angle == -90) and (connect_angle == 45)):
-
-                                match = 1
-
-                        # Northeast or southwest of center point
-                        elif ((ii < center-2) and (jj > center+2)) or ((ii > center+2) and (jj < center-2)):
-
-                            if (center_angle + connect_angle == 0) or \
-                                ((center_angle == -180) and (connect_angle == -45)) or \
-                                ((center_angle == 90) and (connect_angle == -45)) or \
-                                ((center_angle == 180) and (connect_angle == 45)) or \
-                                ((center_angle == -90) and (connect_angle == 45)):
-
-                                match = 1
-
-                        # East or west of center point
-                        elif ((center-2 < ii < center+2) and (jj > center+2)) or \
-                            ((center-2 < ii < center+2) and (jj < center-2)):
-
-                            if (center_angle + connect_angle == 0) or \
-                                ((center_angle == 180) and (connect_angle == -135)) or \
-                                ((center_angle == 180) and (connect_angle == 45)) or \
-                                ((center_angle == -180) and (connect_angle == 135)) or \
-                                ((center_angle == -180) and (connect_angle == -45)):
-
-                                match = 1
-
-                        if match == 1:
-
-                            # There must be edge contrast along the line.
-                            # if _get_mean1d_int(extract_values(gradient_block, rr, cc, rr_shape),
-                            #                    rr_shape) >= min_egm:
-
-                            rr_, cc_ = rr.copy(), cc.copy()
-
-                            ii_ = copy(ii)  # ii + 0
-                            jj_ = copy(jj)  # jj + 0
-
-                            smallest_gap = min(rr_shape, smallest_gap)
-
-                    # All other gaps must be inverse angles and have
-                    #   a mean edge gradient magnitude over the minimum
-                    #   required.
-                    else:
-
-                        # All other inverse angles.
-                        if center_angle + connect_angle == 0:
-
-                            # There must be edge contrast along the line.
-                            if _get_mean1d_int(extract_values(gradient_block, rr, cc, rr_shape),
-                                               rr_shape) >= min_egm:
-
-                                rr_, cc_ = rr.copy(), cc.copy()
-
-                                ii_ = copy(ii)  # ii + 0
-                                jj_ = copy(jj)  # jj + 0
-
-                                smallest_gap = min(rr_shape, smallest_gap)
-
-    # TRY TO CLOSE GAPS FROM ENDPOINTS
-
-    # At this juncture, there doesn't have to
-    #   be two endpoints.
-    if smallest_gap == window_size * window_size:
-
-        rr_, cc_, ss, ii_ = close_end(edge_block, endpoints_block, gradient_block, center_angle,
-                                      center, dummy, h_r, h_c, d_c, angles_dict, min_egm, center)
-
-        if ss == 1:
-            smallest_gap = 0
-
-    if smallest_gap < window_size * window_size:
-
-        edge_block = fill_block(edge_block, rr_, cc_, 1)
-
-        # Remove the endpoint
-        endpoints_block[center, center] = 0
-
-        if ii_ < 9999:
-            endpoints_block[ii_, jj_] = 0
-
-    return edge_block, endpoints_block
 
 
 @cython.boundscheck(False)
@@ -1214,9 +990,9 @@ cdef DTYPE_float32_t _get_percent(DTYPE_float32_t[:, :] block, DTYPE_intp_t wind
 
     if ignore_value != -9999:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 if block[ii, jj] != ignore_value:
                     su += block[ii, jj]
@@ -1224,9 +1000,9 @@ cdef DTYPE_float32_t _get_percent(DTYPE_float32_t[:, :] block, DTYPE_intp_t wind
 
     else:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 su += block[ii, jj]
 
@@ -1245,9 +1021,9 @@ cdef DTYPE_float32_t[:] _get_unique(DTYPE_float32_t[:, :] block, DTYPE_intp_t wi
         int counter = 0
         bint u_found
 
-    for ii in xrange(0, window_i):
+    for ii in range(0, window_i):
 
-        for jj in xrange(0, window_j):
+        for jj in range(0, window_j):
 
             if counter == 0:
 
@@ -1258,7 +1034,7 @@ cdef DTYPE_float32_t[:] _get_unique(DTYPE_float32_t[:, :] block, DTYPE_intp_t wi
 
                 u_found = False
 
-                for cc in xrange(0, counter):
+                for cc in range(0, counter):
 
                     if unique_values[cc] == block[ii, jj]:
                         u_found = True
@@ -1293,15 +1069,15 @@ cdef DTYPE_float32_t _get_majority(DTYPE_float32_t[:, :] block, DTYPE_intp_t win
 
     if ignore_value != -9999:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 block_value = block[ii, jj]
 
                 if block_value != ignore_value:
 
-                    for kk in xrange(0, n_unique):
+                    for kk in range(0, n_unique):
 
                         if unique_values[kk] == block_value:
                             count_list[kk] += 1
@@ -1313,13 +1089,13 @@ cdef DTYPE_float32_t _get_majority(DTYPE_float32_t[:, :] block, DTYPE_intp_t win
 
     else:
 
-        for ii in xrange(0, window_i):
+        for ii in range(0, window_i):
 
-            for jj in xrange(0, window_j):
+            for jj in range(0, window_j):
 
                 block_value = block[ii, jj]
 
-                for kk in xrange(0, n_unique):
+                for kk in range(0, n_unique):
 
                     if unique_values[kk] == block_value:
                         count_list[kk] += 1
@@ -1332,315 +1108,12 @@ cdef DTYPE_float32_t _get_majority(DTYPE_float32_t[:, :] block, DTYPE_intp_t win
     # Get the largest count.
     max_count = count_list[0]
     max_idx = 0
-    for kk in xrange(1, n_unique):
+    for kk in range(1, n_unique):
 
         if count_list[kk] > max_count:
             max_idx = copy(kk)
 
     return unique_values[max_idx]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef np.ndarray[DTYPE_uint8_t, ndim=2] link_window(DTYPE_uint8_t[:, :] edge_image,
-                                                   unsigned int window_size,
-                                                   DTYPE_uint8_t[:, :] endpoint_image,
-                                                   DTYPE_uint8_t[:, :] gradient_image,
-                                                   int min_egm, int smallest_allowed_gap,
-                                                   int medium_allowed_gap):
-
-    """
-    Links endpoints
-    """
-
-    cdef:
-        int rows = edge_image.shape[0]
-        int cols = edge_image.shape[1]
-        Py_ssize_t cij, isub, jsub, iplus, jplus
-        unsigned int half_window = int(window_size / 2)
-        DTYPE_int64_t[:, :] endpoint_idx
-        DTYPE_int64_t[:] endpoint_row
-        int endpoint_idx_rows
-        DTYPE_uint8_t[:, :] edge_block, ep_block
-
-        DTYPE_int16_t[:, :] angles_dict = np.array([[-135, -90, -45],
-                                                    [-180, 0, 180],
-                                                    [45, 90, 135]], dtype='int16')
-
-        DTYPE_intp_t[:] h_r = np.array([2, 2, 2, 2, 2], dtype='intp')
-        DTYPE_intp_t[:] h_c = np.array([0, 1, 2, 3, 4], dtype='intp')
-        DTYPE_intp_t[:] d_c = np.array([4, 3, 2, 1, 0], dtype='intp')
-
-    endpoint_idx = np.argwhere(np.asarray(endpoint_image) == 1)
-    endpoint_idx_rows = endpoint_idx.shape[0]
-
-    for cij in xrange(0, endpoint_idx_rows):
-
-        endpoint_row = endpoint_idx[cij]
-
-        isub = endpoint_row[0] - half_window
-        iplus = endpoint_row[0] + half_window
-        jsub = endpoint_row[1] - half_window
-        jplus = endpoint_row[1] + half_window
-
-        # Bounds checking
-        if (isub < 0) or (iplus >= rows) or (jsub < 0) or (jplus >= cols):
-            continue
-
-        edge_block, ep_block = _link_endpoints(edge_image[isub:isub+window_size, jsub:jsub+window_size],
-                                               endpoint_image[isub:isub+window_size, jsub:jsub+window_size],
-                                               gradient_image[isub:isub+window_size, jsub:jsub+window_size],
-                                               window_size, angles_dict, h_r, h_c, d_c,
-                                               min_egm, smallest_allowed_gap, medium_allowed_gap)
-
-        edge_image[isub:isub+window_size, jsub:jsub+window_size] = edge_block
-        endpoint_image[isub:isub+window_size, jsub:jsub+window_size] = ep_block
-
-    return np.uint8(edge_image)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef Py_ssize_t max_n_consecuative(Py_ssize_t y1, Py_ssize_t x1,
-                                   Py_ssize_t y2, Py_ssize_t x2,
-                                   DTYPE_float32_t center_value,
-                                   int half_window, int window_size,
-                                   DTYPE_float32_t[:, :] edge_image_block):
-
-    """
-    Finds the maximum number of pixels along an orthogonal
-    line that are less than the center edge value
-
-    Args:
-        points of the line
-        N: length of the line
-        center_value
-    """
-
-    cdef:
-        Py_ssize_t fi_, rr_shape_, y3_, x3_, y3, x3, li
-        # Py_ssize_t y3 = point2_x
-        # Py_ssize_t x3 = point2_y * -1
-        # Py_ssize_t y3 = y2
-        # Py_ssize_t x3 = window_size - x2 - 1
-        DTYPE_intp_t[:] rr_, cc_
-        Py_ssize_t max_consecutive = 0
-        DTYPE_float32_t[:] line_values
-
-    # First, translate the coordinate to the Cartesian plane.
-    y3_ = half_window - y2
-    x3_ = -(half_window - x2)
-
-    # Next, shift the coordinates 90 degrees.
-    y3 = x3_
-    x3 = y3_ * -1
-
-    # Translate back to a Python grid.
-    y3 = int(abs(float(y3 - half_window)))
-    x3 = x3 + half_window
-
-    # Find the orthogonal line
-    # Note that y1, x1 will always be (0, 0)
-    rr_, cc_ = draw_line(y1, x1, y3, x3)
-
-    rr_shape_ = rr_.shape[0]
-
-    line_values = extract_values_f(edge_image_block, rr_, cc_, rr_shape_)
-
-    # Get the the maximum number of consecutive pixels
-    #   with values less than the center pixel.
-    for li in xrange(1, rr_shape_):
-        if line_values[li] >= center_value:
-            break
-
-        max_consecutive += 1
-
-    return max_consecutive
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef tuple _optimal_edge_orientation(DTYPE_float32_t[:, :] edge_image_block, DTYPE_uint8_t[:] indices,
-                                     int half_window, int window_size):
-
-    """
-    Returns:
-        max_sum:  Maximum edge value sum along the optimal angle
-        line_angle:  The optimal line angle
-        n_opt:  The number of pixels along the optimal line angle
-        nc_opt:  The maximum number pixels with an edge value less than the center
-    """
-
-    cdef:
-        Py_ssize_t i_, j_, i__, j__, rr_shape, n_opt, nc_opt
-        DTYPE_intp_t[:] rr, cc
-        DTYPE_float32_t max_sum = 0.    # si_opt
-        DTYPE_float32_t max_sum_
-        DTYPE_float32_t line_angle = 0.
-        DTYPE_float32_t center_value = edge_image_block[half_window, half_window]
-
-    for i_ in xrange(0, 2):
-
-        i__ = indices[i_]
-
-        for j_ in xrange(0, window_size):
-
-            # Draw a line from the center pixel.
-            rr, cc = draw_line(half_window, half_window, i__, j_)
-
-            rr_shape = rr.shape[0]
-
-            # Get the sum of edge gradient magnitudes and compare
-            #   it to the maximum over all angles.
-            max_sum_ = _get_max_sample(max_sum,
-                                       _get_sum1d_f(extract_values_f(edge_image_block, rr, cc, rr_shape), rr_shape))
-
-            # Get the angle if there is a new maximum
-            #   edge gradient magnitude.
-            if max_sum_ > max_sum:
-
-                max_sum = max_sum_
-
-                line_angle = _get_line_angle(float(rr[0]), float(cc[0]),
-                                             float(rr[rr_shape-1]), float(cc[rr_shape-1]))
-
-                # The number of pixels defining the
-                #   optimal search angle.
-                n_opt = rr_shape
-
-                nc_opt = max_n_consecuative(rr[0], cc[0], rr[rr_shape-1], cc[rr_shape-1],
-                                            center_value, half_window, window_size,
-                                            edge_image_block)
-
-    for j_ in xrange(0, 2):
-
-        j__ = indices[j_]
-
-        for i_ in xrange(0, window_size):
-
-            # Draw a line from the center pixel.
-            rr, cc = draw_line(half_window, half_window, i_, j__)
-
-            rr_shape = rr.shape[0]
-
-            # Get the sum of edge gradient magnitudes and compare
-            #   it to the maximum over all angles.
-            max_sum_ = _get_max_sample(max_sum,
-                                       _get_sum1d_f(extract_values_f(edge_image_block, rr, cc, rr_shape), rr_shape))
-
-            # Get the angle if there is a new maximum
-            #   edge gradient magnitude.
-            if max_sum_ > max_sum:
-
-                max_sum = max_sum_
-
-                line_angle = _get_line_angle(float(rr[0]), float(cc[0]),
-                                             float(rr[rr_shape-1]), float(cc[rr_shape-1]))
-
-                nc_opt = max_n_consecuative(rr[0], cc[0], rr[rr_shape - 1], cc[rr_shape - 1],
-                                            center_value, half_window, window_size,
-                                            edge_image_block)
-
-                # The number of pixels defining the
-                #   optimal search angle.
-                n_opt = rr_shape
-
-    return max_sum, line_angle, n_opt, nc_opt
-
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# cdef _edge_linearity(DTYPE_float32_t[:, :, :] optimal_values_array, int half_window, int window_size):
-#
-#     cdef:
-#         Py_ssize_t i_, j_
-#
-#     for i_ in xrange(0, window_size):
-#
-#         for j_ in xrange(0, window_size):
-#
-#             _collinearity(optimal_values_array[1, i_, j_])
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef DTYPE_float32_t _edge_saliency(DTYPE_float32_t[:] optimal_values_array, DTYPE_float32_t l):
-
-    # si_opt * n_opt * n
-    return (optimal_values_array[0] / l) * (optimal_values_array[2] / l) * (optimal_values_array[3] / l)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef np.ndarray[DTYPE_float32_t, ndim=2] saliency_window(DTYPE_float32_t[:, :] edge_image, int window_size):
-
-    """
-    Computes image edge saliency
-    """
-
-    cdef:
-        int rows = edge_image.shape[0]
-        int cols = edge_image.shape[1]
-        Py_ssize_t i, j, n_opt_angle, nc_opt_angle
-        int half_window = int(window_size / 2)
-        int row_dims = rows - (half_window * 2)
-        int col_dims = cols - (half_window * 2)
-        DTYPE_float32_t[:, :] out_array = np.zeros((rows, cols), dtype='float32')
-        DTYPE_float32_t[:, :, :] out_array_vars = np.zeros((4, rows, cols), dtype='float32')
-        DTYPE_uint8_t[:] indices = np.array([0, window_size-1], dtype='uint8')
-        DTYPE_float32_t max_egm_sum, opt_line_angle
-        DTYPE_float32_t param_l = float(half_window + 1)
-
-    #####################################
-    # Edge orientation derivation (3.3.1)
-    #####################################
-    # It is necessary to iterate over the entire image
-    #   before edge linearity and edge saliency because
-    #   all of the optimum values need to be found.
-    for i in xrange(0, row_dims):
-
-        for j in xrange(0, col_dims):
-
-            if edge_image[i+half_window, j+half_window] == 0:
-                continue
-
-            # First, get the optimal edge orientation,
-            #   sum of EGM over the optimum line, and
-            #   the number of pixels along the optimal line.
-            max_egm_sum, opt_line_angle, n_opt_angle, nc_opt_angle = _optimal_edge_orientation(edge_image[i:i+window_size,
-                                                                                               j:j+window_size],
-                                                                                               indices,
-                                                                                               half_window,
-                                                                                               window_size)
-
-            out_array_vars[0, i+half_window, j+half_window] = max_egm_sum
-            out_array_vars[1, i+half_window, j+half_window] = opt_line_angle
-            out_array_vars[2, i+half_window, j+half_window] = n_opt_angle
-            out_array_vars[3, i+half_window, j+half_window] = nc_opt_angle
-
-    ###################################
-    # Edge linearity derivation (3.3.2)
-    ###################################
-    # TODO: collinearity
-    # for i in xrange(0, row_dims):
-    #
-    #     for j in xrange(0, col_dims):
-    #
-    #         _edge_linearity(out_array_vars[:, i:i+window_size, j:j+window_size])
-
-    ##################################
-    # Edge saliency derivation (3.3.3)
-    ##################################
-    for i in xrange(0, row_dims):
-
-        for j in xrange(0, col_dims):
-
-            out_array[i+half_window, j+half_window] = _edge_saliency(out_array_vars[:, i+half_window, j+half_window],
-                                                                     param_l)
-
-    return np.float32(out_array)
 
 
 @cython.boundscheck(False)
@@ -1653,9 +1126,9 @@ cdef DTYPE_uint8_t[:, :] _fill_circles(DTYPE_uint8_t[:, :] image_block, DTYPE_ui
         Py_ssize_t i_, j_
         Py_ssize_t overlap_count = 0
 
-    for i_ in xrange(0, dims):
+    for i_ in range(0, dims):
 
-        for j_ in xrange(0, dims):
+        for j_ in range(0, dims):
 
             if (image_block[i_, j_] == 1) and (circle_block[i_, j_] == 1):
                 overlap_count += 1
@@ -1676,9 +1149,9 @@ cdef tuple get_circle_locations(DTYPE_uint8_t[:, :] circle_block, int window_siz
         DTYPE_intp_t[:] rr = np.zeros(window_size*window_size, dtype='intp')
         DTYPE_intp_t[:] cc = rr.copy()
 
-    for i_ in xrange(0, window_size):
+    for i_ in range(0, window_size):
 
-        for j_ in xrange(0, window_size):
+        for j_ in range(0, window_size):
 
             if circle_block[i_, j_] == 1:
 
@@ -1712,7 +1185,7 @@ cdef np.ndarray[DTYPE_uint8_t, ndim=2] fill_circles(DTYPE_uint8_t[:, :] image_ar
         DTYPE_float32_t circle_match
         DTYPE_intp_t[:] rr, cc
 
-    for ci in xrange(0, n_circles):
+    for ci in range(0, n_circles):
 
         circle = circle_list[ci]
 
@@ -1730,9 +1203,9 @@ cdef np.ndarray[DTYPE_uint8_t, ndim=2] fill_circles(DTYPE_uint8_t[:, :] image_ar
 
         rr, cc = get_circle_locations(circle, window_size)
 
-        for i in xrange(0, row_dims):
+        for i in range(0, row_dims):
 
-            for j in xrange(0, col_dims):
+            for j in range(0, col_dims):
 
                 image_array[i:i+window_size, j:j+window_size] = _fill_circles(image_array[i:i+window_size,
                                                                                           j:j+window_size],
@@ -1770,9 +1243,9 @@ cdef np.ndarray[DTYPE_uint8_t, ndim=2] fill_window(DTYPE_uint8_t[:, :] image_arr
         rr = np.array([0, 1, 1, 2], dtype='uint8')
         cc = np.array([1, 0, 2, 1], dtype='uint8')
 
-        for i in xrange(0, row_dims):
+        for i in range(0, row_dims):
 
-            for j in xrange(0, col_dims):
+            for j in range(0, col_dims):
 
                 image_array[i+half_window, j+half_window] = _fill_holes(image_array[i:i+window_size, j:j+window_size],
                                                                         rr, cc, window_size, n_neighbors)
@@ -1785,14 +1258,14 @@ cdef np.ndarray[DTYPE_uint8_t, ndim=2] fill_window(DTYPE_uint8_t[:, :] image_arr
         idx_cc = [np.array([1, 1], dtype='uint8'),
                   np.array([0, 2], dtype='uint8')]
 
-        for ij in xrange(0, 2):
+        for ij in range(0, 2):
 
             rr = idx_rr[ij]
             cc = idx_cc[ij]
 
-            for i in xrange(0, row_dims):
+            for i in range(0, row_dims):
 
-                for j in xrange(0, col_dims):
+                for j in range(0, col_dims):
 
                     image_array[i+half_window, j+half_window] = _fill_holes(image_array[i:i+window_size,
                                                                             j:j+window_size], rr, cc,
@@ -1831,9 +1304,9 @@ cdef np.ndarray rgb_window(DTYPE_float32_t[:, :, :] image_array, unsigned int wi
 
     out_array = np.zeros((rows, cols), dtype='float32')
 
-    for i in xrange(0, row_dims):
+    for i in range(0, row_dims):
 
-        for j in xrange(0, col_dims):
+        for j in range(0, col_dims):
 
             out_array[i+half_window, j+half_window] = _get_distance_rgb(image_array[:, i:i+window_size, j:j+window_size],
                                                                         window_size, window_size, half_window, dims)
@@ -1894,7 +1367,7 @@ cdef np.ndarray window(DTYPE_float32_t[:, :] image_array, str statistic,
         else:
             out_array = np.zeros((rows, cols), dtype='float32')
 
-    for iters in xrange(0, iterations):
+    for iters in range(0, iterations):
 
         if skip_block > 0:
 
@@ -1914,9 +1387,9 @@ cdef np.ndarray window(DTYPE_float32_t[:, :] image_array, str statistic,
 
         else:
 
-            for i in xrange(0, row_dims):
+            for i in range(0, row_dims):
 
-                for j in xrange(0, col_dims):
+                for j in range(0, col_dims):
 
                     out_array[i+half_window, j+half_window] = function(image_array[i:i+window_size, j:j+window_size],
                                                                        window_size, window_size, target_value,
@@ -1956,7 +1429,7 @@ def moving_window(np.ndarray image_array, str statistic='mean', int window_size=
     """
 
     if statistic not in ['mean', 'min', 'max', 'median', 'majority', 'percent', 'sum',
-                         'link', 'fill', 'circles', 'distance', 'rgb_distance', 'saliency']:
+                         fill', 'circles', 'distance', 'rgb_distance']:
 
         raise ValueError('The statistic {} is not an option.'.format(statistic))
 
@@ -1969,18 +1442,7 @@ def moving_window(np.ndarray image_array, str statistic='mean', int window_size=
     if not isinstance(gradient_image, np.ndarray):
         gradient_image = np.empty((2, 2), dtype='uint8')
 
-    if statistic == 'link':
-
-        return link_window(np.uint8(np.ascontiguousarray(image_array)), window_size,
-                           np.uint8(np.ascontiguousarray(endpoint_image)),
-                           np.uint8(np.ascontiguousarray(gradient_image)),
-                           min_egm, smallest_allowed_gap, medium_allowed_gap)
-
-    elif statistic == 'saliency':
-
-        return saliency_window(np.float32(np.ascontiguousarray(image_array)), window_size)
-
-    elif statistic == 'fill':
+    if statistic == 'fill':
 
         return fill_window(np.uint8(np.ascontiguousarray(image_array)), window_size, n_neighbors)
 

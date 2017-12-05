@@ -22,14 +22,6 @@ DTYPE_float32 = np.float32
 ctypedef np.float32_t DTYPE_float32_t
 
 
-#cdef inline DTYPE_float32_t _get_min(DTYPE_float32_t s1, DTYPE_float32_t s2, Py_ssize_t iy, Py_ssize_t jx):
-#    return s2 if s2 < s1 else s1
-
-
-#cdef inline DTYPE_float32_t abss(DTYPE_float32_t sx) nogil:
-#    return sx * -1. if sx < 0 else sx
-
-
 cdef inline DTYPE_float32_t _color_distance(DTYPE_float32_t[:] r, DTYPE_float32_t[:] g, DTYPE_float32_t[:] b, DTYPE_float32_t sq_diff) nogil:
     return ((r[1] - r[0])**2 + (g[1] - g[0])**2 + (b[1] - b[0])**2)**.5 / sq_diff
 

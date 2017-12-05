@@ -286,43 +286,6 @@ cdef DTYPE_float32_t get_sum_1d(DTYPE_float32_t[:] block):
     return the_sum
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# cdef DTYPE_float32_t get_mean_1d(np.ndarray[DTYPE_float32_t, ndim=1] block):
-#
-#     """
-#     Calculate the mean of a 1d array
-#     """
-#
-#     cdef int samps = block.shape[0]
-#
-#     return get_sum_1d(block) / samps
-
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# cdef DTYPE_float32_t get_sum_2d(np.ndarray[DTYPE_float32_t, ndim=2] block):
-#
-#     """
-#     Calculate the sum of a 2d array
-#     """
-#
-#     cdef:
-#         Py_ssize_t i
-#         int rows = block.shape[0]
-#         int cols = block.shape[1]
-#         int samps = rows * cols
-#         np.ndarray[DTYPE_float32_t, ndim=1] block_r = block.ravel()
-#         DTYPE_float32_t the_sum = block_r[0]
-#
-#     with nogil:
-#         for i in prange(1, samps):
-#             the_sum += block_r[i]
-#
-#     return the_sum
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef DTYPE_float32_t _get_sum_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
@@ -593,22 +556,6 @@ cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) 
     return _get_sum_uint8(block, rs, cs) / n_samps
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# cdef DTYPE_float32_t _get_std_1d(DTYPE_float32_t[:] block, int cs) nogil:
-#
-#     cdef:
-#         Py_ssize_t bj
-#         DTYPE_float32_t mu = _get_mean_1d(block, cs)
-#         DTYPE_float32_t block_var = 0.
-#
-#     for bj in range(0, cs):
-#         block_var += pow2(float(block[bj]) - mu)
-#
-#     return sqrt(block_var / cs)
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -746,73 +693,12 @@ cdef DTYPE_float32_t _get_mean_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
     return _get_sum1d_uint16(block, cs) / cs
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# cdef tuple get_stats_2d(np.ndarray[DTYPE_float32_t, ndim=2] block):
-#
-#     """
-#     Calculate the mean and variance of a 2d array
-#     """
-#
-#     cdef DTYPE_float32_t the_mean = get_mean_2d(block)
-#     cdef int i, j
-#     cdef int rows = block.shape[0]
-#     cdef int cols = block.shape[1]
-#     cdef int samps = rows * cols
-#     cdef DTYPE_float32_t curr_val
-#     cdef DTYPE_float32_t val_mean
-#     cdef DTYPE_float32_t the_var = 0.
-#     np.ndarray[DTYPE_float32_t, ndim=1] block_ravels = block.ravel()
-#
-#     with nogil, parallel():
-#         for i in prange(1, samps):
-#
-#             curr_val = block_ravels[i]
-#
-#             val_mean = curr_val - the_mean
-#
-#             the_var += val_mean * val_mean
-#
-#         # for i in prange(0, rows):
-#         #     for j in prange(0, cols):
-#         #
-#         #         curr_val = block[i, j]
-#         #
-#         #         val_mean = curr_val - the_mean
-#         #
-#         #         the_var += val_mean * val_mean
-#
-#     the_var /= samps
-#
-#     return the_mean, the_var
-
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# cdef DTYPE_float64_t get_mean(np.ndarray[DTYPE_float64_t, ndim=1] block):
-#
-#     """
-#     Calculate the mean of a 1d array
-#     """
-#
-#     cdef int idx
-#     cdef int samps = len(block)
-#     cdef DTYPE_float64_t the_sum = block[0]
-#
-#     for idx in range(1, samps):
-#         the_sum += block[idx]
-#
-#     return the_sum / samps
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1, DTYPE_uint16_t[:, :] rc_) nogil:
 
     """
-    Graciously adapated from the Scikit-image team
+    *Graciously adapted from the Scikit-image team @ https://github.com/scikit-image/scikit-image/blob/master/skimage/draw/_draw.pyx
 
     Generate line pixel coordinates.
 
@@ -1141,6 +1027,7 @@ def feature_gabor(np.ndarray ch_band, int blk, list scs, int end_scale):
 #     return np.float32(np.bincount(np.array(bins).ravel(), weights=mag_chunk.ravel(), minlength=bin_n))
 #
 #
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -2453,27 +2340,6 @@ cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P,
     return min_contrast
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# def pantex_min(DTYPE_float32_t[:, :, :, ::1] glcm_mat,
-#                                 DTYPE_float32_t[:] distances, DTYPE_float32_t[:] angles,
-#                                 Py_ssize_t levels, DTYPE_float32_t[:, :] contrast_array):
-#
-#     """
-#     Get the local minimum contrast for all displacement vectors
-#     """
-#
-#     # cdef:
-#     #     Py_ssize_t dV, dist
-#     #     # np.ndarray[DTYPE_float32_t, ndim=1] gmat = np.asarray([greycoprops(glcm_mat, 'contrast')[dist-1][dV]
-#     #     #                                                        for dV in range(0, len(dispVect))
-#     #     #                                                        for dist in dists]).astype(np.float32)
-#
-#     return _glcm_contrast(glcm_mat, distances, angles, levels, contrast_array)
-
-    # return _get_min_f(gmat, len(gmat))
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef DTYPE_float32_t[:, :] _set_contrast_weights(int levels):
@@ -2499,7 +2365,10 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_pantex(DTYPE_uint8_t[:, :] chB
                                                          int levels=32):
 
     """
-    Get the Anisotropic Built-up Presence Index (PanTex)
+    Calculates the Anisotropic Built-up Presence Index (PanTex)
+
+    The GLCM code was adapted from the Scikit-image team
+    @ https://github.com/scikit-image/scikit-image/blob/master/skimage/feature/_texture.pyx
     """
 
     cdef:
@@ -2728,44 +2597,6 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] feature_mean_float32(DTYPE_float32_t[:,
                         pix_ctr += 1
 
     return np.float32(out_list)
-
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
-# cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_mean(DTYPE_uint8_t[:, :] chBd, int blk, DTYPE_uint16_t[:] scs,
-#                                                        int out_len, int scales_half, int scales_block, int scale_length):
-#
-#     cdef:
-#         int i, j, ki, pix_ctr
-#         unsigned int bcr, bcc
-#         DTYPE_uint16_t k, k_half
-#         DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
-#         int rows = chBd.shape[0]
-#         int cols = chBd.shape[1]
-#         DTYPE_uint8_t[:, :] block_chunk
-#
-#     pix_ctr = 0
-#
-#     for i from 0 <= i < rows-scales_block by blk:
-#         for j from 0 <= j < cols-scales_block by blk:
-#             for ki in range(0, scale_length):
-#
-#                 k = scs[ki]
-#
-#                 k_half = k / 2
-#
-#                 block_chunk = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
-#                                    j+scales_half-k_half:j+scales_half-k_half+k]
-#
-#                 bcr = block_chunk.shape[0]
-#                 bcc = block_chunk.shape[1]
-#
-#                 out_list[pix_ctr] = _get_mean(np.float32(block_chunk), bcr, bcc)
-#
-#                 pix_ctr += 1
-#
-#     return np.float32(out_list)
 
 
 @cython.boundscheck(False)
