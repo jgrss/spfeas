@@ -116,9 +116,7 @@ def get_package_data():
 
 
 def get_console_dict():
-
-    return {'console_scripts': ['density=spfeas.density:main',
-                                'spfeas=spfeas.spfeas:main']}
+    return {'console_scripts': ['spfeas=spfeas.spfeas:main']}
 
 
 def setup_package():
@@ -142,6 +140,7 @@ def setup_package():
                     entry_points=get_console_dict())
 
     setup(**metadata)
+
 
 if __name__ == '__main__':
     setup_package()
