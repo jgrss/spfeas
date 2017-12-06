@@ -25,6 +25,7 @@ Use _either_ **Option A** or **Option B** below to install Spfeas.
 #### Option A: Installing or upgrading from source
 
 1. Install or upgrade [`MpGlue`](https://github.com/jgrss/mpglue).
+
 2. Clone and install SpFeas using the commands below.
 
 ```commandline
@@ -41,6 +42,7 @@ SpFeas should now be installed.
 ##### The installers are intended to streamline the installation process, particularly if you are installing SpFeas for the first time. Please report bugs [here](https://github.com/jgrss/spfeas/issues). 
 
 1) Open **INSTALLATION.ipynb** under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
+
 2) Follow the instructions to install SpFeas for your operating system.
 
 Testing the installation
