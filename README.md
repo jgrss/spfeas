@@ -4,7 +4,7 @@ SpFeas
 **SpFeas** is a Python library for processing spatial (contextual) image features and image classification.
 
 SpFeas has only been tested on Python 2.7 and is dependent on the [**MpGlue**](https://github.com/jgrss/mpglue) 
-Python library. Please request access to MpGlue from the [**authors list**](https://github.com/jgrss/spfeas/tree/master/spfeas/AUTHORS.txt). 
+Python library. Please request access to MpGlue from the [**authors list**](https://github.com/jgrss/AUTHORS.txt). 
 
 Current version
 -----
