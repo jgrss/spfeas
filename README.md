@@ -34,7 +34,7 @@ python setup.py build
 python setup.py install
 ```
 
-3. SpFeas should now be installed.
+SpFeas should now be installed.
 
 #### Option B: Installing with the bash or CMD installers
 
