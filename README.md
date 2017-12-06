@@ -3,70 +3,48 @@ SpFeas
 
 **SpFeas** is a Python library for processing spatial (contextual) image features and image classification.
 
-SpFeas has only been tested on Python 2.7. 
+SpFeas has only been tested on Python 2.7 and is dependent on the [**MpGlue**](https://github.com/jgrss/mpglue) 
+Python library. Please request access to MpGlue from the [**authors list**](https://github.com/jgrss/spfeas/tree/master/spfeas/AUTHORS.txt). 
 
-Version 0.2.0b
+Current version
 -----
 
-Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes coming in `0.2.0`. 
+`0.2.0b`
 
-#### Naming conventions
+Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes coming in `0.2.0`.
 
-##### YAML status
-
-```text
-<OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%.yaml
-
-Example:
-out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
-```
-
-##### Tiled files
-
-```text
-<OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%/<FILENAME>__BD#_BK#_SC#_ST1-###_TL######.tif
-
-Example:
-out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000001.tif
-out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000002.tif
-out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
-```
-
-```text
-BD = input band position
-BK = input block size
-SC = input scales
-TR = input triggers
-ST = statistics
-TL = tile position
-```
+All comments and suggestions for improvement are welcome. Please post to the [**issues page**](https://github.com/jgrss/spfeas/issues).
 
 Installation
-------------
+-----
 
-#### Installing or upgrading from source
+Use _either_ **Option A** or **Option B** below to install Spfeas.
 
-1. Upgrade [`mpglue`](https://github.com/jgrss/mpglue).
+#### Option A: Installing or upgrading from source
+
+1. Install or upgrade [`MpGlue`](https://github.com/jgrss/mpglue).
 2. Clone and install SpFeas using the commands below.
 
 ```commandline
-pip uninstall spfeas
 git clone https://github.com/jgrss/spfeas.git
 cd spfeas/
 python setup.py build
 python setup.py install
 ```
 
-#### Installing with the bash or CMD installers
+3. SpFeas should now be installed.
 
-##### The installers are intended to streamline the installation process, particularly if you are installing SpFeas for the first time. Please report bugs [here](https://github.com/jgrss/spfeas/issues).
+#### Option B: Installing with the bash or CMD installers
+
+##### The installers are intended to streamline the installation process, particularly if you are installing SpFeas for the first time. Please report bugs [here](https://github.com/jgrss/spfeas/issues). 
 
 1) Open **INSTALLATION.ipynb** under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
 2) Follow the instructions to install SpFeas for your operating system.
 
-#### Testing the installation
+Testing the installation
+-----
 
-On OSX, the following line should print **/usr/local/bin/spfeas**:
+On OSX or Linux, the following line should print something like **/usr/local/bin/spfeas**:
 
 ```bash
 which spfeas
@@ -78,7 +56,10 @@ On Windows, the following line should print **_Python path_\Scripts\spfeas**:
 where spfeas
 ```
 
-#### To uninstall SpFeas, type the following line in the terminal:
+Uninstall
+-----
+
+##### To uninstall SpFeas, type the following line in the terminal:
 
 ```commandline
 pip uninstall spfeas
@@ -117,7 +98,49 @@ spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 
 
 Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks/examples.ipynb).
 
-#### Spatial features
+Naming conventions
+-----
+
+After running SpFeas, the output files will consist of tiled `GeoTiffs` and a `YAML` information file. The image 
+processing is performed on a tile by tile basis. Therefore, the input image will be divided into multiple, smaller 
+tiles. The `YAML` file is used to monitor the tiling process, and in the event of processing failure, allows a 
+user to continue processing from the last finished tile.
+
+See below for the naming convention of these files.  
+
+##### YAML status
+
+```text
+<OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%.yaml
+
+Example:
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog.yaml
+```
+
+##### Tiled files
+
+```text
+<OUT_DIRECTORY>/<FILENAME>__BD#_BK#_SC#_TR%/<FILENAME>__BD#_BK#_SC#_ST1-###_TL######.tif
+
+Example:
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000001.tif
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000002.tif
+out_dir/image_name__BD1_BK4_SC4-8_TRmean-hog/image_name__BD1_BK4_SC4-8_ST1-012_TL000003.tif
+```
+
+```text
+BD = input band position
+BK = input block size
+SC = input scales
+TR = input triggers
+ST = statistics
+TL = tile position
+```
+
+Spatial features
+-----
+
+Below is a list of references that SpFeas draws from.
 
 ##### Processing
 > Graesser, Jordan, Cheriyadat, Anil, Vatsavai, Ranga Raju, Chandola, Varun, Long, Jordan, and Bright, Eddie (2012) Image based characterization of formal and informal neighborhoods in an urban landscape. _IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing_, 5(4), 1164--1176.

@@ -2,4 +2,4 @@ Contributors
 ============
 
 * Jordan Graesser
-  * graesser@bu.edu
+  * graesser at bu.edu
