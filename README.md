@@ -213,7 +213,7 @@ Anisotropic Rotation-Invariant Textural Measure. _IEEE Journal of Selected Topic
 > Cheng, Ming-Ming, Mitra, Niloy J, Huang, Xiaolei, Torr, Philip HS, and Hu, Shi-Min (2015) Global Contrast based Salient Region detection. _IEEE Transactions on Pattern Analysis and Machine Intelligence_, 37(3), 569--582.
 
 ##### Structural Feature Sets (sfs)
-`max line length` `min line length` `mean` `w-mean` `standard deviation` ` max ratio of orthogonal angles`
+`max line length` `min line length` `mean` `w-mean` `standard deviation` `max ratio of orthogonal angles`
 > Huang, Xin, Zhang, Liangpei, and Li, Pingxiang (2007) Classification and Extraction of Spatial Features in Urban Areas Using High-Resolution Multispectral Imagery. _IEEE Geoscience and Remote Sensing Letters_, 4(2).
 
 #### 'To Read' list
