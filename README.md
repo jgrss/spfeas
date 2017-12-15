@@ -4,16 +4,15 @@ SpFeas
 **SpFeas** is a Python library for processing spatial (contextual) image features from satellite imagery.
 
 SpFeas has only been tested on Python 2.7 and is dependent on [**MpGlue**](https://github.com/jgrss/mpglue),
-which is used for image I/O and land cover classification. 
-
-Please request access to MpGlue from the [**authors list**](https://github.com/jgrss/spfeas/blob/master/AUTHORS.txt). 
+which is used for image I/O and land cover classification. MpGlue will eventually be made public, but for now 
+remains as a private repository. Please send a [**request via email**](https://github.com/jgrss/spfeas/blob/master/AUTHORS.txt) to access MpGlue. 
 
 Current version
 -----
 
-`0.2.0b`
+`0.2.0`
 
-Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes coming in `0.2.0`.
+Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes.
 
 All comments and suggestions for improvement are welcome. Please post to the [**issues page**](https://github.com/jgrss/spfeas/issues).
 
@@ -24,7 +23,7 @@ Use _either_ **Option A** or **Option B** below to install Spfeas.
 
 #### Option A: Installing or upgrading from source
 
-1. Install or upgrade [`MpGlue`](https://github.com/jgrss/mpglue).
+1. Install or upgrade [`MpGlue`](https://github.com/jgrss/mpglue). (Please [**email a request**](https://github.com/jgrss/spfeas/blob/master/AUTHORS.txt) to access MpGlue.)
 
 2. Clone and install SpFeas using the commands below.
 
