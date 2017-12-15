@@ -1,4 +1,7 @@
-#!/usr/bin/env python
+# cython: profile=False
+# cython: cdivision=True
+# cython: boundscheck=False
+# cython: wraparound=False
 
 import cython
 cimport cython
@@ -84,88 +87,70 @@ cdef extern from 'numpy/npy_math.h':
 ctypedef DTYPE_float32_t[:, :, :, ::1] (*metric_ptr)(DTYPE_float32_t[:, :, :, ::1], DTYPE_float32_t[:, :], DTYPE_float32_t[:], DTYPE_float32_t[:], int, DTYPE_float32_t[:, :, :, ::1]) nogil
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t roundd(DTYPE_float32_t val) nogil:
      return floor(val + .5)
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t sqrt_f(DTYPE_float32_t sx) nogil:
     return sx * .5
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t abs_f(DTYPE_float32_t sx) nogil:
     return sx * -1. if sx < 0 else sx
 
 
-@cython.profile(False)
 cdef inline DTYPE_uint8_t abs_ui(DTYPE_uint8_t sx) nogil:
     return sx * -1 if sx < 0 else sx
 
 
-@cython.profile(False)
 cdef inline Py_ssize_t abs_s(Py_ssize_t sx) nogil:
     return sx * -1 if sx < 0 else sx
 
 
-@cython.profile(False)
 cdef inline int n_rows_cols(int pixel_index, int rows_cols, int block_size) nogil:
     return rows_cols if pixel_index + rows_cols < block_size else block_size - pixel_index
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t pow2(DTYPE_float32_t sx) nogil:
     return sx * sx
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t pow3(DTYPE_float32_t sx) nogil:
     return sx * sx * sx
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t pow4(DTYPE_float32_t sx) nogil:
     return sx * sx * sx * sx
 
 
-@cython.profile(False)
 cdef inline int _get_min_sample_i(int s1, int s2) nogil:
     return s2 if s2 < s1 else s1
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t _get_min_sample(DTYPE_float32_t s1, DTYPE_float32_t s2) nogil:
     return s2 if s2 < s1 else s1
 
 
-@cython.profile(False)
 cdef inline DTYPE_uint8_t _get_min_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2) nogil:
     return s2 if s2 < s1 else s1
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t _get_max_sample(DTYPE_float32_t s1, DTYPE_float32_t s2) nogil:
     return s2 if s2 > s1 else s1
 
 
-@cython.profile(False)
 cdef inline DTYPE_uint8_t _get_max_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2) nogil:
     return s2 if s2 > s1 else s1
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t _euclidean_distance(DTYPE_float32_t x1, DTYPE_float32_t y1, DTYPE_float32_t x2, DTYPE_float32_t y2) nogil:
     return (((x1 - x2)**2.) + ((y1 - y2)**2.))**.5
 
 
-@cython.profile(False)
 cdef inline DTYPE_float32_t _get_line_length(DTYPE_float32_t y1, DTYPE_float32_t x1, DTYPE_float32_t y2, DTYPE_float32_t x2) nogil:
     return ((y1 - x1)**2 + (y2 - x2)**2)**.5
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef int _get_output_length(int rows,
                             int cols,
                             int scales_block,
@@ -187,8 +172,6 @@ cdef int _get_output_length(int rows,
     return out_len
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_uint8_t _get_min(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
@@ -203,8 +186,6 @@ cdef DTYPE_uint8_t _get_min(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
     return m
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t _get_max_f2d(DTYPE_float32_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
@@ -219,8 +200,6 @@ cdef DTYPE_float32_t _get_max_f2d(DTYPE_float32_t[:, :] block, int rs, int cs) n
     return m
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef int _get_max(DTYPE_uint8_t[:, :] block, Py_ssize_t rs, Py_ssize_t cs) nogil:
 
     cdef:
@@ -235,8 +214,6 @@ cdef int _get_max(DTYPE_uint8_t[:, :] block, Py_ssize_t rs, Py_ssize_t cs) nogil
     return m
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t _get_max_f(DTYPE_float32_t[:] in_row, int cols) nogil:
 
     cdef:
@@ -249,8 +226,6 @@ cdef DTYPE_float32_t _get_max_f(DTYPE_float32_t[:] in_row, int cols) nogil:
     return m
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t _get_sum_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
@@ -264,8 +239,6 @@ cdef DTYPE_float32_t _get_sum_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) n
     return block_sum
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t _get_sum(DTYPE_float32_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
@@ -279,9 +252,6 @@ cdef DTYPE_float32_t _get_sum(DTYPE_float32_t[:, :] block, int rs, int cs) nogil
     return block_sum
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_mean(DTYPE_float32_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
@@ -290,9 +260,6 @@ cdef DTYPE_float32_t _get_mean(DTYPE_float32_t[:, :] block, int rs, int cs) nogi
     return _get_sum(block, rs, cs) / n_samps
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _get_mean_var(DTYPE_float32_t[:, :] block,
                         int rs,
                         int cs,
@@ -312,9 +279,6 @@ cdef void _get_mean_var(DTYPE_float32_t[:, :] block,
     out_values_[1] = block_var / n_samps
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_weighted_sum(DTYPE_float32_t[:, ::1] block,
                                        DTYPE_float32_t[:, ::1] weights,
                                        int rs,
@@ -336,9 +300,6 @@ cdef DTYPE_float32_t _get_weighted_sum(DTYPE_float32_t[:, ::1] block,
     return block_sum
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_weighted_sum_byte(DTYPE_uint8_t[:, :] block, DTYPE_float32_t[:, :] weights, int rs, int cs) nogil:
 
     cdef:
@@ -357,9 +318,6 @@ cdef DTYPE_float32_t _get_weighted_sum_byte(DTYPE_uint8_t[:, :] block, DTYPE_flo
     return block_sum
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_weighted_mean(DTYPE_float32_t[:, ::1] block,
                                         DTYPE_float32_t[:, ::1] weights,
                                         int rs,
@@ -371,9 +329,6 @@ cdef DTYPE_float32_t _get_weighted_mean(DTYPE_float32_t[:, ::1] block,
     return _get_weighted_sum(block, weights, rs, cs) / n_samps
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_weighted_mean_byte(DTYPE_uint8_t[:, :] block, DTYPE_float32_t[:, :] weights, int rs, int cs) nogil:
 
     cdef:
@@ -382,9 +337,6 @@ cdef DTYPE_float32_t _get_weighted_mean_byte(DTYPE_uint8_t[:, :] block, DTYPE_fl
     return _get_weighted_sum_byte(block, weights, rs, cs) / n_samps
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _get_weighted_mean_var(DTYPE_float32_t[:, ::1] block,
                                  DTYPE_float32_t[:, ::1] weights,
                                  int rs,
@@ -405,9 +357,6 @@ cdef void _get_weighted_mean_var(DTYPE_float32_t[:, ::1] block,
     out_values_[1] = block_var / n_samps
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _get_weighted_mean_var_byte(DTYPE_uint8_t[:, ::1] block,
                                       DTYPE_float32_t[:, ::1] weights,
                                       int rs,
@@ -428,9 +377,6 @@ cdef void _get_weighted_mean_var_byte(DTYPE_uint8_t[:, ::1] block,
     out_values_[1] = block_var / n_samps
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
 # cdef void _get_directional_weighted_mean_var(DTYPE_float32_t[:, :] block,
 #                                              int rs,
 #                                              int cs,
@@ -470,9 +416,6 @@ cdef void _get_weighted_mean_var_byte(DTYPE_uint8_t[:, ::1] block,
 #     out_values_[8] = _get_mean(block[rs_half:, cs_half:], rs_half, cs_half)
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
 # cdef void _get_angle_stats(DTYPE_float32_t[:, :] block,
 #                            int rs,
 #                            int cs,
@@ -515,9 +458,6 @@ cdef void _get_weighted_mean_var_byte(DTYPE_uint8_t[:, ::1] block,
 #     out_values_[3] = line_sum / rs
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) nogil:
 
     cdef:
@@ -526,9 +466,6 @@ cdef DTYPE_float32_t _get_mean_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs) 
     return _get_sum_uint8(block, rs, cs) / n_samps
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_std_1d(DTYPE_float32_t[:] block_line, int cs, DTYPE_float32_t psi) nogil:
 
     cdef:
@@ -541,9 +478,6 @@ cdef DTYPE_float32_t _get_std_1d(DTYPE_float32_t[:] block_line, int cs, DTYPE_fl
     return sqrt(block_std / cs)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_std_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
 
     cdef:
@@ -557,9 +491,6 @@ cdef DTYPE_float32_t _get_std_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
     return sqrt_f(block_var / cs)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs, DTYPE_float32_t ddof=1.) nogil:
 
     cdef:
@@ -574,9 +505,6 @@ cdef DTYPE_float32_t _get_var(DTYPE_float32_t[:, :] block, int rs, int cs, DTYPE
     return block_var / ((rs*cs) - ddof)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_var_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs, DTYPE_float32_t ddof=1.) nogil:
 
     cdef:
@@ -591,8 +519,6 @@ cdef DTYPE_float32_t _get_var_uint8(DTYPE_uint8_t[:, :] block, int rs, int cs, D
     return block_var / ((rs*cs) - ddof)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t _get_sum1d(DTYPE_float32_t[:] block, int cs) nogil:
 
     cdef:
@@ -606,13 +532,10 @@ cdef DTYPE_float32_t _get_sum1d(DTYPE_float32_t[:] block, int cs) nogil:
     return block_sum
 
 
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_mean_1d(DTYPE_float32_t[:] block, int cs) nogil:
     return _get_sum1d(block, cs) / cs
 
 
-@cython.boundscheck(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_var_1d(DTYPE_float32_t[:] block, int cs, DTYPE_float32_t mu, DTYPE_float32_t ddof=1.) nogil:
 
     cdef:
@@ -625,8 +548,6 @@ cdef DTYPE_float32_t _get_var_1d(DTYPE_float32_t[:] block, int cs, DTYPE_float32
     return block_var / (cs - ddof)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t _get_sum1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
 
     cdef:
@@ -639,15 +560,10 @@ cdef DTYPE_float32_t _get_sum1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
     return float(block_sum)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _get_mean_1d_uint16(DTYPE_uint16_t[:] block, int cs) nogil:
     return _get_sum1d_uint16(block, cs) / cs
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1, DTYPE_uint16_t[:, :] rc_) nogil:
 
     """
@@ -749,9 +665,6 @@ cdef void draw_line(Py_ssize_t y0, Py_ssize_t x0, Py_ssize_t y1, Py_ssize_t x1, 
     rc_[2, 0] = dx + 1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _get_stats(DTYPE_float32_t[:] block, int samps, DTYPE_float32_t[:] output_array) nogil:
 
     """Calculate the central moments 1-4"""
@@ -785,8 +698,6 @@ cdef void _get_stats(DTYPE_float32_t[:] block, int samps, DTYPE_float32_t[:] out
     output_array[4] = m4 / pow4(stdev)      # kurtosis
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void _get_moments(DTYPE_float32_t[::1] img_arr, DTYPE_float32_t[::1] output) nogil:
 
     """Get the moments for 1d array"""
@@ -800,9 +711,6 @@ cdef void _get_moments(DTYPE_float32_t[::1] img_arr, DTYPE_float32_t[::1] output
 
 # Gabor filter bank
 
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void _convolution(DTYPE_float32_t[:, :] block2convolve,
                        DTYPE_float32_t[:, :] gkernel,
                        int br, int bc,
@@ -833,9 +741,6 @@ cdef void _convolution(DTYPE_float32_t[:, :] block2convolve,
             out_convolved[bi+knrh, bj+knch] = kernel_sum
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _feature_gabor(DTYPE_float32_t[:, :, ::1] ch_bdka,
                          int blk,
                          DTYPE_uint16_t[::1] scs,
@@ -947,9 +852,6 @@ cdef void _feature_gabor(DTYPE_float32_t[:, :, ::1] ch_bdka,
                         scale_kernel += 1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def feature_gabor(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_scale, int n_kernels=8):
 
     cdef:
@@ -989,10 +891,6 @@ def feature_gabor(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_sc
 
 # Histogram of Oriented Gradients
 
-
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
 # cdef np.ndarray[DTYPE_float32_t, ndim=1] calc_hog(np.ndarray[DTYPE_float32_t, ndim=2] mag_chunk,
 #                                                   np.ndarray[DTYPE_float32_t, ndim=2] ang_chunk,
 #                                                   DTYPE_float32_t pi2, int bin_n,
@@ -1005,9 +903,7 @@ def feature_gabor(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_sc
 #
 #
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
+
 cdef void _feature_hog(DTYPE_float32_t[:, ::1] chbd,
                        int blk, DTYPE_uint16_t[:] scs,
                        int end_scale,
@@ -1075,8 +971,6 @@ cdef void _feature_hog(DTYPE_float32_t[:, ::1] chbd,
                     pix_ctr += 5
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def feature_hog(DTYPE_float32_t[:, ::1] chbd, int blk, list scs, int end_scale):
 
     cdef:
@@ -1105,8 +999,6 @@ def feature_hog(DTYPE_float32_t[:, ::1] chbd, int blk, list scs, int end_scale):
     return np.float32(out_list)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void _add_dmps(DTYPE_float32_t[:, :, ::1] ch_bd_array,
                     int dims,
                     int block_rows,
@@ -1122,9 +1014,6 @@ cdef void _add_dmps(DTYPE_float32_t[:, :, ::1] ch_bd_array,
                 dmp_vector_array[d] += ch_bd_array[d, ri, cj]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _feature_dmp(DTYPE_float32_t[:, :, ::1] chbd,
                        int blk,
                        DTYPE_uint16_t[::1] scs,
@@ -1187,8 +1076,6 @@ cdef void _feature_dmp(DTYPE_float32_t[:, :, ::1] chbd,
                         pix_ctr += 1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def feature_dmp(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_scale):
 
     cdef:
@@ -1218,8 +1105,6 @@ def feature_dmp(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_scal
     return np.float32(out_list)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void _extract_values(DTYPE_uint8_t[:, :] block,
                           DTYPE_uint16_t[:] values,
                           DTYPE_uint16_t[:, :] rc_,
@@ -1236,9 +1121,6 @@ cdef void _extract_values(DTYPE_uint8_t[:, :] block,
         values[fi] = block[fi_, fj_]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _get_direction(DTYPE_uint8_t[:, ::1] chunk,
                          int chunk_shape,
                          int rows_half,
@@ -1324,9 +1206,6 @@ cdef void _get_direction(DTYPE_uint8_t[:, ::1] chunk,
             values_[3] += sfs_w_mean
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _get_directions(DTYPE_uint8_t[:, ::1] chunk,
                           int chunk_rws,
                           int chunk_cls,
@@ -1432,9 +1311,6 @@ cdef void _get_directions(DTYPE_uint8_t[:, ::1] chunk,
     values[5] = max_diff
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _sfs_feas(DTYPE_uint8_t[:, ::1] chunk,
                     int blk_size,
                     DTYPE_float32_t thresh_hom,
@@ -1493,9 +1369,6 @@ cdef void _sfs_feas(DTYPE_uint8_t[:, ::1] chunk,
                     hist_)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _feature_sfs(DTYPE_uint8_t[:, ::1] ch_bd,
                        int blk,
                        DTYPE_uint16_t[::1] scales_array,
@@ -1545,9 +1418,6 @@ cdef void _feature_sfs(DTYPE_uint8_t[:, ::1] ch_bd,
                         pix_ctr += 1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def feature_sfs(DTYPE_uint8_t[:, ::1] chbd,
                 int blk,
                 list scs,
@@ -1588,7 +1458,6 @@ def feature_sfs(DTYPE_uint8_t[:, ::1] chbd,
     return np.float32(out_list)
 
 
-# @cython.boundscheck(False)
 # cdef list _feature_surf(np.ndarray[DTYPE_uint8_t, ndim=2] surf_arr, k_pts, int j, int i, int k, list scs):
 #
 #     """
@@ -1608,7 +1477,6 @@ def feature_sfs(DTYPE_uint8_t[:, ::1] chbd,
 #             return [0., 0., 0., 0.]
 #
 #
-# @cython.boundscheck(False)
 # def feature_surf(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale):
 #
 #     cdef:
@@ -1655,9 +1523,6 @@ def feature_sfs(DTYPE_uint8_t[:, ::1] chbd,
 # Ethan Rublee, Vincent Rabaud, Kurt Konolige, Gary R. Bradski:
 #   ORB: An efficient alternative to SIFT or SURF. ICCV 2011: 2564-2571.
 
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def fill_key_points(DTYPE_float32_t[:, ::1] in_block, list key_point_list):
 
     cdef:
@@ -1681,9 +1546,6 @@ def fill_key_points(DTYPE_float32_t[:, ::1] in_block, list key_point_list):
     return np.uint8(key_point_array)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t[::1] _pyramid_hist_sift(DTYPE_uint8_t[:, ::1] key_point_array,
                                              DTYPE_float32_t[::1] levels,
                                              int orb_rows,
@@ -1728,9 +1590,6 @@ cdef DTYPE_float32_t[::1] _pyramid_hist_sift(DTYPE_uint8_t[:, ::1] key_point_arr
     return hist_[:grid_counter]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _feature_orb(DTYPE_uint8_t[:, ::1] ch_bd,
                        int blk,
                        DTYPE_uint16_t[::1] scales_array,
@@ -1792,9 +1651,6 @@ cdef void _feature_orb(DTYPE_uint8_t[:, ::1] ch_bd,
                         pix_ctr += 5
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def feature_orb(DTYPE_uint8_t[:, ::1] chbd,
                 int blk,
                 list scs,
@@ -1827,8 +1683,6 @@ def feature_orb(DTYPE_uint8_t[:, ::1] chbd,
     return np.float32(out_list)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef tuple _set_lbp(DTYPE_uint8_t[:, ::1] chbd, int rows, int cols):
 
     """
@@ -1855,9 +1709,6 @@ cdef tuple _set_lbp(DTYPE_uint8_t[:, ::1] chbd, int rows, int cols):
     return lbpBd, p_range
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd,
                                                       int blk,
                                                       list scs,
@@ -1923,15 +1774,10 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
     return out_list_a
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale):
-
     return _feature_lbp(chBd, blk, scs, end_scale)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef list _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd, int blk, list scs, int end_scale):
 
     """
@@ -1999,29 +1845,18 @@ cdef list _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd, int blk, list scs, int end_s
     return list(out_list)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def feature_lbpm(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale):
-
     return _feature_lbpm(chBd, blk, scs, end_scale)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef inline DTYPE_float32_t _get_distance(tuple line):
-
     return sqrt(pow((line[0][0] - line[1][0]), 2.) + pow((line[0][1] - line[1][1]), 2.))
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef inline DTYPE_float64_t get_slope(tuple line):
-
     return np.degrees(atan(float((line[0][1] - line[1][1])) / float((line[1][0] - line[0][0]))))
 
 
-@cython.boundscheck(False)
 def houghFunc_1(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int minLen, np.ndarray[long, ndim=2] checkList1_2, np.ndarray[long, ndim=2] checkList2_2,
                         list scs, int i, int j):
 
@@ -2058,7 +1893,7 @@ def houghFunc_1(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int m
     else:
         return (float(np.argwhere(edgeArr==255).shape[0]) / float(edgeArr.shape[0]*edgeArr.shape[1])) * 100.	# edge density
 
-@cython.boundscheck(False)
+
 def houghFunc_2(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int minLen, np.ndarray[long, ndim=3] checkList1_3, np.ndarray[long, ndim=3] checkList2_3,
                         list scs, int i, int j, int k):
 
@@ -2096,8 +1931,6 @@ def houghFunc_2(np.ndarray[DTYPE_uint8_t, ndim=2] edgeArr, int houghIndex, int m
         return (float(np.argwhere(edgeArr==255).shape[0]) / float(edgeArr.shape[0]*edgeArr.shape[1])) * 100.	# edge density
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef list _hough_function(list lines_list, np.ndarray[DTYPE_uint8_t, ndim=2] edge_arr, int large_rws, int large_cls):
 
     cdef:
@@ -2144,8 +1977,6 @@ cdef list _hough_function(list lines_list, np.ndarray[DTYPE_uint8_t, ndim=2] edg
         return list([mean_len, num_lines, edge_dens, std_slope])
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk,
                                                         DTYPE_uint16_t[:] scales_array,
                                                         int scales_half, int scales_block,
@@ -2213,8 +2044,6 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_hough(np.ndarray[DTYPE_uint8_t
     return out_list
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale, int threshold,
                   int min_len, int line_gap):
 
@@ -2236,8 +2065,6 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
 
 # PanTex
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void _glcm_loop(DTYPE_uint8_t[:, :] image,
                      DTYPE_float32_t[:] distances,
                      DTYPE_float32_t[:] angles,
@@ -2302,9 +2129,6 @@ cdef void _glcm_loop(DTYPE_uint8_t[:, :] image,
                             out_sums[d_idx, a_idx] += 2
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t[:, :, :, ::1] _norm_glcm(DTYPE_float32_t[:, :, :, ::1] Pt,
                                               DTYPE_float32_t[:, :] Pt_sums,
                                               DTYPE_float32_t[:] distances,
@@ -2336,8 +2160,6 @@ cdef DTYPE_float32_t[:, :, :, ::1] _norm_glcm(DTYPE_float32_t[:, :, :, ::1] Pt,
     return glcm_normed_
 
 
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
 # cdef _check_nans(DTYPE_float32_t[:, :, :, :] glcm_mat_nan,
 #                  DTYPE_float32_t[:] distances,
 #                  DTYPE_float32_t[:] angles,
@@ -2369,8 +2191,6 @@ cdef DTYPE_float32_t[:, :, :, ::1] _norm_glcm(DTYPE_float32_t[:, :, :, ::1] Pt,
 #                         glcm_mat_nan[r, c, d_idx, a_idx] = 0
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t[:, :, :, ::1] _greycomatrix(DTYPE_uint8_t[:, :] image,
                                                  DTYPE_float32_t[:] distances,
                                                  DTYPE_float32_t[:] angles,
@@ -2391,8 +2211,6 @@ cdef DTYPE_float32_t[:, :, :, ::1] _greycomatrix(DTYPE_uint8_t[:, :] image,
     return metric_norm(P, angle_dist_sums, distances, angles, levels, glcm_normed)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P,
                                     DTYPE_float32_t[:] distances,
                                     DTYPE_float32_t[:] angles,
@@ -2428,8 +2246,6 @@ cdef DTYPE_float32_t _glcm_contrast(DTYPE_float32_t[:, :, :, ::1] P,
     return min_contrast
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef DTYPE_float32_t[:, ::1] _set_contrast_weights(int levels):
 
     cdef:
@@ -2443,9 +2259,6 @@ cdef DTYPE_float32_t[:, ::1] _set_contrast_weights(int levels):
     return contrast_array
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _feature_pantex(DTYPE_uint8_t[:, ::1] chBd,
                           int blk,
                           DTYPE_uint16_t[::1] scs,
@@ -2608,9 +2421,6 @@ cdef void _feature_pantex(DTYPE_uint8_t[:, ::1] chBd,
                         pix_ctr += 1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def feature_pantex(DTYPE_uint8_t[:, ::1] chbd, int blk, list scs, int end_scale, bint weighted, int levels=32):
 
     cdef:
@@ -2640,9 +2450,6 @@ def feature_pantex(DTYPE_uint8_t[:, ::1] chbd, int blk, list scs, int end_scale,
     return np.float32(out_list)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t[:, ::1] _create_weights(DTYPE_float32_t[:, ::1] dist_weights, int rs, int cs) nogil:
 
     cdef:
@@ -2657,9 +2464,6 @@ cdef DTYPE_float32_t[:, ::1] _create_weights(DTYPE_float32_t[:, ::1] dist_weight
     return dist_weights
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void feature_mean_float32(DTYPE_float32_t[:, ::1] ch_bd,
                                int blk,
                                DTYPE_uint16_t[::1] scs,
@@ -2714,9 +2518,6 @@ cdef void feature_mean_float32(DTYPE_float32_t[:, ::1] ch_bd,
                         pix_ctr += 1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def feature_mean(DTYPE_float32_t[:, ::1] ch_bd, int blk, list scs, int end_scale):
 
     cdef:
@@ -2759,7 +2560,6 @@ def feature_mean(DTYPE_float32_t[:, ::1] ch_bd, int blk, list scs, int end_scale
     return np.float32(out_list)
 
 
-@cython.boundscheck(False)
 def feaCtrFloat64(np.ndarray[DTYPE_float64_t, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
@@ -2767,7 +2567,6 @@ def feaCtrFloat64(np.ndarray[DTYPE_float64_t, ndim=2] chBd, int blk, list scs, i
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
-@cython.boundscheck(False)
 def feaCtrFloat32(np.ndarray[DTYPE_float32_t, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
@@ -2775,7 +2574,6 @@ def feaCtrFloat32(np.ndarray[DTYPE_float32_t, ndim=2] chBd, int blk, list scs, i
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
-@cython.boundscheck(False)
 def feaCtr_uint16(np.ndarray[unsigned short, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
@@ -2783,7 +2581,6 @@ def feaCtr_uint16(np.ndarray[unsigned short, ndim=2] chBd, int blk, list scs, in
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
-@cython.boundscheck(False)
 def feaCtr_uint8(np.ndarray[unsigned char, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
@@ -2791,7 +2588,6 @@ def feaCtr_uint8(np.ndarray[unsigned char, ndim=2] chBd, int blk, list scs, int 
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
-@cython.boundscheck(False)
 def feaCtr_uint(np.ndarray[int, ndim=2] chBd, int blk, list scs, int rows, int cols):
 
     cdef int i, j, k
@@ -2799,7 +2595,6 @@ def feaCtr_uint(np.ndarray[int, ndim=2] chBd, int blk, list scs, int rows, int c
     return [ chBd[i+scs[-1]/2, j+scs[-1]/2] for k in scs for i in range(0, rows-(scs[-1]-blk), blk) for j in range(0, cols-(scs[-1]-blk), blk) ]
 
 
-@cython.boundscheck(False)
 def feaCtr(np.ndarray chBd, int blk, list scs):
 
     cdef int rows = chBd.shape[0]
@@ -2820,7 +2615,6 @@ def feaCtr(np.ndarray chBd, int blk, list scs):
 
 # Lacunarity
 
-@cython.cdivision(True)
 cdef int max_box_number(DTYPE_uint8_t[:, :] w, int rr_rows, int rr_cols) nogil:
 
     cdef:
@@ -2833,9 +2627,6 @@ cdef int max_box_number(DTYPE_uint8_t[:, :] w, int rr_rows, int rr_cols) nogil:
     return <int>((boxes_max - boxes_min) + 1)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void _div1d(DTYPE_float32_t[:] array1d, int cs, DTYPE_float32_t div_value) nogil:
 
     cdef:
@@ -2845,9 +2636,6 @@ cdef void _div1d(DTYPE_float32_t[:] array1d, int cs, DTYPE_float32_t div_value) 
         array1d[js] /= div_value
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef DTYPE_float32_t _lacunarity(DTYPE_uint8_t[:, ::1] chunk_sub,
                                  int r,
                                  DTYPE_float32_t[::1] zs) nogil:
@@ -2934,8 +2722,6 @@ cdef DTYPE_float32_t _lacunarity(DTYPE_uint8_t[:, ::1] chunk_sub,
         return 0.
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void _feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block,
                               int blk,
                               DTYPE_uint16_t[::1] scales,
@@ -2980,8 +2766,6 @@ cdef void _feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block,
                     pixel_counter += 1
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block, int blk, list scales, int end_scale, int r=2):
 
     cdef:
@@ -3012,8 +2796,6 @@ def feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block, int blk, list scales, 
     return np.float32(out_list)
 
 
-# @cython.boundscheck(False)
-# @cython.cdivision(True)
 # cdef azimuthal_avg(image, center=None):
 #
 #     """
@@ -3061,8 +2843,6 @@ def feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block, int blk, list scales, 
 #     return radialProf
 #
 #
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
 # cdef DTYPE_float32_t[:, ::1] _fourier_transform(DTYPE_uint8_t[:, ::1] chunk_block):
 #
 #     cdef:
@@ -3073,9 +2853,6 @@ def feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block, int blk, list scales, 
 #     return np.float32(azimuthal_avg(20. * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))))
 #
 #
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
 # cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_fourier(DTYPE_uint8_t[:, ::1] chunk_block,
 #                                                           int blk,
 #                                                           DTYPE_uint16_t[::1] scales,
@@ -3117,9 +2894,6 @@ def feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block, int blk, list scales, 
 #     return np.float32(out_list)
 #
 #
-# @cython.boundscheck(False)
-# @cython.wraparound(False)
-# @cython.cdivision(True)
 # def feature_fourier(np.ndarray chunk_block, int blk, list scales, int end_scale):
 #
 #     cdef:
@@ -3143,8 +2917,6 @@ def feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block, int blk, list scales, 
 #                             scale_length)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cdef void _fill_labels(DTYPE_uint64_t[:, ::1] im,
                        DTYPE_uint64_t[:, ::1] area_im,
                        DTYPE_uint64_t[::1] props,
@@ -3175,8 +2947,6 @@ cdef void _fill_labels(DTYPE_uint64_t[:, ::1] im,
                             area_im[i, j] = uli_area
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def fill_labels(DTYPE_uint64_t[:, ::1] im, DTYPE_uint64_t[::1] props):
 
     cdef:
