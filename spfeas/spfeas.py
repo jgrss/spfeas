@@ -10,14 +10,8 @@ import sys
 import argparse
 import time
 import copy
-import platform
-import ctypes
 
-# if platform.system() == 'Darwin':
-#
-#     GEOS_DIR = '/usr/lib/libc.dylib'
-#     ctypes.CDLL(GEOS_DIR)
-
+from .errors import logger
 from . import spprocess
 from .sphelpers.sputilities import set_yaml_file
 
@@ -205,7 +199,7 @@ def _options():
                   Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
 
     for text_line in text_lines:
-        print(text_line)
+        logger.info(text_line)
 
     sys.exit(Style.RESET_ALL)
 
@@ -283,7 +277,7 @@ def main():
     if args.options:
         _options()
 
-    print('\nStart date & time --- (%s)\n' % time.asctime(time.localtime(time.time())))
+    logger.info('\nStart date & time --- (%s)\n' % time.asctime(time.localtime(time.time())))
 
     start_time = time.time()
 
@@ -324,8 +318,8 @@ def main():
                      overwrite=args.overwrite,
                      overviews=args.overviews)
 
-    print('\nEnd data & time -- (%s)\nTotal processing time -- (%.2gs)\n'
-          % (time.asctime(time.localtime(time.time())), (time.time() - start_time)))
+    logger.info('\nEnd data & time -- (%s)\nTotal processing time -- (%.2gs)\n' %
+                (time.asctime(time.localtime(time.time())), (time.time() - start_time)))
 
 
 if __name__ == '__main__':

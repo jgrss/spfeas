@@ -31,8 +31,7 @@ Use _either_ **Option A** or **Option B** below to install Spfeas.
 ```commandline
 git clone https://github.com/jgrss/spfeas.git
 cd spfeas/
-python setup.py build
-python setup.py install
+python setup.py build && python setup.py install
 ```
 
 SpFeas should now be installed.

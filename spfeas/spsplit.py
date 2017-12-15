@@ -7,6 +7,7 @@ import os
 import sys
 import subprocess
 
+from .errors import logger
 from . import spfunctions
 from .paths import get_path
 
@@ -72,7 +73,7 @@ warnings.filterwarnings('ignore')
 
 
 def call_gabor(block_array_, block_size_, scales_, end_scale_):
-    return _stats.feature_gabor(block_array_, block_size_, scales_, end_scale_)
+    return _stats.feature_gabor(np.float32(block_array_), block_size_, scales_, end_scale_)
 
 
 def call_fourier(block_array_, block_size_, scales_, end_scale_):
@@ -80,7 +81,7 @@ def call_fourier(block_array_, block_size_, scales_, end_scale_):
 
 
 def call_dmp(block_array_, block_size_, scales_, end_scale_):
-    return _stats.feature_dmp(block_array_, block_size_, scales_, end_scale_)
+    return _stats.feature_dmp(np.float32(block_array_), block_size_, scales_, end_scale_)
 
 
 # def call_hog(gradient_array_, orientation_array_, block_size_, scales_, end_scale_):
@@ -88,7 +89,7 @@ def call_dmp(block_array_, block_size_, scales_, end_scale_):
 
 
 def call_hog(block_array_, block_size_, scales_, end_scale_):
-    return _stats.feature_hog(block_array_, block_size_, scales_, end_scale_)
+    return _stats.feature_hog(np.float32(block_array_), block_size_, scales_, end_scale_)
 
 
 def call_hough(block_array_, block_size_, scales_, end_scale_, threshold_, min_len_, line_gap_):
@@ -104,7 +105,7 @@ def call_lbpm(block_array_, block_size_, scales_, end_scale_):
 
 
 def call_lacunarity(block_array_, block_size_, scales_, end_scale_, lac_r_):
-    return _stats.feature_lacunarity(block_array_, block_size_, scales_, end_scale_, lac_r_)
+    return _stats.feature_lacunarity(np.uint8(block_array_), block_size_, scales_, end_scale_, lac_r_)
 
 
 def call_lsr(block_array_, block_size_, scales_, end_scale_):
@@ -112,19 +113,19 @@ def call_lsr(block_array_, block_size_, scales_, end_scale_):
 
 
 def call_mean(block_array_, block_size_, scales_, end_scale_):
-    return _stats.feature_mean(block_array_, block_size_, scales_, end_scale_)
+    return _stats.feature_mean(np.float32(block_array_), block_size_, scales_, end_scale_)
 
 
 def call_orb(block_array_, block_size_, scales_, end_scale_):
-    return _stats.feature_orb(block_array_, block_size_, scales_, end_scale_)
+    return _stats.feature_orb(np.uint8(np.ascontiguousarray(block_array_)), block_size_, scales_, end_scale_)
 
 
 def call_pantex(block_array_, block_size_, scales_, end_scale_, weighted_):
-    return _stats.feature_pantex(block_array_, block_size_, scales_, end_scale_, weighted_)
+    return _stats.feature_pantex(np.uint8(block_array_), block_size_, scales_, end_scale_, weighted_)
 
 
 def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_skip_):
-    return _stats.feature_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, skip_factor=sfs_skip_)
+    return _stats.feature_sfs(np.uint8(block_array_), block_size_, scales_, end_scale_, sfs_thresh_, skip_factor=sfs_skip_)
 
 
 def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs):
@@ -499,9 +500,9 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                               args=dict(sfs_threshold=parameter_object.sfs_threshold,
                                         sfs_skip=parameter_object.sfs_skip)))
 
-    print('\nProcessing {} for section {:,d} of {:,d} ...\n'.format(func_dict[parameter_object.trigger]['name'],
-                                                                    section_counter,
-                                                                    parameter_object.n_sects))
+    logger.info('\nProcessing {} for section {:,d} of {:,d} ...\n'.format(func_dict[parameter_object.trigger]['name'],
+                                                                          section_counter,
+                                                                          parameter_object.n_sects))
 
     other_args = func_dict[parameter_object.trigger]['args']
 

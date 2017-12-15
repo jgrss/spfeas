@@ -1,33 +1,34 @@
-#!/usr/bin/env python
-
 import os
-import sys
-# import time
-# import platform
 import copy
-# import itertools
 import fnmatch
 from joblib import Parallel, delayed
 
+from .errors import logger, CorruptedBandsError
 from .sphelpers import sputilities
 from . import spsplit
 from .sphelpers import spreshape
 from .spfunctions import get_mag_avg, get_saliency_tile_mean, saliency, segment_image, get_dmp, get_orb_keypoints, convolve_gabor
-from . import errors
 
-from mpglue import raster_tools, VegIndicesEquations, vrt_builder
+# MpGlue
+try:
+    from mpglue import raster_tools, VegIndicesEquations, vrt_builder
+except:
+    logger.error('MpGlue must be installed')
+    raise ImportError
 
 # YAML
 try:
     import yaml
-except ImportError:
-    raise ImportError('YAML must be installed')
+except:
+    logger.error('YAML must be installed')
+    raise ImportError
 
 # NumPy
 try:
     import numpy as np
-except ImportError:
-    raise ImportError('NumPy must be installed')
+except:
+    logger.error('NumPy must be installed')
+    raise ImportError
 
 
 def _write_section2file(this_parameter_object__,
@@ -51,8 +52,8 @@ def _write_section2file(this_parameter_object__,
         section_counter (int)
     """
     
-    errors.logger.info('  Writing section {:d} of {:d} to file ...'.format(section_counter,
-                                                                           this_parameter_object__.n_sects))
+    logger.info('  Writing section {:d} of {:d} to file ...'.format(section_counter,
+                                                                    this_parameter_object__.n_sects))
 
     o_info = meta_info.copy()
 
@@ -119,7 +120,7 @@ def _write_section2file(this_parameter_object__,
             # Open the status YAML file.
             mts__ = sputilities.ManageStatus()
 
-            errors.logger.info('  Updating status ...')
+            logger.info('  Updating status ...')
 
             # Load the status dictionary
             mts__.load_status(this_parameter_object__.status_file)
@@ -181,7 +182,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
                     if 'corrupt' in status_list:
 
-                        errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
+                        logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
                         # Remove the file on the first trigger
                         #   if the file is corrupt.
@@ -193,13 +194,13 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
                     elif ('corrupt' not in status_list) and ('incomplete' in status_list):
 
-                        errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
+                        logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
                     else:
 
                         if this_parameter_object_.overwrite:
 
-                            errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
+                            logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
                             # Remove the file on the first trigger.
                             if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
@@ -210,7 +211,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
 
                         else:
 
-                            errors.logger.info('{} is already finished ...'.format(this_parameter_object_.out_img))
+                            logger.info('{} is already finished ...'.format(this_parameter_object_.out_img))
                             return
 
             else:
@@ -219,7 +220,7 @@ def _section_read_write(section_counter, section_pair, param_dict):
                 if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
                     os.remove(this_parameter_object_.out_img)
 
-                errors.logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
+                logger.info('Re-running {} ...'.format(this_parameter_object_.out_img))
 
         i_sect = section_pair[0]
         j_sect = section_pair[1]
@@ -331,13 +332,22 @@ def _section_read_write(section_counter, section_pair, param_dict):
             #   is a [D x M x N] array
             # where,
             #   D = the opening/closing derivative.
-            sect_in = get_dmp(sect_in)
+            sect_in = get_dmp(sect_in,
+                              this_parameter_object_.image_min,
+                              this_parameter_object_.image_max)
 
         if this_parameter_object_.trigger == 'gabor':
-            sect_in = convolve_gabor(sect_in, this_parameter_object_.scales)
+
+            sect_in = convolve_gabor(sect_in,
+                                     this_parameter_object_.image_min,
+                                     this_parameter_object_.image_max,
+                                     this_parameter_object_.scales)
 
         if this_parameter_object_.trigger == 'orb':
-            sect_in = get_orb_keypoints(sect_in, this_parameter_object_)
+
+            sect_in = get_orb_keypoints(sect_in,
+                                        this_parameter_object_.image_min,
+                                        this_parameter_object_.image_max)
 
         this_parameter_object_.update_info(i_sect_blk_ctr=1,
                                            j_sect_blk_ctr=1)
@@ -416,12 +426,13 @@ def run(parameter_object):
 
             if parameter_object.section_size != mts.status_dict['SECTION_SIZE']:
 
-                errors.logger.warning('The section size was changed, so all existing tiled images will be removed.')
+                logger.warning('The section size was changed, so all existing tiled images will be removed.')
 
                 parameter_object.remove_files = True
 
             if not isinstance(mts.status_dict, dict):
-                errors.logger.error('The YAML file already existed, but was not properly stored and saved.\nPlease remove and re-run.')
+
+                logger.error('The YAML file already existed, but was not properly stored and saved.\nPlease remove and re-run.')
                 raise AttributeError
 
         else:
@@ -463,7 +474,7 @@ def run(parameter_object):
                     os.remove(full_image)
 
         if not process_image:
-            errors.logger.warning('The input image, {}, is set as finished processing.'.format(parameter_object.input_image))
+            logger.warning('The input image, {}, is set as finished processing.'.format(parameter_object.input_image))
         else:
 
             original_band_positions = copy.copy(parameter_object.band_positions)
@@ -488,8 +499,8 @@ def run(parameter_object):
 
                         if i_info.corrupted_bands:
 
-                            errors.logger.error('\nThe following bands appear to be corrupted:\n{}'.format(', '.join(i_info.corrupted_bands)))
-                            raise errors.CorruptedBandsError
+                            logger.error('\nThe following bands appear to be corrupted:\n{}'.format(', '.join(i_info.corrupted_bands)))
+                            raise CorruptedBandsError
 
                         # Get image statistics.
                         parameter_object = sputilities.get_stats(i_info, parameter_object)
@@ -555,7 +566,7 @@ def run(parameter_object):
 
             # Finally, mosaic the image tiles.
 
-            errors.logger.info('\nCreating the VRT mosaic ...')
+            logger.info('\nCreating the VRT mosaic ...')
 
             comp_dict = dict()
 
@@ -577,7 +588,7 @@ def run(parameter_object):
 
             if parameter_object.overviews:
 
-                errors.logger.info('\nBuilding VRT overviews ...')
+                logger.info('\nBuilding VRT overviews ...')
 
                 with raster_tools.ropen(vrt_mosaic, open2read=False) as vrt_info:
 
@@ -589,6 +600,6 @@ def run(parameter_object):
         else:
 
             if n_corrupt == 1:
-                errors.logger.warning('\nThere was {:d} corrupt or incomplete tile.\nRe-run the command with the same parameters.'.format(n_corrupt))
+                logger.warning('\nThere was {:d} corrupt or incomplete tile.\nRe-run the command with the same parameters.'.format(n_corrupt))
             else:
-                errors.logger.warning('\nThere were {:d} corrupt or incomplete tiles.\nRe-run the command with the same parameters.'.format(n_corrupt))
+                logger.warning('\nThere were {:d} corrupt or incomplete tiles.\nRe-run the command with the same parameters.'.format(n_corrupt))

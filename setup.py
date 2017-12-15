@@ -1,28 +1,5 @@
 # -*- coding: utf-8 -*-
 
-"""
-To build .tar.gz:
-    1. Setup directory structure
-        build/
-            ...
-            mappy/
-            setup.py
-                ...
-    2. > cd build/
-    3. python setup.py sdist
-    4. Upload dist/MapPy-XXX.tar.gz
-
-To install:
-    1. Download tar.gz file
-    2. > pip install MapPy-XXX.tar.gz
-
-Windows:
-    Build the files
-        1. setup.py build
-    Create the executable installer
-        2. setup.py bdist_wininst --target-version=2.7
-"""
-
 import setuptools
 from distutils.core import setup
 import platform
@@ -37,7 +14,7 @@ except:
 import numpy as np
 
 
-__version__ = '0.2.0b'
+__version__ = '0.2.0'
 
 spfeas_name = 'SpFeas'
 maintainer = 'Jordan Graesser'
@@ -89,30 +66,15 @@ def get_packages():
 
 
 def get_pyx_list():
-
-    return ['spfeas/helpers/*.pyx',
-            'spfeas/sphelpers/*.pyx']
+    return ['spfeas/sphelpers/*.pyx']
 
 
 def get_package_data():
 
-    if platform.system() == 'Windows':
-
-        return {'': ['*.md', '*.txt'],
-                'spfeas': ['helpers/*.pyd',
-                           'sphelpers/*.pyd',
-                           'notebooks/*.ipynb',
-                           'notebooks/*.png']}
-
-    else:
-
-        return {'': ['*.md', '*.txt'],
-                'spfeas': ['helpers/*.so',
-                           'helpers/*.pyx',
-                           'sphelpers/*.so',
-                           'sphelpers/*.pyx',
-                           'notebooks/*.ipynb',
-                           'notebooks/*.png']}
+    return {'': ['*.md', '*.txt'],
+            'spfeas': ['sphelpers/*.pyx',
+                       'notebooks/*.ipynb',
+                       'notebooks/*.png']}
 
 
 def get_console_dict():

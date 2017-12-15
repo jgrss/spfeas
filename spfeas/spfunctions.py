@@ -1,4 +1,3 @@
-import sys
 import itertools
 from joblib import Parallel, delayed
 
@@ -448,13 +447,15 @@ def get_slopes(xv, yv):
     return ((xv*yv).mean(axis=1) - xv.mean() * yv.mean(axis=1)) / ((xv**2).mean() - (xv.mean())**2)
 
 
-def get_dmp(bd, ses=None):
+def get_dmp(bd, image_min, image_max, ses=None):
 
     """
     Calculates the Differential Morphological Profile
 
     Args:
         bd (2d array)
+        image_min (int or float)
+        image_max (int or float)
         ses (Optional[list]): The structuring elements.
 
     Returns:
@@ -463,6 +464,13 @@ def get_dmp(bd, ses=None):
 
     if not ses:
         ses = [3, 5, 7, 9, 11]
+
+    if bd.dtype != 'uint8':
+
+        bd = np.uint8(rescale_intensity(bd,
+                                        in_range=(image_min,
+                                                  image_max),
+                                        out_range=(0, 255)))
 
     section_rows, section_cols = bd.shape
 
@@ -537,21 +545,33 @@ def get_dmp(bd, ses=None):
     #                                                                                             section_cols)
 
 
-def get_orb_keypoints(in_block, parameter_object):
+def get_orb_keypoints(bd, image_min, image_max):
 
     """
     Computes the ORB key points
+
+    Args:
+        bd (2d array)
+        image_min (int or float)
+        image_max (int or float)
     """
 
     # We want odd patch sizes.
     # if parameter_object.scales[-1] % 2 == 0:
     #     patch_size = parameter_object.scales[-1] - 1
 
+    if bd.dtype != 'uint8':
+
+        bd = np.uint8(rescale_intensity(bd,
+                                        in_range=(image_min,
+                                                  image_max),
+                                        out_range=(0, 255)))
+
     patch_size = 31
     patch_size_d = patch_size * 3
 
     # Initiate ORB detector
-    orb = cv2.ORB_create(nfeatures=int(.25*(in_block.shape[0]*in_block.shape[1])),
+    orb = cv2.ORB_create(nfeatures=int(.25*(bd.shape[0]*bd.shape[1])),
                          edgeThreshold=patch_size,
                          scaleFactor=1.2,
                          nlevels=8,
@@ -559,33 +579,41 @@ def get_orb_keypoints(in_block, parameter_object):
                          WTA_K=4,
                          scoreType=cv2.ORB_FAST_SCORE)
 
-    in_block = np.uint8(rescale_intensity(in_block,
-                                          in_range=(parameter_object.image_min,
-                                                    parameter_object.image_max),
-                                          out_range=(0, 255)))
-
     # Add padding because ORB ignores edges.
-    in_block = cv2.copyMakeBorder(in_block, patch_size_d, patch_size_d, patch_size_d, patch_size_d, cv2.BORDER_REFLECT)
+    bd = cv2.copyMakeBorder(bd, patch_size_d, patch_size_d, patch_size_d, patch_size_d, cv2.BORDER_REFLECT)
 
     # Compute ORB keypoints
-    key_points = orb.detectAndCompute(in_block, None)[0]
+    key_points = orb.detectAndCompute(bd, None)[0]
 
     # img = cv2.drawKeypoints(np.uint8(ch_bd), key_points, np.uint8(ch_bd).copy())
 
-    return fill_key_points(np.float32(in_block), key_points)[patch_size_d:-patch_size_d, patch_size_d:-patch_size_d]
+    return fill_key_points(np.float32(bd), key_points)[patch_size_d:-patch_size_d, patch_size_d:-patch_size_d]
 
 
-def convolve_gabor(in_block, scales):
+def convolve_gabor(bd, image_min, image_max, scales):
 
     """
     Convolves an image with a series of Gabor kernels
+
+    Args:
+        bd (2d array)
+        image_min (int or float)
+        image_max (int or float)
+        scales (1d array like)
     """
+
+    if bd.dtype != 'uint8':
+
+        bd = np.uint8(rescale_intensity(bd,
+                                        in_range=(image_min,
+                                                  image_max),
+                                        out_range=(0, 255)))
 
     # Each set of Gabor kernels
     #   has 8 orientations.
     out_block = np.empty((8*len(scales),
-                          in_block.shape[0],
-                          in_block.shape[1]), dtype='float32')
+                          bd.shape[0],
+                          bd.shape[1]), dtype='float32')
 
     ki = 0
 
@@ -603,7 +631,7 @@ def convolve_gabor(in_block, scales):
         for kernel in gabor_kernels:
 
             # TODO: pad array?
-            out_block[ki] = cv2.filter2D(in_block, cv2.CV_32F, kernel)
+            out_block[ki] = cv2.filter2D(bd, cv2.CV_32F, kernel)
 
             ki += 1
 
