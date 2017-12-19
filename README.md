@@ -33,7 +33,7 @@ cd spfeas/
 python setup.py build && python setup.py install
 ```
 
-SpFeas should now be installed.
+SpFeas should now be installed in the Python `/site-packages` directory.
 
 #### Option B: Installing with the bash or CMD installers
 
@@ -56,6 +56,17 @@ On Windows, the following line should print **_Python path_\Scripts\spfeas**:
 
 ```bash
 where spfeas
+```
+
+Updating
+-----
+
+Navigate to the cloned SpFeas git repository and pull the latest version.
+
+```commandline
+cd spfeas/
+git pull origin master
+python setup.py build && python setup.py install
 ```
 
 Uninstall
