@@ -1683,7 +1683,7 @@ def feature_orb(DTYPE_uint8_t[:, ::1] chbd,
     return np.float32(out_list)
 
 
-cdef tuple _set_lbp(DTYPE_uint8_t[:, ::1] chbd, int rows, int cols):
+cdef _set_lbp(DTYPE_uint8_t[:, ::1] chbd, int rows, int cols):
 
     """
     Get the Local Binary Patterns
@@ -1701,7 +1701,7 @@ cdef tuple _set_lbp(DTYPE_uint8_t[:, ::1] chbd, int rows, int cols):
     # run lBP for each scale
     for scsc in range(0, len(p_range)):
 
-        lbpBd[scsc] = LBP(np.uint8(np.ascontiguousarray(chbd)),
+        lbpBd[scsc] = LBP(np.uint8(chbd),
                           p_range[scsc],
                           Rdict[p_range[scsc]],
                           'uniform')
@@ -1719,10 +1719,10 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
         int pc, pr_bin_count
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
-        np.ndarray[DTYPE_uint8_t, ndim=3] ch_bd
         DTYPE_uint8_t[::1] sts
         list p_range
-        np.ndarray[DTYPE_uint8_t, ndim=3] lbpBd
+        DTYPE_uint8_t[:, :, ::1] lbpBd
+        DTYPE_uint8_t[:, :, ::1] lbpBd, ch_bd
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
         np.ndarray[DTYPE_uint8_t, ndim=1] out_list
@@ -1754,8 +1754,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
 
                 k_half = <int>(k / 2.)
 
-                ch_bd = lbpBd[:, i+scales_half-k_half:i+scales_half-k_half+k,
-                              j+scales_half-k_half:j+scales_half-k_half+k]
+                ch_bd = np.uint8(lbpBd[:,
+                                       i+scales_half-k_half:i+scales_half-k_half+k,
+                                       j+scales_half-k_half:j+scales_half-k_half+k])
 
                 # get histograms and concatenate
                 sts = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(ch_bd[p_range.index(pc)].flat,
