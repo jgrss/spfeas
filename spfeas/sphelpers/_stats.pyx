@@ -151,16 +151,16 @@ cdef inline DTYPE_float32_t _get_line_length(DTYPE_float32_t y1, DTYPE_float32_t
     return ((y1 - x1)**2 + (y2 - x2)**2)**.5
 
 
-cdef int _get_output_length(int rows,
-                            int cols,
-                            int scales_block,
-                            int block_size,
-                            int scale_length,
-                            int n_features):
+cdef unsigned int _get_output_length(int rows,
+                                     int cols,
+                                     int scales_block,
+                                     int block_size,
+                                     int scale_length,
+                                     int n_features):
 
     cdef:
         Py_ssize_t i, j, ki
-        int out_len = 0
+        unsigned int out_len = 0
 
     for i from 0 <= i < rows-scales_block by block_size:
 
@@ -764,8 +764,7 @@ cdef void _feature_gabor(DTYPE_float32_t[:, :, ::1] ch_bdka,
     cdef:
         Py_ssize_t i, j, ki, kl, pi, scale_kernel
         DTYPE_uint16_t k
-        int k_half
-        unsigned int rs, cs
+        unsigned int rs, cs, k_half
         DTYPE_float32_t[:, ::1] ch_bd
 
         # list ch_bd_k = []
@@ -863,7 +862,7 @@ def feature_gabor(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_sc
         DTYPE_uint16_t[::1] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
         DTYPE_float32_t[::1] out_list
-        int out_len = 0
+        unsigned int out_len = 0
 
     for i from 0 <= i < rows-scales_block by blk:
         for j from 0 <= j < cols-scales_block by blk:
@@ -905,7 +904,8 @@ def feature_gabor(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_sc
 
 
 cdef void _feature_hog(DTYPE_float32_t[:, ::1] chbd,
-                       int blk, DTYPE_uint16_t[:] scs,
+                       int blk,
+                       DTYPE_uint16_t[:] scs,
                        int end_scale,
                        int scales_half,
                        int scales_block,
@@ -913,7 +913,7 @@ cdef void _feature_hog(DTYPE_float32_t[:, ::1] chbd,
                        int rows,
                        int cols,
                        int scale_length,
-                       DTYPE_float32_t[:] out_list_):
+                       DTYPE_float32_t[::1] out_list_):
 
     """
     Computes the Histogram of Oriented Gradients
@@ -981,8 +981,8 @@ def feature_hog(DTYPE_float32_t[:, ::1] chbd, int blk, list scs, int end_scale):
         int cols = chbd.shape[1]
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
-        DTYPE_float32_t[:] out_list = np.zeros(out_len, dtype='float32')
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
+        DTYPE_float32_t[::1] out_list = np.zeros(out_len, dtype='float32')
 
     _feature_hog(chbd,
                  blk,
@@ -1086,7 +1086,7 @@ def feature_dmp(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_scal
         int cols = chbd.shape[2]
         DTYPE_uint16_t[::1] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
         DTYPE_float32_t[::1] out_list = np.zeros(out_len, dtype='float32')
 
     _feature_dmp(chbd,
@@ -1436,7 +1436,7 @@ def feature_sfs(DTYPE_uint8_t[:, ::1] chbd,
         DTYPE_uint16_t[:, ::1] rcc = np.zeros((4, end_scale), dtype='uint16')
         DTYPE_float32_t[::1] histogram = np.zeros(end_scale, dtype='float32')
         DTYPE_float32_t[::1] out_list
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 6)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 6)
 
     out_list = np.zeros(out_len, dtype='float32')
 
@@ -1664,7 +1664,7 @@ def feature_orb(DTYPE_uint8_t[:, ::1] chbd,
         int cols = chbd.shape[1]
         DTYPE_uint16_t[::1] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
         DTYPE_float32_t[::1] out_list = np.zeros(out_len, dtype='float32')
 
     _feature_orb(chbd,
@@ -1721,7 +1721,6 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
         int cols = chBd.shape[1]
         DTYPE_uint8_t[::1] sts
         list p_range
-        DTYPE_uint8_t[:, :, ::1] lbpBd
         DTYPE_uint8_t[:, :, ::1] lbpBd, ch_bd
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
@@ -1731,7 +1730,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
         np.ndarray[DTYPE_float32_t, ndim=1] out_list_a
-        int out_len
+        unsigned int out_len
 
     # get the LBP images
     lbpBd, p_range = _set_lbp(chBd, rows, cols)
@@ -1806,7 +1805,7 @@ cdef list _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd, int blk, list scs, int end_s
         int scale_length = scales_array.shape[0]
         DTYPE_float32_t[::1] sts = np.zeros(5, dtype='float32')
         DTYPE_float32_t[::1] sts_ = sts.copy()
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
         DTYPE_float32_t[::1] concat_results
 
     # get the LBP images
@@ -2058,7 +2057,7 @@ def feature_hough(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int
         int scales_block = end_scale - blk
         DTYPE_uint16_t[:] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 4)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 4)
 
     return _feature_hough(chBd, blk, scales_array, scales_half, scales_block, scale_length,
                           out_len, rows, cols, threshold, min_len, line_gap, end_scale)
@@ -2432,7 +2431,7 @@ def feature_pantex(DTYPE_uint8_t[:, ::1] chbd, int blk, list scs, int end_scale,
         int cols = chbd.shape[1]
         DTYPE_uint16_t[::1] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 1)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 1)
         DTYPE_float32_t[::1] out_list = np.zeros(out_len, dtype='float32')
 
     _feature_pantex(chbd,
@@ -2468,7 +2467,6 @@ cdef DTYPE_float32_t[:, ::1] _create_weights(DTYPE_float32_t[:, ::1] dist_weight
 cdef void feature_mean_float32(DTYPE_float32_t[:, ::1] ch_bd,
                                int blk,
                                DTYPE_uint16_t[::1] scs,
-                               int out_len,
                                int scales_half,
                                int scales_block,
                                int scale_length,
@@ -2522,18 +2520,18 @@ cdef void feature_mean_float32(DTYPE_float32_t[:, ::1] ch_bd,
 def feature_mean(DTYPE_float32_t[:, ::1] ch_bd, int blk, list scs, int end_scale):
 
     cdef:
-        Py_ssize_t i, j
+        Py_ssize_t i, j, ki
         int scales_half = <int>(end_scale / 2.)
         int scales_block = end_scale - blk
         int rows = ch_bd.shape[0]
         int cols = ch_bd.shape[1]
         DTYPE_uint16_t[::1] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        DTYPE_uint16_t k, k_half, rs, cs
+        unsigned int k, k_half, rs, cs
         DTYPE_float32_t[:, :, ::1] dist_weights_stack = np.zeros((scale_length, end_scale*2, end_scale*2), dtype='float32')
         DTYPE_float32_t[:, ::1] dist_weights
         DTYPE_float32_t[::1] in_zs = np.zeros(2, dtype='float32')
-        DTYPE_uint16_t out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 2)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 2)
         DTYPE_float32_t[::1] out_list = np.zeros(out_len, dtype='float32')
 
     for ki in range(0, scale_length):
@@ -2550,7 +2548,6 @@ def feature_mean(DTYPE_float32_t[:, ::1] ch_bd, int blk, list scs, int end_scale
     feature_mean_float32(ch_bd,
                          blk,
                          scales_array,
-                         out_len,
                          scales_half,
                          scales_block,
                          scale_length,
@@ -2738,7 +2735,7 @@ cdef void _feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block,
 
     cdef:
         Py_ssize_t i, j, ki, cr, cc
-        DTYPE_uint16_t k, k_half
+        unsigned int k, k_half
         Py_ssize_t pixel_counter = 0
         DTYPE_uint8_t[:, ::1] ch_bd
 
@@ -2778,7 +2775,7 @@ def feature_lacunarity(DTYPE_uint8_t[:, ::1] chunk_block, int blk, list scales, 
         DTYPE_uint16_t[::1] scale_array = np.array(scales, dtype='uint16')
         int scale_length = scale_array.shape[0]
         DTYPE_float32_t[::1] zs = np.zeros((end_scale*2)*(end_scale*2), dtype='float32')
-        int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 1)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 1)
         DTYPE_float32_t[::1] out_list = np.zeros(out_len, dtype='float32')
 
     _feature_lacunarity(chunk_block,
