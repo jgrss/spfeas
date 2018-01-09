@@ -81,7 +81,7 @@ pip uninstall spfeas
 Usage examples
 -----
 
-#### Python usage:
+### Python usage:
 
 ```python
 >>> import spfeas
@@ -93,7 +93,7 @@ Usage examples
 >>>                         triggers=['mean'])
 ```
 
-#### Command-line usage:
+### Command-line usage:
 
 #### Print help:
 
