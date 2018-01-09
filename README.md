@@ -87,7 +87,7 @@ Usage examples
 >>> import spfeas
 >>>
 >>> spfeas.spatial_features('input_image.tif',
->>>                         'output_image.tif',
+>>>                         'output_dir',
 >>>                         block=8,
 >>>                         scales=[16, 32],
 >>>                         triggers=['mean'])
