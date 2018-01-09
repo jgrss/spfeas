@@ -10,6 +10,7 @@ Thumbs.db
 # Python
 *.pyo
 *.pyc
+*.c
 .idea
 build
 SpFeas.egg-info

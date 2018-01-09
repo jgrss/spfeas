@@ -93,7 +93,19 @@ spfeas -h
 spfeas -e
 ```
 
-#### Full usage:
+#### Python usage:
+
+```python
+>>> import spfeas
+>>>
+>>> spfeas.spatial_features('input_image.tif',
+>>>                         'output_image.tif',
+>>>                         block=8,
+>>>                         scales=[16, 32],
+>>>                         triggers=['mean'])
+```
+
+#### Command-line usage:
 
 ##### Traditional single pixel moving window
 
