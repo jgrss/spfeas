@@ -81,18 +81,6 @@ pip uninstall spfeas
 Usage examples
 -----
 
-#### Print help:
-
-```commandline
-spfeas -h
-```
-
-#### Print examples:
-
-```commandline
-spfeas -e
-```
-
 #### Python usage:
 
 ```python
@@ -106,6 +94,18 @@ spfeas -e
 ```
 
 #### Command-line usage:
+
+#### Print help:
+
+```commandline
+spfeas -h
+```
+
+#### Print examples:
+
+```commandline
+spfeas -e
+```
 
 ##### Traditional single pixel moving window
 
