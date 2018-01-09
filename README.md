@@ -95,13 +95,13 @@ Usage examples
 
 ### Command-line usage:
 
-#### Print help:
+##### Print help:
 
 ```commandline
 spfeas -h
 ```
 
-#### Print examples:
+##### Print examples:
 
 ```commandline
 spfeas -e
