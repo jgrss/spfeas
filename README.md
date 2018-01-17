@@ -19,7 +19,7 @@ All comments and suggestions for improvement are welcome. Please post to the [**
 Installation
 -----
 
-Use _either_ **Option A** or **Option B** below to install Spfeas.
+Use _either_ **Option A** (Recommended) or **Option B** below to install Spfeas.
 
 #### Option A: Installing or upgrading from source
 
