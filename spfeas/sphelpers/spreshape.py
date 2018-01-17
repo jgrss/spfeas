@@ -3,6 +3,8 @@
 Date Created: 7/2/2013
 """
 
+from ..errors import logger
+
 try:
     import numpy as np
 except ImportError:
@@ -20,6 +22,8 @@ def reshape_feature_list(features2reshape, out_rows, out_cols, parameter_object)
         out_cols (int)
         parameter_object (class object)
     """
+
+    logger.info('  Reshaping features ...')
 
     # The number of dimensions
     #   for the current feature.

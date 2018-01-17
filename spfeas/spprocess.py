@@ -1,6 +1,8 @@
 import os
 import copy
 import fnmatch
+import time
+import multiprocessing as multi
 from joblib import Parallel, delayed
 
 from .errors import logger, CorruptedBandsError
@@ -83,8 +85,9 @@ def _write_section2file(this_parameter_object__,
             # Open the file and write the new bands.
             with raster_tools.ropen(this_parameter_object__.out_img, open2read=False) as out_raster:
 
-                # Write each scale and feature.
                 array_layer_counter = 0
+
+                # Write each scale and feature.
                 for feature_band in range(start_band, start_band+n_bands):
 
                     out_raster.write_array(section2write[array_layer_counter], band=feature_band)
@@ -97,8 +100,9 @@ def _write_section2file(this_parameter_object__,
             # Create the output raster.
             with raster_tools.create_raster(this_parameter_object__.out_img, o_info) as out_raster:
 
-                # Write each scale and feature.
                 array_layer_counter = 0
+
+                # Write each scale and feature.
                 for feature_band in range(start_band, start_band+n_bands):
 
                     out_raster.write_array(section2write[array_layer_counter], band=feature_band)
@@ -106,7 +110,9 @@ def _write_section2file(this_parameter_object__,
 
                     array_layer_counter += 1
 
-        out_raster = None
+        del out_raster
+
+    is_corrupt = False
 
     # The tile won't be written to file
     #   in the case of zero-length sections.
@@ -117,38 +123,26 @@ def _write_section2file(this_parameter_object__,
 
             ob_info.check_corrupted_bands()
 
-            # Open the status YAML file.
-            mts__ = sputilities.ManageStatus()
-
-            logger.info('  Updating status ...')
-
-            # Load the status dictionary
-            mts__.load_status(this_parameter_object__.status_file)
-
-            # Update the tile status.
-            if this_parameter_object__.out_img_base not in mts__.status_dict:
-                mts__.status_dict[this_parameter_object__.out_img_base] = dict()
-
             if ob_info.corrupted_bands:
-                mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'corrupt'
+                is_corrupt = True
             else:
-                mts__.status_dict[this_parameter_object__.out_img_base][this_parameter_object__.trigger] = 'complete'
+                is_corrupt = False
 
-            mts__.dump_status(this_parameter_object__.status_file)
+        del ob_info
 
-        ob_info = None
+    return is_corrupt
 
 
-def _section_read_write(section_counter, section_pair, param_dict):
+def _section_read_write(section_counter):
 
     """
     Handles the section reading and writing
 
     Args:
         section_counter (int)
-        section_pair (tuple)
-        param_dict (dict)
     """
+
+    section_pair = potsi[section_counter-1]
 
     # this_parameter_object_ = this_parameter_object.copy()
     this_parameter_object_ = copy.copy(param_dict)
@@ -376,17 +370,19 @@ def _section_read_write(section_counter, section_pair, param_dict):
                                                            out_cols,
                                                            this_parameter_object_)
 
-        _write_section2file(this_parameter_object_,
-                            this_image_info,
-                            out_section_array,
-                            i_sect,
-                            j_sect,
-                            out_rows,
-                            out_cols,
-                            section_counter)
+        is_corrupt = _write_section2file(this_parameter_object_,
+                                         this_image_info,
+                                         out_section_array,
+                                         i_sect,
+                                         j_sect,
+                                         out_rows,
+                                         out_cols,
+                                         section_counter)
 
     this_parameter_object_ = None
     this_image_info_ = None
+
+    return is_corrupt
 
 
 def run(parameter_object):
@@ -399,6 +395,8 @@ def run(parameter_object):
         do_pca=False, stack_feas=True, stack_only=False, band_red=3, band_nir=4, neighbors=False, n_jobs=-1,
         reset_sects=False, image_max=0, lac_r=2, section_size=8000, chunk_size=512
     """
+
+    global potsi, param_dict
 
     sputilities.parameter_checks(parameter_object)
 
@@ -536,15 +534,76 @@ def run(parameter_object):
                             parameter_object.update_info(lab_means=np.array(bp.lab_means,
                                                                             dtype='float32').mean(axis=0))
 
-                    i_info = None
+                    del i_info
 
-                    parameter_dict = sputilities.class2dict(parameter_object)
+                    mts = sputilities.ManageStatus()
+                    mts.load_status(parameter_object.status_file)
 
-                    Parallel(n_jobs=parameter_object.n_jobs,
-                             max_nbytes=None)(delayed(_section_read_write)(idx_pair,
-                                                                           parameter_object.section_idx_pairs[idx_pair-1],
-                                                                           parameter_dict)
-                                              for idx_pair in range(1, parameter_object.n_sects+1))
+                    for sect_counter in range(1, parameter_object.n_sects+1):
+
+                        parameter_object.update_info(section_counter=sect_counter)
+                        parameter_object = sputilities.scale_fea_check(parameter_object)
+
+                        mts.status_dict[parameter_object.out_img_base] = dict()
+                        mts.status_dict[parameter_object.out_img_base][parameter_object.trigger] = 'unprocessed'
+
+                    mts.dump_status(parameter_object.status_file)
+
+                    param_dict = sputilities.class2dict(parameter_object)
+                    potsi = parameter_object.section_idx_pairs
+
+                    # PROCESS IN PARALLEL CHUNKS
+
+                    parallel_chunk_counter = 1
+
+                    for parallel_chunk in range(1,
+                                                parameter_object.n_sects+parameter_object.n_jobs,
+                                                parameter_object.n_jobs):
+
+                        pool = multi.Pool(processes=parameter_object.n_jobs)
+
+                        if parallel_chunk + parameter_object.n_jobs < parameter_object.n_sects:
+                            parallel_chunk_end = parallel_chunk + parameter_object.n_jobs
+                        else:
+                            parallel_chunk_end = parallel_chunk + (parameter_object.n_sects - parallel_chunk) + 1
+
+                        results = pool.map(_section_read_write,
+                                           range(parallel_chunk,
+                                                 parallel_chunk_end))
+
+                        pool.close()
+                        del pool
+
+                        logger.info('  Updating status ...')
+
+                        for result in results:
+
+                            parameter_object.update_info(section_counter=parallel_chunk_counter)
+                            parameter_object = sputilities.scale_fea_check(parameter_object)
+
+                            # Open the status YAML file.
+                            mts = sputilities.ManageStatus()
+
+                            # Load the status dictionary
+                            mts.load_status(parameter_object.status_file)
+
+                            if parameter_object.out_img_base in mts.status_dict:
+
+                                if result:
+                                    mts.status_dict[parameter_object.out_img_base][parameter_object.trigger] = 'corrupt'
+                                else:
+                                    mts.status_dict[parameter_object.out_img_base][parameter_object.trigger] = 'complete'
+
+                            mts.dump_status(parameter_object.status_file)
+
+                            parallel_chunk_counter += 1
+
+                    # Parallel(n_jobs=parameter_object.n_jobs,
+                    #          batch_size=1,
+                    #          max_nbytes=None)(delayed(_section_read_write)(idx_pair,
+                    #                                                        parameter_object.section_idx_pairs[idx_pair-1],
+                    #                                                        param_dict)
+                    #                           for idx_pair in range(1, parameter_object.n_sects+1))
 
         # Check the corruption status.
         mts.load_status(parameter_object.status_file)
@@ -566,7 +625,7 @@ def run(parameter_object):
 
             # Finally, mosaic the image tiles.
 
-            logger.info('\nCreating the VRT mosaic ...')
+            logger.info('  Creating the VRT mosaic ...')
 
             comp_dict = dict()
 
@@ -576,7 +635,7 @@ def run(parameter_object):
             image_list = fnmatch.filter(os.listdir(parameter_object.feas_dir), parameter_object.search_wildcard)
             image_list = [os.path.join(parameter_object.feas_dir, im) for im in image_list]
 
-            comp_dict['1'] = image_list
+            comp_dict['001'] = image_list
 
             vrt_mosaic = parameter_object.status_file.replace('.yaml', '.vrt')
 
@@ -595,7 +654,7 @@ def run(parameter_object):
                     vrt_info.remove_overviews()
                     vrt_info.build_overviews(levels=[2, 4, 8, 16])
 
-                vrt_info = None
+                del vrt_info
 
         else:
 

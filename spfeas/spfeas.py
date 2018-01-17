@@ -33,7 +33,7 @@ class SPParameters(object):
         return copy.copy(self)
 
     def set_defaults(self, **kwargs):
-        
+
         for k, v in kwargs.iteritems():
             setattr(self, k, v)
 
@@ -86,6 +86,8 @@ class SPParameters(object):
                                    sfsorf=len(self.scales)*self.features_dict['sfsorf'],
                                    surf=len(self.scales)*self.features_dict['surf'],
                                    xy=len(self.scales)*self.features_dict['xy'])
+
+        self.band_positions = [self.band_positions]
 
         self.band_info = dict(band_count=0)
 
@@ -161,8 +163,8 @@ def _examples():
     # Compute PanTex on band 3 with 2x2 pixel block, at scale 8.
     spfeas -i /image.tif -o /out_dir -bp 3 --block 2 --scales 8 -tr pantex
 
-    # Compute HoG and LBP on bands 1, 2, and 3 with 4x4 pixel block, at scales 16 and 32.
-    spfeas -i /image.tif -o /out_dir -bp 1 2 3 --block 4 --scales 16 32 -tr hog lbp
+    # Compute HoG and LBP on band 1 with 4x4 pixel block, at scales 16 and 32.
+    spfeas -i /image.tif -o /out_dir -bp 1 --block 4 --scales 16 32 -tr hog lbp
 
     # Compute the mean NDVI, with a 16-bit image that is scaled to 0-10,000. The `image_max`
     #   parameter ensures scaling across images.
@@ -217,8 +219,8 @@ def main():
     parser.add_argument('-o', '--output', dest='output', help='The output directory', default=None)
     parser.add_argument('-f', '--format', dest='format', help='The output raster format', default='GTiff',
                         choices=['ECW', 'GTiff', 'HFA', 'KEA', 'NITF', 'PCRaster'])
-    parser.add_argument('-bp', '--band-positions', dest='band_positions', help='The band to process', default=[1],
-                        type=int, nargs='+')
+    parser.add_argument('-bp', '--band-position', dest='band_positions', help='The band to process',
+                        default=1, type=int)
     parser.add_argument('--rgb', dest='use_rgb', help='Whether to use the full RGB spectrum in place of -bp',
                         action='store_true')
     parser.add_argument('--vis-order', dest='vis_order',

@@ -237,12 +237,12 @@ def scale_fea_check(parameter_object, is_image=True):
         Image name as a string
     """
 
-    band_pos_str = str(parameter_object.band_position)
+    band_pos_str = parameter_object.band_positions
 
-    if band_pos_str == 'rgb' or band_pos_str == 'bgr':
-        band_pos_str = '-{}'.format(band_pos_str)
+    if isinstance(band_pos_str, str):
+        band_pos_str = '-' + band_pos_str
     else:
-        band_pos_str = '-'.join(band_pos_str)
+        band_pos_str = '-'.join(map(str, band_pos_str))
 
     feature_str = 'ST1-{:03}'.format(parameter_object.band_info['band_count'])
 
@@ -551,9 +551,19 @@ def _retry_if_not_dict(result):
         return False
 
 
+def _retry_if_not_open(result):
+
+    if not result:
+        return True
+    else:
+        return False
+
+
 class ManageStatus(object):
 
-    """A class to manage the processing status with YAML"""
+    """A class to manage the processing status with YAML
+    @retry(wait_fixed=2000, retry_on_result=_retry_if_not_dict, stop_max_attempt_number=50)
+    """
 
     def copy(self):
         return copy.copy(self)
@@ -564,11 +574,15 @@ class ManageStatus(object):
 
         self.status_dict = self._load_status(status2load)
 
-        if not isinstance(self.status_dict, dict):
-            errors.logger.error('The loaded object was not a dictionary.')
+        # if not isinstance(self.status_dict, dict):
+        #     self.status_dict = dict()
 
-    @retry(wait_fixed=3000, retry_on_result=_retry_if_not_dict, stop_max_attempt_number=20)
+        # if not isinstance(self.status_dict, dict):
+        #     errors.logger.error('  The loaded object was not a dictionary.')
+
     def _load_status(self, status2load):
+
+        """Open the file in 'read' mode"""
 
         with open(status2load, 'r') as pf:
             return yaml.load(pf)
@@ -578,7 +592,13 @@ class ManageStatus(object):
         """Dumps the processing status to file"""
 
         if not hasattr(self, 'status_dict'):
-            errors.logger.error('The object does not have a status dictionary.')
+            errors.logger.error('  The object does not have a status dictionary.')
+
+        self._dump_status(status2dump)
+
+    def _dump_status(self, status2dump):
+
+        """Dumps the status file, waiting 1/2 a second between retrying"""
 
         with open(status2dump, 'wb') as pf:
 

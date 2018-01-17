@@ -500,9 +500,9 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                               args=dict(sfs_threshold=parameter_object.sfs_threshold,
                                         sfs_skip=parameter_object.sfs_skip)))
 
-    logger.info('\nProcessing {} for section {:,d} of {:,d} ...\n'.format(func_dict[parameter_object.trigger]['name'],
-                                                                          section_counter,
-                                                                          parameter_object.n_sects))
+    logger.info('  Processing {} for section {:,d} of {:,d} ...'.format(func_dict[parameter_object.trigger]['name'],
+                                                                        section_counter,
+                                                                        parameter_object.n_sects))
 
     other_args = func_dict[parameter_object.trigger]['args']
 

@@ -2479,7 +2479,7 @@ cdef void feature_mean_float32(DTYPE_float32_t[:, ::1] ch_bd,
     cdef:
         Py_ssize_t i, j, ki, pix_ctr, pi
         DTYPE_uint16_t k
-        unsigned int k_half, rc_start, rc_end, rc
+        unsigned int k_half, r_size, c_size
         unsigned int rows = ch_bd.shape[0]
         unsigned int cols = ch_bd.shape[1]
         DTYPE_float32_t[:, ::1] block_chunk, dw
@@ -2498,17 +2498,21 @@ cdef void feature_mean_float32(DTYPE_float32_t[:, ::1] ch_bd,
 
                     k_half = <int>(k / 2.)
 
-                    rc_start = scales_half - k_half
-                    rc_end = scales_half - k_half + k
+                    #rc_start = scales_half - k_half
+                    #rc_end = scales_half - k_half + k
 
-                    block_chunk = ch_bd[i+rc_start:i+rc_end,
-                                        j+rc_start:j+rc_end]
+                    #r_size = (i + rc_end) - (i + rc_start) if (i + rc_end) - (i + rc_start) <= rows else rows - (i + rc_start)
+                    #c_size = (j + rc_end) - (j + rc_start) if (j + rc_end) - (j + rc_start) <= cols else cols - (j + rc_start)
 
-                    rc = rc_end - rc_start
+                    block_chunk = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                        j+scales_half-k_half:j+scales_half-k_half+k]
 
-                    dw = dist_weights_stack[ki, :rc, :rc]
+                    r_size = block_chunk.shape[0]
+                    c_size = block_chunk.shape[1]
 
-                    _get_weighted_mean_var(block_chunk, dw, rc, rc, in_zs)
+                    dw = dist_weights_stack[ki, :r_size, :c_size]
+
+                    _get_weighted_mean_var(block_chunk, dw, r_size, c_size, in_zs)
 
                     for pi in range(0, 2):
 
