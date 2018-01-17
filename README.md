@@ -39,7 +39,7 @@ SpFeas should now be installed in the Python `/site-packages` directory.
 
 ##### The installers are intended to streamline the installation process, particularly if you are installing SpFeas for the first time. Please report bugs [here](https://github.com/jgrss/spfeas/issues). 
 
-1) Open **INSTALLATION.ipynb** under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks).
+1) Open **INSTALLATION.ipynb** under [**/notebooks**](https://github.com/jgrss/spfeas/tree/master/notebooks).
 
 2) Follow the instructions to install SpFeas for your operating system.
 
@@ -121,7 +121,7 @@ spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 
 
 #### Detailed examples
 
-Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/spfeas/notebooks/examples.ipynb).
+Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/notebooks/examples.ipynb).
 
 Naming conventions
 -----
