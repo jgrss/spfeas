@@ -87,7 +87,10 @@ class SPParameters(object):
                                    surf=len(self.scales)*self.features_dict['surf'],
                                    xy=len(self.scales)*self.features_dict['xy'])
 
-        self.band_positions = [self.band_positions]
+        if self.use_rgb:
+            self.band_positions = [1]
+
+        self.n_bands = len(self.band_positions)
 
         self.band_info = dict(band_count=0)
 
@@ -96,10 +99,10 @@ class SPParameters(object):
         for trigger in self.triggers:
 
             # The starting band position for each trigger.
-            self.band_info[trigger] = copy.copy(self.band_info['band_count']) + 1
+            self.band_info[trigger] = copy.copy(self.band_info['band_count'])
 
             # The total band count.
-            self.band_info['band_count'] += self.out_bands_dict[trigger]
+            self.band_info['band_count'] += self.out_bands_dict[trigger] * self.n_bands
 
         # Update the feature dictionary for feature neighbors.
         if self.neighbors:
@@ -108,7 +111,7 @@ class SPParameters(object):
                 self.features_dict[key] *= 5
 
         self.d_name, self.f_name = os.path.split(self.input_image)
-        self.f_base, __ = os.path.splitext(self.f_name)
+        self.f_base = os.path.splitext(self.f_name)[0]
 
         self.f_ext = '.tif'
 
@@ -219,8 +222,8 @@ def main():
     parser.add_argument('-o', '--output', dest='output', help='The output directory', default=None)
     parser.add_argument('-f', '--format', dest='format', help='The output raster format', default='GTiff',
                         choices=['ECW', 'GTiff', 'HFA', 'KEA', 'NITF', 'PCRaster'])
-    parser.add_argument('-bp', '--band-position', dest='band_positions', help='The band to process',
-                        default=1, type=int)
+    parser.add_argument('-bp', '--band-positions', dest='band_positions', help='The bands to process',
+                        default=[1], type=int, nargs='+')
     parser.add_argument('--rgb', dest='use_rgb', help='Whether to use the full RGB spectrum in place of -bp',
                         action='store_true')
     parser.add_argument('--vis-order', dest='vis_order',

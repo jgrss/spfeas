@@ -73,7 +73,7 @@ def _write_section2file(this_parameter_object__,
                                   o_info.rows,
                                   o_info.cols), dtype='uint8')
 
-    start_band = this_parameter_object__.band_info[this_parameter_object__.trigger]
+    start_band = this_parameter_object__.band_info[this_parameter_object__.trigger] + this_parameter_object__.band_counter + 1
     n_bands = this_parameter_object__.out_bands_dict[this_parameter_object__.trigger]
 
     if section2write[0].shape[0] == 0 or section2write[0].shape[1] == 0:
@@ -171,7 +171,8 @@ def _section_read_write(section_counter):
 
                     # Check every trigger because the
                     #   entire file needs to be removed.
-                    status_list = [mts_.status_dict[this_parameter_object_.out_img_base][tr]
+                    status_list = [mts_.status_dict[this_parameter_object_.out_img_base]['{TR}-{BD}'.format(TR=tr,
+                                                                                                            BD=this_parameter_object_.band_position)]
                                    for tr in this_parameter_object_.triggers]
 
                     if 'corrupt' in status_list:
@@ -183,7 +184,8 @@ def _section_read_write(section_counter):
                         if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
                             os.remove(this_parameter_object_.out_img)
 
-                        mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
+                        mts_.status_dict[this_parameter_object_.out_img_base]['{TR}-{BD}'.format(TR=this_parameter_object_.trigger,
+                                                                                                 BD=this_parameter_object_.band_position)] = 'incomplete'
                         mts_.dump_status(this_parameter_object_.status_file)
 
                     elif ('corrupt' not in status_list) and ('incomplete' in status_list):
@@ -200,7 +202,8 @@ def _section_read_write(section_counter):
                             if this_parameter_object_.trigger == this_parameter_object_.triggers[0]:
                                 os.remove(this_parameter_object_.out_img)
 
-                            mts_.status_dict[this_parameter_object_.out_img_base][this_parameter_object_.trigger] = 'incomplete'
+                            mts_.status_dict[this_parameter_object_.out_img_base]['{TR}-{BD}'.format(TR=this_parameter_object_.trigger,
+                                                                                                     BD=this_parameter_object_.band_position)] = 'incomplete'
                             mts_.dump_status(this_parameter_object_.status_file)
 
                         else:
@@ -304,7 +307,7 @@ def _section_read_write(section_counter):
                                                image_max=30)
 
         elif this_parameter_object_.use_rgb and this_parameter_object_.trigger \
-                not in this_parameter_object_.spectral_indices + ['grad', 'dmp', 'saliency', 'seg']:
+                not in this_parameter_object_.spectral_indices + ['grad', 'saliency', 'seg']:
 
             sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
                                                            i_sect,
@@ -443,8 +446,8 @@ def run(parameter_object):
             # Save the band order.
             for trigger in parameter_object.triggers:
 
-                mts.status_dict['BAND_ORDER']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger],
-                                                                                         parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger]-1)
+                mts.status_dict['BAND_ORDER']['{}'.format(trigger)] = '{:d}-{:d}'.format(parameter_object.band_info[trigger]+1,
+                                                                                         parameter_object.band_info[trigger]+parameter_object.out_bands_dict[trigger]*parameter_object.n_bands)
 
             mts.status_dict['SECTION_SIZE'] = parameter_object.section_size
 
@@ -481,7 +484,8 @@ def run(parameter_object):
             for trigger in parameter_object.triggers:
 
                 parameter_object.update_info(trigger=trigger,
-                                             band_positions=original_band_positions)
+                                             band_positions=original_band_positions,
+                                             band_counter=0)
 
                 # Iterate over each band
                 for band_position in parameter_object.band_positions:
@@ -545,7 +549,8 @@ def run(parameter_object):
                         parameter_object = sputilities.scale_fea_check(parameter_object)
 
                         mts.status_dict[parameter_object.out_img_base] = dict()
-                        mts.status_dict[parameter_object.out_img_base][parameter_object.trigger] = 'unprocessed'
+                        mts.status_dict[parameter_object.out_img_base]['{TR}-{BD}'.format(TR=parameter_object.trigger,
+                                                                                          BD=parameter_object.band_position)] = 'unprocessed'
 
                     mts.dump_status(parameter_object.status_file)
 
@@ -590,9 +595,11 @@ def run(parameter_object):
                             if parameter_object.out_img_base in mts.status_dict:
 
                                 if result:
-                                    mts.status_dict[parameter_object.out_img_base][parameter_object.trigger] = 'corrupt'
+                                    mts.status_dict[parameter_object.out_img_base]['{TR}-{BD}'.format(TR=parameter_object.trigger,
+                                                                                                      BD=parameter_object.band_position)] = 'corrupt'
                                 else:
-                                    mts.status_dict[parameter_object.out_img_base][parameter_object.trigger] = 'complete'
+                                    mts.status_dict[parameter_object.out_img_base]['{TR}-{BD}'.format(TR=parameter_object.trigger,
+                                                                                                      BD=parameter_object.band_position)] = 'complete'
 
                             mts.dump_status(parameter_object.status_file)
 
@@ -604,6 +611,8 @@ def run(parameter_object):
                     #                                                        parameter_object.section_idx_pairs[idx_pair-1],
                     #                                                        param_dict)
                     #                           for idx_pair in range(1, parameter_object.n_sects+1))
+
+                    parameter_object.band_counter += parameter_object.out_bands_dict[parameter_object.trigger]
 
         # Check the corruption status.
         mts.load_status(parameter_object.status_file)
