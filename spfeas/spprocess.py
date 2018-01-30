@@ -1,9 +1,9 @@
 import os
 import copy
 import fnmatch
-import time
+# import time
 import multiprocessing as multi
-from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 
 from .errors import logger, CorruptedBandsError
 from .sphelpers import sputilities
@@ -401,6 +401,13 @@ def run(parameter_object):
 
     global potsi, param_dict
 
+    if parameter_object.n_jobs == 0:
+        parameter_object.n_jobs = 1
+    elif parameter_object.n_jobs < 0:
+        parameter_object.n_jobs = multi.cpu_count()
+    elif parameter_object.n_jobs > multi.cpu_count():
+        parameter_object.n_jobs = multi.cpu_count()
+
     sputilities.parameter_checks(parameter_object)
 
     # Write the parameters to file.
@@ -548,7 +555,9 @@ def run(parameter_object):
                         parameter_object.update_info(section_counter=sect_counter)
                         parameter_object = sputilities.scale_fea_check(parameter_object)
 
-                        mts.status_dict[parameter_object.out_img_base] = dict()
+                        if trigger == parameter_object.triggers[0]:
+                            mts.status_dict[parameter_object.out_img_base] = dict()
+
                         mts.status_dict[parameter_object.out_img_base]['{TR}-{BD}'.format(TR=parameter_object.trigger,
                                                                                           BD=parameter_object.band_position)] = 'unprocessed'
 
@@ -595,9 +604,12 @@ def run(parameter_object):
                             if parameter_object.out_img_base in mts.status_dict:
 
                                 if result:
+
                                     mts.status_dict[parameter_object.out_img_base]['{TR}-{BD}'.format(TR=parameter_object.trigger,
                                                                                                       BD=parameter_object.band_position)] = 'corrupt'
+
                                 else:
+
                                     mts.status_dict[parameter_object.out_img_base]['{TR}-{BD}'.format(TR=parameter_object.trigger,
                                                                                                       BD=parameter_object.band_position)] = 'complete'
 
