@@ -291,7 +291,8 @@ def _section_read_write(section_counter):
                                                                i_sect,
                                                                j_sect,
                                                                n_rows,
-                                                               n_cols)
+                                                               n_cols,
+                                                               this_image_info.sat_sensor)
 
             else:
 
@@ -313,7 +314,8 @@ def _section_read_write(section_counter):
                                                            i_sect,
                                                            j_sect,
                                                            n_rows,
-                                                           n_cols)
+                                                           n_cols,
+                                                           this_image_info.sat_sensor)
 
         else:
 

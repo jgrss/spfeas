@@ -10,6 +10,7 @@ import itertools
 from .. import errors
 
 from mpglue import raster_tools, vrt_builder
+from mpglue.veg_indices import BandHandler
 
 import numpy as np
 
@@ -467,7 +468,7 @@ def get_layer_min_max(i_info, layers=[1, 2, 3], rgb=False, block_size=2048):
     return min_max
 
 
-def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=False):
+def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, the_sensor, stats=False):
 
     """
     Converts RGB to gray scale array
@@ -478,14 +479,20 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
         i_sect (int): Starting row index.
         n_cols (int)
         n_rows (int)
-        rgb (Optional[str]): The order of the visible spectrum bands. Many RGB images or photos
-            are stored as red, green, blue. However, with multi-band satellite imagery common storage
-            is blue, green, red. Though it may be unorthodox, the default here is blue, green, red, or 'BGR'.
+        the_sensor (str): The satellite sensor.
         stats (Optional[bool])
 
     Equation:
         0.2125 R + 0.7154 G + 0.0721 B
     """
+
+    bh = BandHandler(the_sensor)
+
+    # Get the correct band order
+    #   for the sensor.
+    bh.get_band_order()
+
+    bands2open = [bh.band_order['blue'], bh.band_order['green'], bh.band_order['red']]
 
     if stats:
 
@@ -529,9 +536,9 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, rgb='BGR', stats=Fa
 
     else:
 
-        errors.logger.info('\nCalculating average RGB ...\n'.format(rgb.upper()))
+        errors.logger.info('\nCalculating average RGB ...\n')
 
-        im_block = i_info.read(bands2open=[1, 2, 3],
+        im_block = i_info.read(bands2open=bands2open,
                                i=i_sect,
                                j=j_sect,
                                rows=n_rows,
