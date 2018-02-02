@@ -42,10 +42,8 @@ class SPParameters(object):
         # Set the features dictionary.
         self.features_dict = dict(ctr=1,
                                   dmp=5,
-                                  evi2=2,
                                   fourier=2,
                                   gabor=8*2,
-                                  gndvi=2,
                                   grad=2,
                                   hough=4,
                                   hog=5,
@@ -54,7 +52,6 @@ class SPParameters(object):
                                   lbpm=5,
                                   lsr=3,
                                   mean=2,
-                                  ndvi=2,
                                   orb=5,
                                   pantex=1,
                                   saliency=2,
@@ -64,13 +61,14 @@ class SPParameters(object):
                                   surf=4,
                                   xy=2)
 
+        for vi in utils.SUPPORTED_VIS:
+            self.features_dict[vi.lower()] = 2
+
         # Set the output bands based on the trigger.
         self.out_bands_dict = dict(ctr=len(self.scales)*self.features_dict['ctr'],
                                    dmp=len(self.scales)*self.features_dict['dmp'],
-                                   evi2=len(self.scales)*self.features_dict['evi2'],
                                    fourier=len(self.scales)*self.features_dict['fourier'],
                                    gabor=len(self.scales)*self.features_dict['gabor'],
-                                   gndvi=len(self.scales) * self.features_dict['gndvi'],
                                    grad=len(self.scales)*self.features_dict['grad'],
                                    hog=len(self.scales)*self.features_dict['hog'],
                                    hough=len(self.scales)*self.features_dict['hough'],
@@ -79,7 +77,6 @@ class SPParameters(object):
                                    lbpm=len(self.scales)*self.features_dict['lbpm'],
                                    lsr=len(self.scales)*self.features_dict['lsr'],
                                    mean=len(self.scales)*self.features_dict['mean'],
-                                   ndvi=len(self.scales)*self.features_dict['ndvi'],
                                    orb=len(self.scales)*self.features_dict['orb'],
                                    pantex=len(self.scales)*self.features_dict['pantex'],
                                    saliency=len(self.scales)*self.features_dict['saliency'],
@@ -89,6 +86,9 @@ class SPParameters(object):
                                    surf=len(self.scales)*self.features_dict['surf'],
                                    xy=len(self.scales)*self.features_dict['xy'])
 
+        for vi in utils.SUPPORTED_VIS:
+            self.out_bands_dict[vi.lower()] = len(self.scales) * self.features_dict[vi.lower()]
+
         if self.use_rgb:
             self.band_positions = [1]
 
@@ -96,7 +96,7 @@ class SPParameters(object):
 
         self.band_info = dict(band_count=0)
 
-        self.spectral_indices = ['evi2', 'gndvi', 'ndvi']
+        self.spectral_indices = utils.SUPPORTED_VIS
 
         for trigger in self.triggers:
 
@@ -237,9 +237,10 @@ def main():
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
-                        nargs='+', choices=['dmp', 'evi2', 'fourier', 'gabor', 'gndvi', 'grad', 'hog', 'lac',
-                                            'lbp', 'lbpm', 'lsr', 'mean', 'ndvi', 'orb',
-                                            'pantex', 'saliency', 'seg', 'sfs'])
+                        nargs='+', choices=['dmp', 'fourier', 'gabor', 'grad', 'hog', 'lac',
+                                            'lbp', 'lbpm', 'lsr', 'mean', 'orb',
+                                            'pantex', 'saliency', 'seg', 'sfs'] +
+                                           [vi.lower() for vi in utils.SUPPORTED_VIS])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',
                         default=40, type=int)
     parser.add_argument('-mnl', '--hline-min', dest='hline_min', help='The Hough line minimum length',

@@ -234,18 +234,12 @@ def _section_read_write(section_counter):
 
         # Open the image array.
         # TODO: add other indices
-        if this_parameter_object_.trigger in this_parameter_object_.spectral_indices:
+        if this_parameter_object_.trigger.upper() in this_parameter_object_.spectral_indices:
 
-            if this_parameter_object_.trigger == 'gndvi':
+            wavelengths = utils.VI_WAVELENGTHS[this_parameter_object_.trigger.upper()]
 
-                spectral_bands = [utils.SENSOR_BAND_DICT['green'],
-                                  utils.SENSOR_BAND_DICT['red']]
-
-            else:
-
-                spectral_bands = [utils.SENSOR_BAND_DICT['red'],
-                                  utils.SENSOR_BAND_DICT['nir']]
-
+            spectral_bands = [utils.SENSOR_BAND_DICT[wavelength] for wavelength in wavelengths]
+            
             sect_in = this_image_info.read(bands2open=spectral_bands,
                                            i=i_sect,
                                            j=j_sect,
