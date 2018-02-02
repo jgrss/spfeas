@@ -15,6 +15,8 @@ from .errors import logger
 from . import spprocess
 from .sphelpers.sputilities import set_yaml_file
 
+from mpglue import utils
+
 try:
     import colorama
     from colorama import Fore, Style
@@ -231,10 +233,7 @@ def main():
                         default='bgr')
     parser.add_argument('--sensor', dest='sat_sensor', help='The satellite sensor (--input)',
                         default='Quickbird',
-                        choices=['ASTER', 'CBERS', 'CBERS2', 'GeoEye1', 'IKONOS', 'Quickbird',
-                                 'WorldView2', 'WorldView3', 'WorldView4', 'Landsat', 'Landsat8',
-                                 'RapidEye', 'Sentinel2', 'Sentinel2-10m', 'Sentinel2-20m',
-                                 'Planet', 'RGB', 'BGR'])
+                        choices=utils.SUPPORTED_SENSORS)
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
