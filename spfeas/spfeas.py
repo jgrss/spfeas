@@ -264,9 +264,6 @@ def main():
     parser.add_argument('--convert', dest='convert', help='Whether to convert the feature stack', action='store_true')
     parser.add_argument('--stack', dest='stack', help='Whether to stack features', action='store_true')
     parser.add_argument('--stack-only', dest='stack_only', help='Whether to only stack features', action='store_true')
-    parser.add_argument('--band-green', dest='band_green', help='The green band position', default=2, type=int)
-    parser.add_argument('--band-red', dest='band_red', help='The red band position', default=3, type=int)
-    parser.add_argument('--band-nir', dest='band_nir', help='The NIR band position', default=4, type=int)
     parser.add_argument('--neighbors', dest='neighbors', help='Whether to add features as neighbors',
                         action='store_true')
     parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs for sections',

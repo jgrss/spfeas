@@ -14,6 +14,7 @@ from .spfunctions import get_mag_avg, get_saliency_tile_mean, saliency, segment_
 # MpGlue
 try:
     from mpglue import raster_tools, VegIndicesEquations, vrt_builder
+    from mpglue import utils
 except:
     logger.error('MpGlue must be installed')
     raise ImportError
@@ -237,13 +238,13 @@ def _section_read_write(section_counter):
 
             if this_parameter_object_.trigger == 'gndvi':
 
-                spectral_bands = [this_parameter_object_.band_green,
-                                  this_parameter_object_.band_red]
+                spectral_bands = [utils.SENSOR_BAND_DICT['green'],
+                                  utils.SENSOR_BAND_DICT['red']]
 
             else:
 
-                spectral_bands = [this_parameter_object_.band_red,
-                                  this_parameter_object_.band_nir]
+                spectral_bands = [utils.SENSOR_BAND_DICT['red'],
+                                  utils.SENSOR_BAND_DICT['nir']]
 
             sect_in = this_image_info.read(bands2open=spectral_bands,
                                            i=i_sect,
