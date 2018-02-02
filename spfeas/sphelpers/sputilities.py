@@ -10,7 +10,7 @@ import itertools
 from .. import errors
 
 from mpglue import raster_tools, vrt_builder
-from mpglue.veg_indices import BandHandler
+from mpglue import utils
 
 import numpy as np
 
@@ -486,13 +486,9 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, the_sensor, stats=F
         0.2125 R + 0.7154 G + 0.0721 B
     """
 
-    bh = BandHandler(the_sensor)
-
-    # Get the correct band order
-    #   for the sensor.
-    bh.get_band_order()
-
-    bands2open = [bh.band_order['blue'], bh.band_order['green'], bh.band_order['red']]
+    bands2open = [utils.SENSOR_BAND_DICT['blue'],
+                  utils.SENSOR_BAND_DICT['green'],
+                  utils.SENSOR_BAND_DICT['red']]
 
     if stats:
 
