@@ -57,8 +57,6 @@ def write_log(parameter_object):
                              'Scales: {}\n'.format(','.join([str(bpos) for bpos in parameter_object.scales])),
                              'Contextual features: {}\n'.format(','.join(parameter_object.triggers)),
                              'SFS stopping threshold: {:d}\n'.format(parameter_object.sfs_threshold),
-                             'Red band position: {:d}\n'.format(parameter_object.band_red),
-                             'NIR band position: {:d}\n'.format(parameter_object.band_nir),
                              '{} compute features as neighbors\n'.format(parameter_object.write_neighbors),
                              '{} perform histogram equalization\n'.format(parameter_object.write_equalize),
                              '{} perform adaptive histogram equalization\n'.format(parameter_object.write_equalize_adapt)]
