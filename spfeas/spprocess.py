@@ -281,12 +281,12 @@ def _section_read_write(section_counter):
 
             if this_image_info.bands >= 3:
 
-                sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
-                                                               i_sect,
-                                                               j_sect,
-                                                               n_rows,
-                                                               n_cols,
-                                                               this_image_info.sat_sensor)
+                sect_in = sputilities.convert_rgb2gray(this_image_info,
+                                                       i_sect,
+                                                       j_sect,
+                                                       n_rows,
+                                                       n_cols,
+                                                       this_parameter_object_.sat_sensor)[0]
 
             else:
 
@@ -304,12 +304,12 @@ def _section_read_write(section_counter):
         elif this_parameter_object_.use_rgb and this_parameter_object_.trigger \
                 not in this_parameter_object_.spectral_indices + ['grad', 'saliency', 'seg']:
 
-            sect_in, __, __ = sputilities.convert_rgb2gray(this_image_info,
-                                                           i_sect,
-                                                           j_sect,
-                                                           n_rows,
-                                                           n_cols,
-                                                           this_image_info.sat_sensor)
+            sect_in = sputilities.convert_rgb2gray(this_image_info,
+                                                   i_sect,
+                                                   j_sect,
+                                                   n_rows,
+                                                   n_cols,
+                                                   this_parameter_object_.sat_sensor)[0]
 
         else:
 
