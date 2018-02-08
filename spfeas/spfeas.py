@@ -310,6 +310,7 @@ def main():
                      convert=args.convert,
                      use_rgb=args.use_rgb,
                      vis_order=args.vis_order,
+                     sat_sensor=args.sat_sensor,
                      stack=args.stack,
                      stack_only=args.stack_only,
                      neighbors=args.neighbors,
