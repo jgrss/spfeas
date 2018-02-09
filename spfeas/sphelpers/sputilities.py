@@ -5,7 +5,7 @@ import copy
 import time
 import itertools
 
-from ..errors import logger, SensorWavelengthError
+from ..errors import logger
 
 from mpglue import raster_tools, vrt_builder
 from mpglue import utils
@@ -490,17 +490,7 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, the_sensor, stats=F
         0.2125 R + 0.7154 G + 0.0721 B
     """
 
-    for wv in ['blue', 'green', 'red']:
-
-        if wv not in utils.SENSOR_BAND_DICT[the_sensor]:
-
-            logger.info('  The sensor is given as {SENSOR}, which does not have wavelength {WV}.'.format(SENSOR=the_sensor,
-                                                                                                         WV=wv))
-
-            logger.error('  The {WV} is not supported by {SENSOR}.\nPlease specify the correct sensor with --sensor.'.format(WV=wv,
-                                                                                                                             SENSOR=the_sensor))
-
-            raise SensorWavelengthError
+    utils.sensor_wavelength_check(the_sensor, ['blue', 'green', 'red'])
 
     bands2open = [utils.SENSOR_BAND_DICT[the_sensor]['blue'],
                   utils.SENSOR_BAND_DICT[the_sensor]['green'],

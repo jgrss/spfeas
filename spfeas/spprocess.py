@@ -1,9 +1,7 @@
 import os
 import copy
 import fnmatch
-# import time
 import multiprocessing as multi
-# from joblib import Parallel, delayed
 
 from .errors import logger, CorruptedBandsError
 from .sphelpers import sputilities
@@ -237,8 +235,14 @@ def _section_read_write(section_counter):
 
             wavelengths = utils.VI_WAVELENGTHS[this_parameter_object_.trigger.upper()]
 
-            spectral_bands = [utils.SENSOR_BAND_DICT[this_parameter_object_.sat_sensor][wavelength]
-                              for wavelength in wavelengths]
+            # Check if the sensor supports the spectral index
+            utils.sensor_wavelength_check(this_parameter_object_.sat_sensor,
+                                          wavelengths)
+
+            # Get the band positions needed
+            #   to process the spectral index.
+            spectral_bands = utils.get_index_bands(this_parameter_object_.trigger,
+                                                   this_parameter_object_.sat_sensor)
 
             sect_in = this_image_info.read(bands2open=spectral_bands,
                                            i=i_sect,
