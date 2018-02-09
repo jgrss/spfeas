@@ -237,7 +237,8 @@ def _section_read_write(section_counter):
 
             wavelengths = utils.VI_WAVELENGTHS[this_parameter_object_.trigger.upper()]
 
-            spectral_bands = [utils.SENSOR_BAND_DICT[wavelength] for wavelength in wavelengths]
+            spectral_bands = [utils.SENSOR_BAND_DICT[this_parameter_object_.sat_sensor][wavelength]
+                              for wavelength in wavelengths]
 
             sect_in = this_image_info.read(bands2open=spectral_bands,
                                            i=i_sect,
@@ -577,13 +578,17 @@ def run(parameter_object):
                         else:
                             parallel_chunk_end = parallel_chunk + (parameter_object.n_sects - parallel_chunk) + 1
 
-                        results = pool.map(_section_read_write,
-                                           range(parallel_chunk,
-                                                 parallel_chunk_end))
+                        results = map(_section_read_write,
+                                      range(parallel_chunk,
+                                            parallel_chunk_end))
 
-                        pool.close()
-                        pool.join()
-                        del pool
+                        # results = pool.map(_section_read_write,
+                        #                    range(parallel_chunk,
+                        #                          parallel_chunk_end))
+                        #
+                        # pool.close()
+                        # pool.join()
+                        # del pool
 
                         logger.info('  Updating status ...')
 

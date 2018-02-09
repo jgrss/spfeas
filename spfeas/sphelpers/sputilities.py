@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 
 import os
-import sys
 import copy
 import time
-# import psutil
 import itertools
 
-from .. import errors
+from ..errors import logger, SensorWavelengthError
 
 from mpglue import raster_tools, vrt_builder
 from mpglue import utils
@@ -76,19 +74,22 @@ def parameter_checks(parameter_object):
 
     # Ensure the input image exists.
     if not os.path.isfile(parameter_object.input_image):
-        errors.logger.error('The input image, {}, does not exist.'.format(parameter_object.input_image))
+
+        logger.error('The input image, {}, does not exist.'.format(parameter_object.input_image))
         raise OSError
 
     # Ensure the block size is smaller than
     #   the maximum scale size.
     if parameter_object.block > np.max(parameter_object.scales):
-        errors.logger.error('The block size ({:d}) cannot be greater than the maximum scale <scales>.'.format(parameter_object.block))
+
+        logger.error('The block size ({:d}) cannot be greater than the maximum scale <scales>.'.format(parameter_object.block))
         raise ValueError
 
     # Ensure the block size is even if
     #   the scales are even.
     if (parameter_object.block % 2 != 0) and (parameter_object.scales[0] % 2 == 0):
-        errors.logger.error('Please pass an even number for the `block` parameter if your `scales` are also even.')
+
+        logger.error('Please pass an even number for the `block` parameter if your `scales` are also even.')
         raise ValueError
 
     # Ensure all scales are either odd or even.
@@ -100,14 +101,16 @@ def parameter_checks(parameter_object):
         if first_scale % 2 == 0:
             for scale in parameter_object.scales:
                 if scale % 2 != 0:
-                    errors.logger.error('All scales should be even or odd.')
+
+                    logger.error('All scales should be even or odd.')
                     raise ValueError
 
         # Odd
         if first_scale % 2 != 0:
             for scale in parameter_object.scales:
                 if scale % 2 == 0:
-                    errors.logger.error('All scales should be even or odd.')
+
+                    logger.error('All scales should be even or odd.')
                     raise ValueError
 
     # Ensure the section size is divisible
@@ -122,11 +125,13 @@ def parameter_checks(parameter_object):
     if parameter_object.smooth > 0:
 
         if parameter_object.smooth <= 2:
-            errors.logger.error('The `smooth` parameter should be 3 or greater.')
+
+            logger.error('The `smooth` parameter should be 3 or greater.')
             raise ValueError('The `smooth` parameter should be 3 or greater.')
 
         if parameter_object.smooth % 2 == 0:
-            errors.logger.error('The `smooth` parameter should be an odd number.')
+
+            logger.error('The `smooth` parameter should be an odd number.')
             raise ValueError
 
     # Ensure the smallest scale is
@@ -134,7 +139,7 @@ def parameter_checks(parameter_object):
     # if 'gabor' in parameter_object.triggers:
     #
     #     if min(parameter_object.scales) < 16:
-    #         errors.logger.error('The Gabor feature cannot be computed with scales < 16.')
+    #         logger.error('The Gabor feature cannot be computed with scales < 16.')
     #         raise ValueError
 
     # Create the output directory.
@@ -143,7 +148,8 @@ def parameter_checks(parameter_object):
         try:
             os.makedirs(parameter_object.output_dir)
         except OSError:
-            errors.logger.error('Could not create the output directory.')
+
+            logger.error('Could not create the output directory.')
             raise OSError
 
 
@@ -357,7 +363,7 @@ def stack_features(parameter_object, new_feas_list):
     for ni, new_feas in enumerate(new_feas_list):
         stack_dict[str(ni+1)] = [new_feas]
 
-    errors.logger.info('Stacking variables ...')
+    logger.info('Stacking variables ...')
 
     vrt_builder(stack_dict, out_vrt, force_type='float32', be_quiet=True)
 
@@ -484,13 +490,25 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, the_sensor, stats=F
         0.2125 R + 0.7154 G + 0.0721 B
     """
 
-    bands2open = [utils.SENSOR_BAND_DICT['blue'],
-                  utils.SENSOR_BAND_DICT['green'],
-                  utils.SENSOR_BAND_DICT['red']]
+    for wv in ['blue', 'green', 'red']:
+
+        if wv not in utils.SENSOR_BAND_DICT[the_sensor]:
+
+            logger.info('  The sensor is given as {SENSOR}, which does not have wavelength {WV}.'.format(SENSOR=the_sensor,
+                                                                                                         WV=wv))
+
+            logger.error('  The {WV} is not supported by {SENSOR}.\nPlease specify the correct sensor with --sensor.'.format(WV=wv,
+                                                                                                                             SENSOR=the_sensor))
+
+            raise SensorWavelengthError
+
+    bands2open = [utils.SENSOR_BAND_DICT[the_sensor]['blue'],
+                  utils.SENSOR_BAND_DICT[the_sensor]['green'],
+                  utils.SENSOR_BAND_DICT[the_sensor]['red']]
 
     if stats:
 
-        errors.logger.info('\nCalculating image min and max ...\n')
+        logger.info('\nCalculating image min and max ...\n')
 
         min_max = get_layer_min_max(i_info, rgb=True)
 
@@ -530,7 +548,7 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, the_sensor, stats=F
 
     else:
 
-        errors.logger.info('\nCalculating average RGB ...\n')
+        logger.info('\nCalculating average RGB ...\n')
 
         im_block = i_info.read(bands2open=bands2open,
                                i=i_sect,
@@ -579,7 +597,7 @@ class ManageStatus(object):
         #     self.status_dict = dict()
 
         # if not isinstance(self.status_dict, dict):
-        #     errors.logger.error('  The loaded object was not a dictionary.')
+        #     logger.error('  The loaded object was not a dictionary.')
 
     def _load_status(self, status2load):
 
@@ -593,7 +611,7 @@ class ManageStatus(object):
         """Dumps the processing status to file"""
 
         if not hasattr(self, 'status_dict'):
-            errors.logger.error('  The object does not have a status dictionary.')
+            logger.error('  The object does not have a status dictionary.')
 
         self._dump_status(status2dump)
 
@@ -789,8 +807,8 @@ def get_stats(image_info, parameter_object):
             image_max = 1.
         else:
 
-            errors.logger.error('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
-                                                                                          image_info.file_name))
+            logger.error('The input storage, `{}`, of {} is not supported.'.format(image_info.storage,
+                                                                                   image_info.file_name))
 
             raise NotImplementedError
 

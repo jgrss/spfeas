@@ -20,3 +20,7 @@ logger.setLevel(logging.INFO)
 
 class CorruptedBandsError(OverflowError):
     """Raised when bands are corrupted"""
+
+
+class SensorWavelengthError(NameError):
+    """Raised when a sensor does not support a wavelength"""
