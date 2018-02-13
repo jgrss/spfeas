@@ -15,6 +15,7 @@ from .errors import logger
 from . import spprocess
 from .sphelpers.sputilities import set_yaml_file
 
+from mpglue.raster_tools import DRIVER_DICT
 from mpglue import utils
 
 try:
@@ -211,6 +212,18 @@ def _options():
     sys.exit(Style.RESET_ALL)
 
 
+def _raster_options():
+
+    print('=========  ======')
+    print('Extension  Format')
+    print('=========  ======')
+
+    for k, v in DRIVER_DICT.iteritems():
+        print('{:9}  {}'.format(k, v))
+
+    sys.exit()
+
+
 def main():
 
     colorama.init()
@@ -222,8 +235,6 @@ def main():
     parser.add_argument('-e', '--examples', dest='examples', action='store_true', help='Show usage examples and exit')
     parser.add_argument('-i', '--input', dest='input', help='The input image', default=None)
     parser.add_argument('-o', '--output', dest='output', help='The output directory', default=None)
-    parser.add_argument('-f', '--format', dest='format', help='The output raster format', default='GTiff',
-                        choices=['ECW', 'GTiff', 'HFA', 'KEA', 'NITF', 'PCRaster'])
     parser.add_argument('-bp', '--band-positions', dest='band_positions', help='The bands to process',
                         default=[1], type=int, nargs='+')
     parser.add_argument('--rgb', dest='use_rgb', help='Whether to use the full RGB spectrum in place of -bp',
@@ -276,6 +287,8 @@ def main():
     parser.add_argument('--overviews', dest='overviews', help='Whether to build pyramid overviews for the VRT mosaic',
                         action='store_true')
     parser.add_argument('--options', dest='options', help='Whether to show trigger options', action='store_true')
+    parser.add_argument('--raster-options', dest='raster_options',
+                        help='Whether to show available raster formats for writing', action='store_true')
 
     args = parser.parse_args()
 
@@ -284,6 +297,9 @@ def main():
 
     if args.options:
         _options()
+
+    if args.raster_options:
+        _raster_options()
 
     logger.info('\nStart date & time --- (%s)\n' % time.asctime(time.localtime(time.time())))
 

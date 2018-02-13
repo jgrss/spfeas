@@ -761,12 +761,15 @@ def create_band(meta_info, parameter_object, out_bands, blocks=True):
         if blocks:
             i_info = get_adj_info(meta_info, i_info, parameter_object)
 
-        i_info.update_info(bands=out_bands, storage='float32')
+        i_info.update_info(bands=out_bands,
+                           storage='float32')
 
-        out_rst = raster_tools.create_raster(parameter_object.out_img, i_info)
+        out_rst = raster_tools.create_raster(parameter_object.out_img,
+                                             i_info,
+                                             bigtiff='yes')
 
         out_rst.close_file()
-        out_rst = None
+        del out_rst
 
         return False
 

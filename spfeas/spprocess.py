@@ -97,7 +97,9 @@ def _write_section2file(this_parameter_object__,
         else:
 
             # Create the output raster.
-            with raster_tools.create_raster(this_parameter_object__.out_img, o_info) as out_raster:
+            with raster_tools.create_raster(this_parameter_object__.out_img,
+                                            o_info,
+                                            bigtiff='yes') as out_raster:
 
                 array_layer_counter = 0
 
