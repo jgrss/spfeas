@@ -245,6 +245,9 @@ def main():
     parser.add_argument('--sensor', dest='sat_sensor', help='The satellite sensor (--input)',
                         default='Quickbird',
                         choices=utils.SUPPORTED_SENSORS)
+    parser.add_argument('--format', dest='format', help='The output raster format',
+                        default='GTiff',
+                        choices=DRIVER_DICT.values())
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],

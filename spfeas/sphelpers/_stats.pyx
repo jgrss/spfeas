@@ -1683,32 +1683,30 @@ def feature_orb(DTYPE_uint8_t[:, ::1] chbd,
     return np.float32(out_list)
 
 
-cdef _set_lbp(DTYPE_uint8_t[:, ::1] chbd, int rows, int cols):
+cdef DTYPE_uint8_t[:, :, ::1] _set_lbp(DTYPE_uint8_t[:, ::1] chbd,
+                                       int rows,
+                                       int cols,
+                                       DTYPE_uint8_t[::1] p_range,
+                                       dict rdict):
 
     """
     Get the Local Binary Patterns
     """
 
-    # create LBP radius lookup dictionary
     cdef:
         Py_ssize_t scsc
+        unsigned int p_len = 3
+        DTYPE_uint8_t[:, :, ::1] lbp_bd = np.zeros((p_len, rows, cols), dtype='uint8')
 
-        dict Rdict	= {4: 1, 8: 1, 16: 2, 32: 4, 64: 8, 128: 16}
-
-        # build the P ranges
-        DTYPE_float32_t[::1] p_range = np.array([8., 16., 32.], dtype='float32')
-        unsigned int p_len = p_range.shape[0]
-        DTYPE_uint8_t[:, :, ::1] lbpBd = np.zeros((p_len, rows, cols), dtype='uint8')
-
-    # run lBP for each scale
+    # Run LBP for each scale
     for scsc in range(0, p_len):
 
-        lbpBd[scsc] = LBP(np.uint8(chbd),
-                          p_range[scsc],
-                          Rdict[p_range[scsc]],
-                          'uniform')
+        lbp_bd[scsc, :, :] = np.ascontiguousarray(np.uint8(LBP(np.uint8(chbd),
+                                                               int(p_range[scsc]),
+                                                               float(rdict[p_range[scsc]]),
+                                                               method='uniform')))
 
-    return lbpBd, p_range
+    return lbp_bd
 
 
 cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd,
@@ -1722,7 +1720,6 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
         DTYPE_uint8_t[::1] sts
-        DTYPE_float32_t[::1] p_range
         DTYPE_uint8_t[:, :, ::1] lbpBd, ch_bd
         unsigned int scales_half = <int>(end_scale / 2.)
         unsigned int scales_block = end_scale - blk
@@ -1733,9 +1730,11 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
         int scale_length = scales_array.shape[0]
         np.ndarray[DTYPE_float32_t, ndim=1] out_list_a
         unsigned int out_len
+        DTYPE_uint8_t[::1] p_range = np.array([8, 16, 32], dtype='uint8')
+        dict rdict	= {4: 1, 8: 1, 16: 2, 32: 4, 64: 8, 128: 16}
 
     # get the LBP images
-    lbpBd, p_range = _set_lbp(chBd, rows, cols)
+    lbpBd = _set_lbp(chBd, rows, cols, p_range, rdict)
 
     # count of bins for all p,r LBP pairs
     pr_bin_count = np.sum([pr+2 for pr in p_range])
@@ -1760,8 +1759,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
                                        j+scales_half-k_half:j+scales_half-k_half+k])
 
                 # get histograms and concatenate
-                sts = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(ch_bd[<int>p_range[pc]].flat,
-                                                                                  minlength=pc+2) for pc in p_range])))
+                sts = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(ch_bd[p_range[pc]].flat,
+                                                                                  minlength=pc+2) for pc in range(0, 3)])))
 
                 for sti in range(0, 4):
 
@@ -1796,7 +1795,6 @@ cdef list _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd, int blk, list scs, int end_s
         int rows = chBd.shape[0]
         int cols = chBd.shape[1]
         np.ndarray[DTYPE_uint8_t, ndim=3] ch_bd
-        list p_range
         np.ndarray[DTYPE_uint8_t, ndim=3] lbpBd
         int scales_half = end_scale / 2
         int scales_block = end_scale - blk
@@ -1809,9 +1807,11 @@ cdef list _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd, int blk, list scs, int end_s
         DTYPE_float32_t[::1] sts_ = sts.copy()
         unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
         DTYPE_float32_t[::1] concat_results
+        DTYPE_uint8_t[::1] p_range = np.array([8, 16, 32], dtype='uint8')
+        dict rdict	= {4: 1, 8: 1, 16: 2, 32: 4, 64: 8, 128: 16}
 
     # get the LBP images
-    lbpBd, p_range = _set_lbp(chBd, rows, cols)
+    lbpBd = _set_lbp(chBd, rows, cols, p_range, rdict)
 
     # set the output list
     out_list = np.zeros(out_len, 'float64')
@@ -1830,9 +1830,9 @@ cdef list _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd, int blk, list scs, int end_s
                               j+scales_half-k_half:j+scales_half-k_half+k]
 
                 # get histograms and concatenate
-                concat_results = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(ch_bd[p_range.index(pc)].flat,
+                concat_results = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(ch_bd[p_range[pc]].flat,
                                                                                              minlength=pc+2)
-                                                                                 for pc in p_range])))
+                                                                                 for pc in range(0, 3)])))
 
                 sts_[...] = sts
 
