@@ -411,6 +411,9 @@ def run(parameter_object):
     elif parameter_object.n_jobs > multi.cpu_count():
         parameter_object.n_jobs = multi.cpu_count()
 
+    # It is assumed in various places that the scales are sorted
+    parameter_object.scales.sort()
+
     sputilities.parameter_checks(parameter_object)
 
     # Write the parameters to file.
