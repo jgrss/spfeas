@@ -580,7 +580,7 @@ def run(parameter_object):
                                                 parameter_object.n_sects+parameter_object.n_jobs,
                                                 parameter_object.n_jobs):
 
-                        pool = multi.Pool(processes=parameter_object.n_jobs)
+                        # pool = multi.Pool(processes=parameter_object.n_jobs)
 
                         if parallel_chunk + parameter_object.n_jobs < parameter_object.n_sects:
                             parallel_chunk_end = parallel_chunk + parameter_object.n_jobs
