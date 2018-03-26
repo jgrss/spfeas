@@ -234,9 +234,10 @@ def feature_fourier(chBd, blk, scs, end_scale):
     return out_list
 
 
-def call_lsr(edoim_s, edmim_s, dx_s, dy_s, scs, scales_half):
+def call_lsr(edoim_s, edmim_s, dx_s, dy_s, scs, end_scale):
 
     scale_stats = list()
+    scales_half = int(end_scale / 2)
 
     for k in scs:
 
@@ -246,13 +247,14 @@ def call_lsr(edoim_s, edmim_s, dx_s, dy_s, scs, scales_half):
 
             ifst = scales_half - k_half
             isnd = scales_half - k_half + k
+        else:
+            ifst = None
+            isnd = None
 
-            edoim_s = edoim_s[ifst:isnd, ifst:isnd]
-            edmim_s = edmim_s[ifst:isnd, ifst:isnd]
-            dx_s = dx_s[ifst:isnd, ifst:isnd]
-            dy_s = dy_s[ifst:isnd, ifst:isnd]
-
-        scale_stats += list(lsr.feature_lsr(edoim_s, edmim_s, dx_s, dy_s))
+        scale_stats += list(lsr.feature_lsr(edoim_s[ifst:isnd, ifst:isnd],
+                                            edmim_s[ifst:isnd, ifst:isnd],
+                                            dx_s[ifst:isnd, ifst:isnd],
+                                            dy_s[ifst:isnd, ifst:isnd]))
 
     return scale_stats
 
@@ -261,25 +263,21 @@ def feature_lsr(ch_bd, blk, scs, end_scale):
 
     rows, cols = ch_bd.shape
     out_list = list()
-    scales_half = int(end_scale / 2)
 
     edge_mag, edge_ori, deriv_x, deriv_y = grad_mag(ch_bd)
     
     for i in range(0, rows-(end_scale-blk), blk):
 
-        ifst_ = scales_half - scales_half
-        isnd_ = scales_half - scales_half + end_scale
-
         out_list += list(itertools.chain.from_iterable(Parallel(n_jobs=-1,
-                                                                max_nbytes=None)(delayed(call_lsr)(edge_ori[i+ifst_:i+isnd_,
-                                                                                                            j+ifst_:j+isnd_],
-                                                                                                   edge_mag[i+ifst_:i+isnd_,
-                                                                                                            j+ifst_:j+isnd_],
-                                                                                                   deriv_x[i+ifst_:i+isnd_,
-                                                                                                           j+ifst_:j+isnd_],
-                                                                                                   deriv_y[i+ifst_:i+isnd_,
-                                                                                                           j+ifst_:j+isnd_],
-                                                                                                   scs, scales_half)
+                                                                max_nbytes=None)(delayed(call_lsr)(edge_ori[i:i+end_scale,
+                                                                                                            j:j+end_scale],
+                                                                                                   edge_mag[i:i+end_scale,
+                                                                                                            j:j+end_scale],
+                                                                                                   deriv_x[i:i+end_scale,
+                                                                                                           j:j+end_scale],
+                                                                                                   deriv_y[i:i+end_scale,
+                                                                                                           j:j+end_scale],
+                                                                                                   scs, end_scale)
                                                                                  for j in range(0, cols-(end_scale-blk), blk))))
 
         # for j in range(0, cols-(end_scale-blk), blk):
