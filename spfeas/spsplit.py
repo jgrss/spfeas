@@ -130,7 +130,7 @@ def call_sfs(block_array_, block_size_, scales_, end_scale_, sfs_thresh_, sfs_sk
 
 def call_func(block_array_, block_size_, scales_, end_scale_, trigger_, **kwargs):
 
-    if trigger_ in ['evi2', 'gndvi', 'grad', 'mean', 'ndvi', 'saliency', 'seg']:
+    if trigger_ in ['grad', 'mean', 'saliency', 'seg']:
         return call_mean(block_array_, block_size_, scales_, end_scale_)
     elif trigger_ == 'dmp':
         return call_dmp(block_array_, block_size_, scales_, end_scale_)
@@ -500,17 +500,26 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
                               args=dict(sfs_threshold=parameter_object.sfs_threshold,
                                         sfs_skip=parameter_object.sfs_skip)))
 
+    for idx in parameter_object.spectral_indices:
+        if idx not in func_dict:
+            func_dict[idx] = {'name': idx, 'args': {}}
+
     logger.info('  Processing {} for section {:,d} of {:,d} ...'.format(func_dict[parameter_object.trigger]['name'],
                                                                         section_counter,
                                                                         parameter_object.n_sects))
 
     other_args = func_dict[parameter_object.trigger]['args']
 
+    if parameter_object.trigger in parameter_object.spectral_indices:
+        trigger = 'mean'
+    else:
+        trigger = parameter_object.trigger
+
     return call_func(bd,
                      parameter_object.block,
                      parameter_object.scales,
                      parameter_object.scales[-1],
-                     parameter_object.trigger,
+                     trigger,
                      **other_args)
 
     # return Parallel(n_jobs=parameter_object.n_jobs_chunk,
