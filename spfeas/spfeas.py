@@ -224,6 +224,13 @@ def _raster_options():
     sys.exit()
 
 
+def _version():
+
+    from . import __version__
+
+    sys.exit(__version__)
+
+
 def main():
 
     colorama.init()
@@ -292,6 +299,7 @@ def main():
     parser.add_argument('--options', dest='options', help='Whether to show trigger options', action='store_true')
     parser.add_argument('--raster-options', dest='raster_options',
                         help='Whether to show available raster formats for writing', action='store_true')
+    parser.add_argument('--version', dest='version', help='Whether to show the SpFeas version', action='store_true')
 
     args = parser.parse_args()
 
@@ -303,6 +311,9 @@ def main():
 
     if args.raster_options:
         _raster_options()
+
+    if args.version:
+        _version()
 
     logger.info('\nStart date & time --- (%s)\n' % time.asctime(time.localtime(time.time())))
 
