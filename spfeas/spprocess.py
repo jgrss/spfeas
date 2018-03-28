@@ -675,7 +675,8 @@ def run(parameter_object):
                         vrt_mosaic,
                         force_type='float32',
                         be_quiet=True,
-                        overwrite=True)
+                        overwrite=True,
+                        relative_path=parameter_object.relative_path)
 
             if parameter_object.overviews:
 

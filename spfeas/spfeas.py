@@ -144,6 +144,8 @@ class SPParameters(object):
         else:
             self.write_equalize_adapt = 'Did NOT'
 
+        self.relative_path = True if not self.full_path else False
+
     def update_info(self, **kwargs):
 
         for k, v in kwargs.iteritems():
@@ -285,6 +287,9 @@ def main():
     parser.add_argument('--visualize', dest='visualize', help='Whether to visualize', action='store_true')
     parser.add_argument('--convert', dest='convert', help='Whether to convert the feature stack', action='store_true')
     parser.add_argument('--stack', dest='stack', help='Whether to stack features', action='store_true')
+    parser.add_argument('--full-path', dest='full_path',
+                        help='Whether to use full path names in the VRT composite (otherwise uses relative paths)',
+                        action='store_true')
     parser.add_argument('--stack-only', dest='stack_only', help='Whether to only stack features', action='store_true')
     parser.add_argument('--neighbors', dest='neighbors', help='Whether to add features as neighbors',
                         action='store_true')
@@ -342,6 +347,7 @@ def main():
                      vis_order=args.vis_order,
                      sat_sensor=args.sat_sensor,
                      stack=args.stack,
+                     full_path=args.full_path,
                      stack_only=args.stack_only,
                      neighbors=args.neighbors,
                      n_jobs=args.n_jobs,
