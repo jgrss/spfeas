@@ -166,14 +166,14 @@ def get_out_rows(in_bd, blk, end_scale):
 
     rows = in_bd[1] - in_bd[0]
 
-    return len([i for i in xrange(0, rows-(end_scale-blk), blk)])
+    return len([i for i in range(0, rows-(end_scale-blk), blk)])
 
 
 def get_out_cols(in_bd, blk, end_scale):
 
     cols = in_bd[3] - in_bd[2]
 
-    return len([j for j in xrange(0, cols-(end_scale-blk), blk)])
+    return len([j for j in range(0, cols-(end_scale-blk), blk)])
 
 
 def get_chunk_indices(rows, cols, block_size, chunk_size, scale):
