@@ -233,7 +233,7 @@ def _section_read_write(section_counter):
                                           this_image_info.cols)
 
         # Open the image array.
-        if this_parameter_object_.trigger.upper() in this_parameter_object_.spectral_indices:
+        if this_parameter_object_.trigger in this_parameter_object_.spectral_indices:
 
             wavelengths = utils.VI_WAVELENGTHS[this_parameter_object_.trigger.upper()]
 
@@ -243,7 +243,7 @@ def _section_read_write(section_counter):
 
             # Get the band positions needed
             #   to process the spectral index.
-            spectral_bands = utils.get_index_bands(this_parameter_object_.trigger,
+            spectral_bands = utils.get_index_bands(this_parameter_object_.trigger.upper(),
                                                    this_parameter_object_.sat_sensor)
 
             sect_in = this_image_info.read(bands2open=spectral_bands,

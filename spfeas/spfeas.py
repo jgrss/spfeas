@@ -97,7 +97,7 @@ class SPParameters(object):
 
         self.band_info = dict(band_count=0)
 
-        self.spectral_indices = utils.SUPPORTED_VIS
+        self.spectral_indices = [i.lower() for i in utils.SUPPORTED_VIS]
 
         for trigger in self.triggers:
 
