@@ -421,8 +421,8 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
         elif parameter_object.equalize_adapt:
             
             bd = equalize_adapthist(bd,
-                                    ntiles_x=int(section_cols / 128),
-                                    ntiles_y=int(section_rows / 128),
+                                    kernel_size=(int(section_rows / 128),
+                                                 int(section_cols / 128)),
                                     clip_limit=.05,
                                     nbins=256)
 
