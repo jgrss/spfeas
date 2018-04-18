@@ -195,7 +195,7 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'gndvi' + Style.RESET_ALL + '   -- GNDVI mean (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'grad' + Style.RESET_ALL + '    -- Edge gradient magnitude (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'hog' + Style.RESET_ALL + '     -- Histogram of Oriented Gradients (5 (max,mean,variance,skew,kurtosis) x n scales)',
-                  Fore.RED + Style.BRIGHT + 'hough' + Style.RESET_ALL + '   -- Local line statistics from Probabilistic Hough Transform (4 x n scales)' + Fore.RED + ' **Currently out of order**',
+                  Fore.RED + Style.BRIGHT + 'hough' + Style.RESET_ALL + '   -- Local line statistics from Probabilistic Hough Transform (4 x n scales)' + Fore.RED + ' **Currently out of order**' + Style.RESET_ALL,
                   Fore.GREEN + Style.BRIGHT + 'lac' + Style.RESET_ALL + '     -- Lacunarity (n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbp' + Style.RESET_ALL + '     -- Local Binary Patterns (59 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'lbpm' + Style.RESET_ALL + '    -- Local Binary Patterns moments (5 (max,mean,variance,skew,kurtosis) x n scales)',
@@ -206,7 +206,7 @@ def _options():
                   Fore.GREEN + Style.BRIGHT + 'orb' + Style.RESET_ALL + '     -- Oriented BRIEF key point pyramid histogram (5 (max,mean,variance,skew,kurtosis) x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'saliency' + Style.RESET_ALL + '-- Saliency features (2 x n scales)',
                   Fore.GREEN + Style.BRIGHT + 'sfs' + Style.RESET_ALL + '     -- Structural Feature Sets (6 (max,min,mean,w-mean,std,max ratio) x n scales)',
-                  Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**']
+                  Fore.RED + Style.BRIGHT + 'surf' + Style.RESET_ALL + '    -- SURF key point descriptors (4 x n scales)' + Fore.RED + ' **Currently out of order**' + Style.RESET_ALL]
 
     for text_line in text_lines:
         logger.info(text_line)
