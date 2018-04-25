@@ -1,3 +1,5 @@
+from __future__ import division
+
 try:
     import numpy as np
 except ImportError:

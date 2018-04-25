@@ -1,3 +1,6 @@
+from __future__ import division
+from builtins import int
+
 import itertools
 from joblib import Parallel, delayed
 

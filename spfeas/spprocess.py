@@ -1,3 +1,6 @@
+from __future__ import division
+from future.utils import iteritems
+
 import os
 import copy
 import fnmatch
@@ -641,11 +644,11 @@ def run(parameter_object):
         mts.load_status(parameter_object.status_file)
 
         n_corrupt = 0
-        for k, v in mts.status_dict.items():
+        for k, v in list(iteritems(mts.status_dict)):
 
             if isinstance(v, dict):
 
-                for ksub, vsub in v.iteritems():
+                for ksub, vsub in iteritems(v):
 
                     if vsub in ['corrupt', 'incomplete']:
                         n_corrupt += 1

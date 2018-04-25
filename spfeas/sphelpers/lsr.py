@@ -3,7 +3,8 @@
 Adapted from Anil Cheriyadat's MATLAB code
 """
 
-import sys
+from __future__ import division
+from builtins import int
 
 from . import _lsr
 
@@ -69,7 +70,7 @@ class BinQ(object):
         lsfim1 = np.zeros((2, rows, cols), dtype='float32')
         lsfarr = np.zeros((1, 6), dtype='float32')
         
-        for k in xrange(1, len(range(0, 360+45, 45))):  # the range is for 45, ..n, 360, by 45
+        for k in range(1, len(range(0, 360+45, 45))):  # the range is for 45, ..n, 360, by 45
 
             curr_bin = np.where(binidx == k)
 
@@ -96,7 +97,7 @@ class BinQ(object):
         lsfim2 = np.zeros((2, rows, cols), dtype='float32')
 
         # the range is for 22.5, ..n, 337.5, by 45
-        for k in xrange(1, len(list(np.linspace(22.5, 360, num=np.floor((360-22.5)/45.))))):
+        for k in range(1, len(list(np.linspace(22.5, 360, num=np.floor((360-22.5)/45.))))):
         
             curr_bin = np.where(binidx == k)
             
@@ -166,7 +167,7 @@ class BinQ(object):
         # ax.imshow(ori, interpolation='nearest')
         # TEST
 
-        for n in xrange(1, num_objs):
+        for n in range(1, num_objs):
         
             bidx = np.where(ori == n)
 

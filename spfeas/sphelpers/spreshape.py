@@ -3,6 +3,8 @@
 Date Created: 7/2/2013
 """
 
+from __future__ import division
+
 from ..errors import logger
 
 try:

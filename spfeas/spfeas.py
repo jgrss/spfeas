@@ -5,6 +5,10 @@
 Date Created: 9/29/2016
 """
 
+from __future__ import print_function
+from future.utils import iteritems
+from builtins import dict
+
 import os
 import sys
 import argparse
@@ -37,7 +41,7 @@ class SPParameters(object):
 
     def set_defaults(self, **kwargs):
 
-        for k, v in kwargs.iteritems():
+        for k, v in iteritems(kwargs):
             setattr(self, k, v)
 
         # Set the features dictionary.
@@ -110,7 +114,7 @@ class SPParameters(object):
         # Update the feature dictionary for feature neighbors.
         if self.neighbors:
 
-            for key, val in self.features_dict.iteritems():
+            for key, val in iteritems(self.features_dict):
                 self.features_dict[key] *= 5
 
         self.d_name, self.f_name = os.path.split(self.input_image)
@@ -148,7 +152,7 @@ class SPParameters(object):
 
     def update_info(self, **kwargs):
 
-        for k, v in kwargs.iteritems():
+        for k, v in iteritems(kwargs):
             setattr(self, k, v)
 
     def run(self):
@@ -220,7 +224,7 @@ def _raster_options():
     print('Extension  Format')
     print('=========  ======')
 
-    for k, v in DRIVER_DICT.iteritems():
+    for k, v in iteritems(DRIVER_DICT):
         print('{:9}  {}'.format(k, v))
 
     sys.exit()
@@ -256,7 +260,7 @@ def main():
                         choices=utils.SUPPORTED_SENSORS)
     parser.add_argument('--format', dest='format', help='The output raster format',
                         default='GTiff',
-                        choices=DRIVER_DICT.values())
+                        choices=list(DRIVER_DICT.values()))
     parser.add_argument('--block', dest='block', help='The block size', default=2, type=int)
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],

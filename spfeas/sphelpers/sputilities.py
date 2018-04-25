@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+from __future__ import division
+from future.utils import iteritems
+
 import os
 import copy
 import time
@@ -205,7 +208,7 @@ class DictClass(object):
 
     def _convert(self, input_dict):
 
-        for ks, vs in input_dict.iteritems():
+        for ks, vs in iteritems(input_dict):
             setattr(self, ks, vs)
 
     def copy(self):
@@ -213,7 +216,7 @@ class DictClass(object):
 
     def update_info(self, **kwargs):
 
-        for k, v in kwargs.iteritems():
+        for k, v in iteritems(kwargs):
             setattr(self, k, v)
 
 
@@ -252,7 +255,7 @@ def scale_fea_check(parameter_object, is_image=True):
     feature_str = 'ST1-{:03}'.format(parameter_object.band_info['band_count'])
 
     # Get the output image extension.
-    driver_dict_r = {v: k for k, v in raster_tools.DRIVER_DICT.iteritems()}
+    driver_dict_r = {v: k for k, v in iteritems(raster_tools.DRIVER_DICT)}
     image_extension = driver_dict_r[parameter_object.format]
 
     if is_image:

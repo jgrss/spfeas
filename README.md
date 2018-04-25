@@ -10,7 +10,7 @@ remains as a private repository. Please send a [**request via email**](https://g
 Current version
 -----
 
-`0.2.10b`
+`0.3.0b`
 
 Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes.
 
