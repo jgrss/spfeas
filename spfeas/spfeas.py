@@ -6,7 +6,7 @@ Date Created: 9/29/2016
 """
 
 from __future__ import print_function
-from future.utils import iteritems
+from future.utils import viewitems
 from builtins import dict
 
 import os
@@ -41,7 +41,7 @@ class SPParameters(object):
 
     def set_defaults(self, **kwargs):
 
-        for k, v in iteritems(kwargs):
+        for k, v in viewitems(kwargs):
             setattr(self, k, v)
 
         # Set the features dictionary.
@@ -114,7 +114,7 @@ class SPParameters(object):
         # Update the feature dictionary for feature neighbors.
         if self.neighbors:
 
-            for key, val in iteritems(self.features_dict):
+            for key, val in viewitems(self.features_dict):
                 self.features_dict[key] *= 5
 
         self.d_name, self.f_name = os.path.split(self.input_image)
@@ -152,7 +152,7 @@ class SPParameters(object):
 
     def update_info(self, **kwargs):
 
-        for k, v in iteritems(kwargs):
+        for k, v in viewitems(kwargs):
             setattr(self, k, v)
 
     def run(self):
@@ -224,7 +224,7 @@ def _raster_options():
     print('Extension  Format')
     print('=========  ======')
 
-    for k, v in iteritems(DRIVER_DICT):
+    for k, v in viewitems(DRIVER_DICT):
         print('{:9}  {}'.format(k, v))
 
     sys.exit()

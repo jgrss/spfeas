@@ -21,8 +21,8 @@
 """Default ProgressBar widgets."""
 
 from __future__ import division
-from future.utils import iteritems
-from builtins import int
+from future.utils import viewitems
+from builtins import int, dict
 
 import datetime
 import math
@@ -33,7 +33,7 @@ except ImportError:
     AbstractWidget = object
     abstractmethod = lambda fn: fn
 else:
-    AbstractWidget = ABCMeta('AbstractWidget', (object,), {})
+    AbstractWidget = ABCMeta('AbstractWidget', (object,), dict())
 
 
 def format_updatable(updatable, pbar):
@@ -249,8 +249,8 @@ class FormatLabel(Timer):
         self.format_string = format
 
     def update(self, pbar):
-        context = {}
-        for name, (key, transform) in list(iteritems(self.mapping)):
+        context = dict()
+        for name, (key, transform) in viewitems(self.mapping):
             try:
                 value = getattr(pbar, key)
 

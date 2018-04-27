@@ -1,5 +1,5 @@
 from __future__ import division
-from future.utils import iteritems
+from future.utils import viewitems
 
 import os
 import copy
@@ -644,11 +644,11 @@ def run(parameter_object):
         mts.load_status(parameter_object.status_file)
 
         n_corrupt = 0
-        for k, v in list(iteritems(mts.status_dict)):
+        for k, v in viewitems(mts.status_dict):
 
             if isinstance(v, dict):
 
-                for ksub, vsub in iteritems(v):
+                for ksub, vsub in viewitems(v):
 
                     if vsub in ['corrupt', 'incomplete']:
                         n_corrupt += 1
