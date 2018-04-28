@@ -47,6 +47,9 @@ class SPParameters(object):
         if not hasattr(self, 'use_rgb'):
             self.use_rgb = False
 
+        if not hasattr(self, 'neighbors'):
+            self.neighbors = False
+
         # Set the features dictionary.
         self.features_dict = dict(ctr=1,
                                   dmp=5,
