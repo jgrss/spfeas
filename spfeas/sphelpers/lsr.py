@@ -3,7 +3,7 @@
 Adapted from Anil Cheriyadat's MATLAB code
 """
 
-from __future__ import division
+from __future__ import absolute_import, division
 from builtins import int
 
 from . import _lsr

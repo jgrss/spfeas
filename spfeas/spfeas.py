@@ -44,6 +44,9 @@ class SPParameters(object):
         for k, v in viewitems(kwargs):
             setattr(self, k, v)
 
+        if not hasattr(self, 'use_rgb'):
+            self.use_rgb = False
+
         # Set the features dictionary.
         self.features_dict = dict(ctr=1,
                                   dmp=5,

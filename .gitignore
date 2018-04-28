@@ -18,5 +18,4 @@ dist
 .ipynb_checkpoints
 
 # Other
-tests
 spfeas/sphelpers/_hog*
