@@ -4,7 +4,7 @@ Date Created: 7/2/2013
 """
 
 from __future__ import division
-from builtins import int
+from builtins import int, map
 
 import os
 import sys

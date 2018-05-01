@@ -1,0 +1,12 @@
+ALL_FINISHED: 'yes'
+BAND_ORDER:
+  mean: 1-2
+SECTION_SIZE: 1024
+test_image__BD1_BK4_SC8__ST1-002__TL000001:
+  mean-1: complete
+test_image__BD1_BK4_SC8__ST1-002__TL000002:
+  mean-1: complete
+test_image__BD1_BK4_SC8__ST1-002__TL000003:
+  mean-1: complete
+test_image__BD1_BK4_SC8__ST1-002__TL000004:
+  mean-1: complete

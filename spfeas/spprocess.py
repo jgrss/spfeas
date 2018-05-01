@@ -1,5 +1,6 @@
 from __future__ import division
 from future.utils import viewitems
+from builtins import map
 
 import os
 import copy

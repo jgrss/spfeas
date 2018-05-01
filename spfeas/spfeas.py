@@ -36,25 +36,59 @@ class SPParameters(object):
         self.input_image = input_image
         self.output_dir = output_dir
 
+        self.features_dict = None
+        self.out_bands_dict = None
+
+        self.get_defaults()
+
+        # Set the default parameters.
+        for k, v in viewitems(self._defaults):
+            setattr(self, k, v)
+
     def copy(self):
         return copy.copy(self)
 
-    def set_defaults(self, **kwargs):
+    def get_defaults(self):
 
-        for k, v in viewitems(kwargs):
-            setattr(self, k, v)
-
-        if not hasattr(self, 'use_rgb'):
-            self.use_rgb = False
-
-        if not hasattr(self, 'neighbors'):
-            self.neighbors = False
+        self._defaults = dict(format='GTiff',
+                              band_positions=[1],
+                              block=2,
+                              scales=[8],
+                              triggers=['mean'],
+                              hline_threshold=40,
+                              hline_min=10,
+                              hline_gap=2,
+                              weight=False,
+                              sfs_threshold=40,
+                              sfs_skip=4,
+                              sfs_resample=0,
+                              smooth=0,
+                              equalize=False,
+                              equalize_adapt=False,
+                              visualize=False,
+                              convert=False,
+                              use_rgb=False,
+                              vis_order='bgr',
+                              sat_sensor='Quickbird',
+                              stack=False,
+                              full_path=False,
+                              stack_only=False,
+                              neighbors=False,
+                              n_jobs=-1,
+                              reset=False,
+                              image_min=-999,
+                              image_max=-999,
+                              lac_r=2,
+                              section_size=1000,
+                              gdal_cache=256,
+                              overwrite=False,
+                              overviews=False)
 
         # Set the features dictionary.
         self.features_dict = dict(ctr=1,
                                   dmp=5,
                                   fourier=2,
-                                  gabor=8*2,
+                                  gabor=8 * 2,
                                   grad=2,
                                   hough=4,
                                   hog=5,
@@ -72,30 +106,46 @@ class SPParameters(object):
                                   surf=4,
                                   xy=2)
 
+        self._update_bands_dict(self._defaults['scales'])
+
+    def _update_bands_dict(self, scales_list):
+
+        # Set the output bands based on the trigger.
+        self.out_bands_dict = dict(ctr=len(scales_list) * self.features_dict['ctr'],
+                                   dmp=len(scales_list) * self.features_dict['dmp'],
+                                   fourier=len(scales_list) * self.features_dict['fourier'],
+                                   gabor=len(scales_list) * self.features_dict['gabor'],
+                                   grad=len(scales_list) * self.features_dict['grad'],
+                                   hog=len(scales_list) * self.features_dict['hog'],
+                                   hough=len(scales_list) * self.features_dict['hough'],
+                                   lac=len(scales_list) * self.features_dict['lac'],
+                                   lbp=len(scales_list) * self.features_dict['lbp'],
+                                   lbpm=len(scales_list) * self.features_dict['lbpm'],
+                                   lsr=len(scales_list) * self.features_dict['lsr'],
+                                   mean=len(scales_list) * self.features_dict['mean'],
+                                   orb=len(scales_list) * self.features_dict['orb'],
+                                   pantex=len(scales_list) * self.features_dict['pantex'],
+                                   saliency=len(scales_list) * self.features_dict['saliency'],
+                                   seg=len(scales_list) * self.features_dict['seg'],
+                                   sfs=len(scales_list) * self.features_dict['sfs'],
+                                   sfsorf=len(scales_list) * self.features_dict['sfsorf'],
+                                   surf=len(scales_list) * self.features_dict['surf'],
+                                   xy=len(scales_list) * self.features_dict['xy'])
+
+    def set_params(self, **kwargs):
+
+        """
+        Sets user-defined parameters
+        """
+
+        for k, v in viewitems(kwargs):
+            setattr(self, k, v)
+
         for vi in utils.SUPPORTED_VIS:
             self.features_dict[vi.lower()] = 2
 
-        # Set the output bands based on the trigger.
-        self.out_bands_dict = dict(ctr=len(self.scales)*self.features_dict['ctr'],
-                                   dmp=len(self.scales)*self.features_dict['dmp'],
-                                   fourier=len(self.scales)*self.features_dict['fourier'],
-                                   gabor=len(self.scales)*self.features_dict['gabor'],
-                                   grad=len(self.scales)*self.features_dict['grad'],
-                                   hog=len(self.scales)*self.features_dict['hog'],
-                                   hough=len(self.scales)*self.features_dict['hough'],
-                                   lac=len(self.scales)*self.features_dict['lac'],
-                                   lbp=len(self.scales)*self.features_dict['lbp'],
-                                   lbpm=len(self.scales)*self.features_dict['lbpm'],
-                                   lsr=len(self.scales)*self.features_dict['lsr'],
-                                   mean=len(self.scales)*self.features_dict['mean'],
-                                   orb=len(self.scales)*self.features_dict['orb'],
-                                   pantex=len(self.scales)*self.features_dict['pantex'],
-                                   saliency=len(self.scales)*self.features_dict['saliency'],
-                                   seg=len(self.scales)*self.features_dict['seg'],
-                                   sfs=len(self.scales)*self.features_dict['sfs'],
-                                   sfsorf=len(self.scales)*self.features_dict['sfsorf'],
-                                   surf=len(self.scales)*self.features_dict['surf'],
-                                   xy=len(self.scales)*self.features_dict['xy'])
+        if 'scales' in kwargs:
+            self._update_bands_dict(self.scales)
 
         for vi in utils.SUPPORTED_VIS:
             self.out_bands_dict[vi.lower()] = len(self.scales) * self.features_dict[vi.lower()]
@@ -169,7 +219,7 @@ def spatial_features(input_image, output_dir, **kwargs):
     
     spp = SPParameters(input_image, output_dir)
     
-    spp.set_defaults(**kwargs)
+    spp.set_params(**kwargs)
     
     spp.run()
 
@@ -305,7 +355,7 @@ def main():
                         action='store_true')
     parser.add_argument('--n-jobs', dest='n_jobs', help='The number of parallel jobs for sections',
                         default=-1, type=int)
-    parser.add_argument('--sect-size', dest='section_size', help='The section size', default=1024, type=int)
+    parser.add_argument('--sect-size', dest='section_size', help='The section size', default=1000, type=int)
     parser.add_argument('--gdal-cache', dest='gdal_cache', help='The GDAL cache size (MB)', default=256, type=int)
     parser.add_argument('--reset', dest='reset', help='Whether to reset section memory', action='store_true')
     parser.add_argument('--overwrite', dest='overwrite', help='Whether to overwrite output files', action='store_true')

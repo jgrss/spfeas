@@ -31,7 +31,7 @@ with open('LICENSE.txt') as f:
 with open('AUTHORS.txt') as f:
     author_file = f.read()
 
-required_packages = ['matplotlib>=2.0',
+required_packages = ['matplotlib>=2.0.0',
                      'psutil>=4.3.1',
                      'joblib>=0.11.0',
                      'BeautifulSoup4>=4.5.1',
@@ -39,24 +39,24 @@ required_packages = ['matplotlib>=2.0',
                      'colorama>=0.3.7',
                      'xmltodict',
                      'retrying',
+                     'future',
                      'PySAL>=1.11.2',
-                     'six>=1.10.0']
+                     'six>=1.11.0']
 
 if platform.system() != 'Windows':
 
-    for pkg in ['numpy>=1.13.0',
+    for pkg in ['numpy>=1.14.0',
                 'scipy>=0.19.0',
                 'scikit-image>=0.13',
                 'Rtree>=0.8.2',
                 'gdal>=2.1',
                 'numexpr>=2.6.2',
                 'tables>=3.4.2',
-                'bottleneck>=1.2.0',
                 'statsmodels>=0.8.0',
-                'opencv-python>=3.2',
-                'cython>=0.26',
-                'scikit-learn>=0.18.1',
-                'pandas>=0.20.0']:
+                'opencv-python>=3.4.0',
+                'cython>=0.28.0',
+                'scikit-learn>=0.19.0',
+                'pandas>=0.22.0']:
 
         required_packages.append(pkg)
 
@@ -74,7 +74,13 @@ def get_package_data():
     return {'': ['*.md', '*.txt'],
             'spfeas': ['sphelpers/*.pyx',
                        'notebooks/*.ipynb',
-                       'notebooks/*.png']}
+                       'notebooks/*.png',
+                       'data/*.tif',
+                       'data/*.tfw',
+                       'data/_features/*.yaml',
+                       'data/_features/*.txt',
+                       'data/_features/*.vrt',
+                       'data/_features/test_image__BD1_BK4_SC8_TRmean/*.tif']}
 
 
 def get_console_dict():

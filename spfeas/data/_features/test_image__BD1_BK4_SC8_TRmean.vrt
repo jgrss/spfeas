@@ -1,0 +1,44 @@
+<VRTDataset rasterXSize="292" rasterYSize="170">
+                          <SRS>PROJCS["TM_Rwanda",GEOGCS["GCS_ITRF_2005",DATUM["International_Terrestrial_Reference_Frame_2005",SPHEROID["GRS 1980",6378137,298.2572221010042,AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6896"]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",30],PARAMETER["scale_factor",0.9999],PARAMETER["false_easting",500000],PARAMETER["false_northing",5000000],UNIT["metre",1,AUTHORITY["EPSG","9001"]]]</SRS>
+                          <GeoTransform>2951.5, 4.0, 0.0, -2873.5, 0.0, -4.0</GeoTransform>
+ <VRTRasterBand dataType="Float32" band="1">
+                                   <NoDataValue>0</NoDataValue>
+                                   <ColorInterp>Gray</ColorInterp>
+  <ComplexSource>
+                            <SourceFilename relativeToVRT="1">test_image__BD1_BK4_SC8_TRmean/test_image__BD1_BK4_SC8__ST1-002__TL000002.tif</SourceFilename>
+                            <SourceBand>1</SourceBand>
+                            <SourceProperties RasterXSize="37" RasterYSize="170" DataType="Float32" BlockXSize="256" BlockYSize="256" />
+                            <SrcRect xOff="0" yOff="0" xSize="37" ySize="170" />
+                            <DstRect xOff="255" yOff="0" xSize="37" ySize="170" />
+                            <NODATA>0</NODATA>
+                           </ComplexSource>
+    <ComplexSource>
+                            <SourceFilename relativeToVRT="1">test_image__BD1_BK4_SC8_TRmean/test_image__BD1_BK4_SC8__ST1-002__TL000001.tif</SourceFilename>
+                            <SourceBand>1</SourceBand>
+                            <SourceProperties RasterXSize="255" RasterYSize="170" DataType="Float32" BlockXSize="256" BlockYSize="256" />
+                            <SrcRect xOff="0" yOff="0" xSize="255" ySize="170" />
+                            <DstRect xOff="0" yOff="0" xSize="255" ySize="170" />
+                            <NODATA>0</NODATA>
+                           </ComplexSource>
+  </VRTRasterBand>
+ <VRTRasterBand dataType="Float32" band="2">
+                                   <NoDataValue>0</NoDataValue>
+                                   <ColorInterp>Gray</ColorInterp>
+  <ComplexSource>
+                            <SourceFilename relativeToVRT="1">test_image__BD1_BK4_SC8_TRmean/test_image__BD1_BK4_SC8__ST1-002__TL000002.tif</SourceFilename>
+                            <SourceBand>2</SourceBand>
+                            <SourceProperties RasterXSize="37" RasterYSize="170" DataType="Float32" BlockXSize="256" BlockYSize="256" />
+                            <SrcRect xOff="0" yOff="0" xSize="37" ySize="170" />
+                            <DstRect xOff="255" yOff="0" xSize="37" ySize="170" />
+                            <NODATA>0</NODATA>
+                           </ComplexSource>
+    <ComplexSource>
+                            <SourceFilename relativeToVRT="1">test_image__BD1_BK4_SC8_TRmean/test_image__BD1_BK4_SC8__ST1-002__TL000001.tif</SourceFilename>
+                            <SourceBand>2</SourceBand>
+                            <SourceProperties RasterXSize="255" RasterYSize="170" DataType="Float32" BlockXSize="256" BlockYSize="256" />
+                            <SrcRect xOff="0" yOff="0" xSize="255" ySize="170" />
+                            <DstRect xOff="0" yOff="0" xSize="255" ySize="170" />
+                            <NODATA>0</NODATA>
+                           </ComplexSource>
+  </VRTRasterBand>
+</VRTDataset>
