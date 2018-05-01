@@ -34,12 +34,12 @@ git clone https://github.com/jgrss/spfeas.git
 - If you previously cloned the SpFeas repository, update it with the commands below.
 
 ```bash
-cd spfeas/
+cd <location where you saved SpFeas>/spfeas/
 git pull origin master
 ```
 
 - Install the cloned repository
-- *`cd spfeas/`, if necessary
+- *`cd <location where you saved SpFeas>/spfeas/`, if necessary
 
 ```bash
 python setup.py build && python setup.py install
@@ -73,15 +73,23 @@ where spfeas
 Testing the installation
 -----
 
+In a Python interpreter:
+
 ```python
-import spfeas
-spfeas.test_features()
+>>> import spfeas
+>>> spfeas.test_features()
 ```
 
-or
+In a terminal or CMD window:
 
 ```bash
 python -c "import spfeas;spfeas.test_features()"
+```
+
+or with Python 3.x
+
+```bash
+python3 -c "import spfeas;spfeas.test_features()"
 ```
 
 You should see `SpFeas tests were OK.` if SpFeas ran as expected.
