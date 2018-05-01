@@ -166,7 +166,7 @@ def set_yaml_file(parameter_object):
         parameter_object (class)
     """
 
-    band_pos_str = map(str, parameter_object.band_positions)
+    band_pos_str = list(map(str, parameter_object.band_positions))
 
     if band_pos_str[0] in ['rgb', 'bgr']:
         band_pos_str = '-{}'.format(band_pos_str[0])
@@ -177,7 +177,7 @@ def set_yaml_file(parameter_object):
                         '{}__BD{}_BK{:d}_SC{}_TR{}.yaml'.format(parameter_object.f_base,
                                                                 band_pos_str,
                                                                 parameter_object.block,
-                                                                '-'.join(map(str, parameter_object.scales)),
+                                                                '-'.join(list(map(str, parameter_object.scales))),
                                                                 '-'.join(parameter_object.triggers)))
 
 
@@ -251,7 +251,7 @@ def scale_fea_check(parameter_object, is_image=True):
     if isinstance(band_pos_str, str):
         band_pos_str = '-' + band_pos_str
     else:
-        band_pos_str = '-'.join(map(str, band_pos_str))
+        band_pos_str = '-'.join(list(map(str, band_pos_str)))
 
     feature_str = 'ST1-{:03}'.format(parameter_object.band_info['band_count'])
 
@@ -267,7 +267,7 @@ def scale_fea_check(parameter_object, is_image=True):
                                '{}__BD{}_BK{:d}_SC{}__{}__{}{}'.format(parameter_object.f_base,
                                                                        band_pos_str,
                                                                        parameter_object.block,
-                                                                       '-'.join(map(str, parameter_object.scales)),
+                                                                       '-'.join(list(map(str, parameter_object.scales))),
                                                                        feature_str,
                                                                        section_counter_,
                                                                        image_extension))
@@ -283,7 +283,7 @@ def scale_fea_check(parameter_object, is_image=True):
         search_wildcard = '{}__BD{}_BK{:d}_SC{}__{}__*{}'.format(parameter_object.f_base,
                                                                  band_pos_str,
                                                                  parameter_object.block,
-                                                                 '-'.join(map(str, parameter_object.scales)),
+                                                                 '-'.join(list(map(str, parameter_object.scales))),
                                                                  feature_str,
                                                                  image_extension)
 

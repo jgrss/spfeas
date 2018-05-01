@@ -591,9 +591,7 @@ def run(parameter_object):
                         else:
                             parallel_chunk_end = parallel_chunk + (parameter_object.n_sects - parallel_chunk) + 1
 
-                        results = map(_section_read_write,
-                                      range(parallel_chunk,
-                                            parallel_chunk_end))
+                        results = list(map(_section_read_write, range(parallel_chunk, parallel_chunk_end)))
 
                         # results = pool.map(_section_read_write,
                         #                    range(parallel_chunk,

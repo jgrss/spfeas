@@ -228,8 +228,8 @@ def _get_out_dims(section_rows, section_cols, parameter_object):
                                parameter_object.scales[-1])
 
     # get the number of output row and columns for each chunk
-    oR = map(get_out_rows, bd_idx, [parameter_object.block]*len(bd_idx), [parameter_object.scales[-1]]*len(bd_idx))
-    oC = map(get_out_cols, bd_idx, [parameter_object.block]*len(bd_idx), [parameter_object.scales[-1]]*len(bd_idx))
+    oR = list(map(get_out_rows, bd_idx, [parameter_object.block]*len(bd_idx), [parameter_object.scales[-1]]*len(bd_idx)))
+    oC = list(map(get_out_cols, bd_idx, [parameter_object.block]*len(bd_idx), [parameter_object.scales[-1]]*len(bd_idx)))
 
     # get the output section row and column size
     iR, jR = 0, 0
