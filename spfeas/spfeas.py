@@ -132,6 +132,27 @@ class SPParameters(object):
                                    surf=len(scales_list) * self.features_dict['surf'],
                                    xy=len(scales_list) * self.features_dict['xy'])
 
+    def _crosscheck_sensor(self):
+
+        for trigger in self.triggers:
+
+            if trigger.upper() in utils.SUPPORTED_VIS:
+
+                all_in = True
+
+                for wv in utils.VI_WAVELENGTHS:
+
+                    # Check the sensor bands.
+                    if wv not in utils.SENSOR_BAND_DICT[self.sat_sensor]:
+
+                        all_in = False
+                        break
+
+                if not all_in:
+
+                    logger.error('  The satellite sensor does not support the requested spectral indices.')
+                    raise NameError
+
     def set_params(self, **kwargs):
 
         """
@@ -140,6 +161,15 @@ class SPParameters(object):
 
         for k, v in viewitems(kwargs):
             setattr(self, k, v)
+
+        if self.sat_sensor not in utils.SENSOR_BAND_DICT:
+
+            logger.error('  The satellite sensor, {}, is not supported'.format(self.sat_sensor))
+            raise NameError
+
+        # Check spectral indices
+        #   against the sensor.
+        self._crosscheck_sensor()
 
         for vi in utils.SUPPORTED_VIS:
             self.features_dict[vi.lower()] = 2
