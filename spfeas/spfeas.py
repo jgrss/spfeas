@@ -138,17 +138,12 @@ class SPParameters(object):
 
             if trigger.upper() in utils.SUPPORTED_VIS:
 
-                all_in = True
+                vi_wvs = utils.VI_WAVELENGTHS[trigger.upper()]
+                sensor_wvs = list(utils.SENSOR_BAND_DICT[self.sat_sensor])
 
-                for wv in utils.VI_WAVELENGTHS:
+                wvs_diff = list(set(vi_wvs).difference(set(sensor_wvs)))
 
-                    # Check the sensor bands.
-                    if wv not in utils.SENSOR_BAND_DICT[self.sat_sensor]:
-
-                        all_in = False
-                        break
-
-                if not all_in:
+                if wvs_diff:
 
                     logger.error('  The satellite sensor does not support the requested spectral indices.')
                     raise NameError

@@ -41,8 +41,10 @@ def write_log(parameter_object):
     # Setup the log file.
     if os.path.isfile(parameter_object.log_txt):
 
-        with open(parameter_object.log_txt, 'rb') as log_txt_wr:
+        with open(parameter_object.log_txt, 'r') as log_txt_wr:
             starter = log_txt_wr.readlines()
+
+        os.remove(parameter_object.log_txt)
 
     else:
         starter = list()
@@ -63,7 +65,7 @@ def write_log(parameter_object):
                              '{} perform histogram equalization\n'.format(parameter_object.write_equalize),
                              '{} perform adaptive histogram equalization\n'.format(parameter_object.write_equalize_adapt)]
 
-    with open(parameter_object.log_txt, 'wb') as log_txt_wr:
+    with open(parameter_object.log_txt, 'w') as log_txt_wr:
         log_txt_wr.writelines(lines2write)
 
 
@@ -593,7 +595,8 @@ class ManageStatus(object):
         # if not isinstance(self.status_dict, dict):
         #     logger.error('  The loaded object was not a dictionary.')
 
-    def _load_status(self, status2load):
+    @staticmethod
+    def _load_status(status2load):
 
         """Open the file in 'read' mode"""
 
@@ -616,7 +619,8 @@ class ManageStatus(object):
         with open(status2dump, 'wb') as pf:
 
             pf.write(yaml.dump(self.status_dict,
-                               default_flow_style=False))
+                               default_flow_style=False,
+                               encoding='utf-8'))
 
 
 def create_outputs(parameter_object, new_feas_list, image_info):

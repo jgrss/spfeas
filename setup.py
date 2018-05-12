@@ -80,7 +80,8 @@ def get_package_data():
                        'data/_features/*.yaml',
                        'data/_features/*.txt',
                        'data/_features/*.vrt',
-                       'data/_features/test_image__BD1_BK4_SC8_TRmean/*.tif']}
+                       'data/_features/test_image__BD1_BK4_SC8_TRmean/*.tif',
+                       'data/shp/*.tif']}
 
 
 def get_console_dict():
