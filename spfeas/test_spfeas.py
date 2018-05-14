@@ -73,6 +73,7 @@ def test_features():
     if not np.allclose(test_band2, good_band2):
         logger.error('  Band 2 did not match the test.')
 
+    logger.info('')
     logger.info('  SpFeas tests were OK.')
 
     shutil.rmtree(test_features_dir)
