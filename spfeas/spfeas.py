@@ -331,7 +331,8 @@ def main():
     parser.add_argument('-o', '--output', dest='output', help='The output directory', default=None)
     parser.add_argument('-bp', '--band-positions', dest='band_positions', help='The bands to process',
                         default=[1], type=int, nargs='+')
-    parser.add_argument('--rgb', dest='use_rgb', help='Whether to use the full RGB spectrum in place of -bp',
+    parser.add_argument('--rgb', dest='use_rgb',
+                        help='Whether to use the RGB spectrum 3-band average (*overrides -bp/--band-positions and reduces the visible spectrum to 1 channel)',
                         action='store_true')
     parser.add_argument('--vis-order', dest='vis_order',
                         help='The visible spectrum (red, green, blue) band order (Only required with -tr saliency)',
