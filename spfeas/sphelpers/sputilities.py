@@ -16,17 +16,29 @@ from mpglue import utils
 
 import numpy as np
 
+# GDAL
+try:
+    from osgeo import gdal
+except:
+
+    logger.error('GDAL must be installed')
+    raise ImportError
+
 # YAML
 try:
     import yaml
-except ImportError:
-    raise ImportError('YAML must be installed')
+except:
+
+    logger.error('YAML must be installed')
+    raise ImportError
 
 # retry
 try:
     from retrying import retry
 except:
-    raise ImportError('retrying must be installed')
+
+    logger.error('retrying must be installed')
+    raise ImportError
 
 
 def write_log(parameter_object):
@@ -311,69 +323,45 @@ def stack_features(parameter_object, new_feas_list):
 
             parameter_object.update_info(band_position=band_p)
 
-            # Get feature names
-            obds = 1
-            for scale in parameter_object.scales:
+            for sect_counter in range(1, parameter_object.n_sects+1):
 
-                parameter_object.update_info(scale=scale)
+                parameter_object.update_info(section_counter=sect_counter)
 
-                for feature in xrange(1, parameter_object.features_dict[trigger]+1):
+                parameter_object = scale_fea_check(parameter_object)
 
-                    parameter_object.update_info(feature=feature)
+                # skip the feature if it doesn't exist
+                if not os.path.isfile(parameter_object.out_img):
+                    continue
 
-                    parameter_object = scale_fea_check(parameter_object)
-
-                    # skip the feature if it doesn't exist
-                    if not os.path.isfile(parameter_object.out_img):
-                        continue
-
-                    new_feas_list.append(parameter_object.out_img)
-
-                    obds += 1
-
-    scs_str = [str(sc) for sc in parameter_object.scales]
-    band_pos_str = [str(bp) for bp in parameter_object.band_positions]
+                new_feas_list.append(parameter_object.out_img)
 
     # write band list to text
-    fea_list_txt = os.path.join(parameter_object.output_dir,
-                                '{}.{}.stk.bd{}.block{}.scales{}_fea_list.txt'.format(parameter_object.f_base,
-                                                                                      '-'.join(parameter_object.triggers),
-                                                                                      '-'.join(band_pos_str),
-                                                                                      parameter_object.block,
-                                                                                      '-'.join(scs_str)))
+    fea_list_txt = parameter_object.status_file.replace('.yaml', '_feature_list.txt')
 
     # remove stacked VRT list
     if os.path.isfile(fea_list_txt):
         os.remove(fea_list_txt)
 
-    with open(fea_list_txt, 'wb') as fea_list_txt_wr:
+    with open(fea_list_txt, 'w') as fea_list_txt_wr:
 
         fea_list_txt_wr.write('Layer Name\n')
 
         for fea_ctr, fea_name in enumerate(new_feas_list):
             fea_list_txt_wr.write('{:d} {}\n'.format(fea_ctr+1, fea_name))
 
-    # stack features here
-    out_vrt = os.path.join(parameter_object.output_dir,
-                           '{}.{}.stk.bd{}.block{}.scales{}.vrt'.format(parameter_object.f_base,
-                                                                        '-'.join(parameter_object.triggers),
-                                                                        '-'.join(band_pos_str),
-                                                                        parameter_object.block,
-                                                                        '-'.join(scs_str)))
-
-    if os.path.isfile(out_vrt):
-        os.remove(out_vrt)
+    vrt_mosaic = parameter_object.status_file.replace('.yaml', '.vrt')
 
     stack_dict = dict()
 
     for ni, new_feas in enumerate(new_feas_list):
         stack_dict[str(ni+1)] = [new_feas]
 
-    logger.info('Stacking variables ...')
+    logger.info('  Stacking variables ...')
 
-    vrt_builder(stack_dict, out_vrt, force_type='float32', be_quiet=True)
+    gdal.BuildVRT(vrt_mosaic,
+                  new_feas_list)
 
-    parameter_object.update_info(out_vrt=out_vrt)
+    parameter_object.update_info(out_vrt=vrt_mosaic)
 
     return parameter_object
 
@@ -514,11 +502,11 @@ def convert_rgb2gray(i_info, i_sect, j_sect, n_rows, n_cols, the_sensor, stats=F
         # im_min = 1000000
         # im_max = -1000000
         #
-        # for i_ in xrange(0, i_info.rows, 512):
+        # for i_ in range(0, i_info.rows, 512):
         #
         #     n_rows_ = raster_tools.n_rows_cols(i_, 512, i_info.rows)
         #
-        #     for j_ in xrange(0, i_info.cols, 512):
+        #     for j_ in range(0, i_info.cols, 512):
         #
         #         n_cols_ = raster_tools.n_rows_cols(j_, 512, i_info.cols)
         #
@@ -909,9 +897,9 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (pad_len, 0)), 'wrap')
-                                            for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                                   n_rows + pad_len,
-                                                                                                   n_cols + pad_len)
+                                            for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                                  n_rows + pad_len,
+                                                                                                  n_cols + pad_len)
 
             else:
                 array_section = np.pad(array_section, ((pad_len, 0), (pad_len, 0)), 'wrap')
@@ -923,8 +911,8 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (0, 0)), 'wrap')
-                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                             n_rows + pad_len, n_cols)
+                                      for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                            n_rows + pad_len, n_cols)
 
             else:
                 array_section = np.pad(array_section, ((pad_len, 0), (0, 0)), 'wrap')
@@ -935,9 +923,9 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (0, pad_len)), 'wrap')
-                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                       n_rows + pad_len,
-                                                                                       n_cols + pad_len)
+                                      for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                            n_rows + pad_len,
+                                                                                            n_cols + pad_len)
 
             else:
                 array_section = np.pad(array_section, ((pad_len, 0), (0, pad_len)), 'wrap')
@@ -949,9 +937,9 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((pad_len, 0), (pad_len, 0)), 'wrap')
-                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                       n_rows + pad_len,
-                                                                                       n_cols + pad_len)
+                                      for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                            n_rows + pad_len,
+                                                                                            n_cols + pad_len)
 
             else:
                 array_section = np.pad(array_section, ((0, 0), (pad_len, 0)), 'wrap')
@@ -963,8 +951,9 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((0, 0), (0, pad_len)), 'wrap')
-                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                       n_rows, n_cols + pad_len)
+                                      for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                            n_rows,
+                                                                                            n_cols + pad_len)
 
             else:
                 array_section = np.pad(array_section, ((0, 0), (0, pad_len)), 'wrap')
@@ -976,9 +965,9 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((0, pad_len), (pad_len, 0)), 'wrap')
-                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                       n_rows + pad_len,
-                                                                                       n_cols + pad_len)
+                                      for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                            n_rows + pad_len,
+                                                                                            n_cols + pad_len)
 
             else:
                 array_section = np.pad(array_section, ((0, pad_len), (pad_len, 0)), 'wrap')
@@ -990,8 +979,9 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((0, pad_len), (0, 0)), 'wrap')
-                                      for pos in xrange(0, array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                       n_rows + pad_len, n_cols)
+                                      for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                            n_rows + pad_len,
+                                                                                            n_cols)
 
             else:
                 array_section = np.pad(array_section, ((0, pad_len), (0, 0)), 'wrap')
@@ -1003,10 +993,9 @@ def pad_array(parameter_object, array_section, n_rows, n_cols):
             if parameter_object.trigger == 'dmp':
 
                 array_section = np.asarray([np.pad(array_section[pos], ((0, pad_len), (0, pad_len)), 'wrap')
-                                      for pos in xrange(0,
-                                                        array_section.shape[0])]).reshape(array_section.shape[0],
-                                                                                    n_rows + pad_len,
-                                                                                    n_cols + pad_len)
+                                      for pos in range(0, array_section.shape[0])]).reshape(array_section.shape[0],
+                                                                                            n_rows + pad_len,
+                                                                                            n_cols + pad_len)
 
             else:
                 array_section = np.pad(array_section, ((0, pad_len), (0, pad_len)), 'wrap')

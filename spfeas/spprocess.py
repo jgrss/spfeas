@@ -425,10 +425,25 @@ def run(parameter_object):
 
     if parameter_object.stack_only:
 
+        with raster_tools.ropen(parameter_object.input_image) as i_info:
+
+            # Get image statistics.
+            parameter_object = sputilities.get_stats(i_info, parameter_object)
+
+            # Get the section size.
+            parameter_object = sputilities.get_section_size(i_info, parameter_object)
+
+            # Get the number of sections in
+            #   the image (only used as a counter).
+            parameter_object = sputilities.get_n_sects(i_info, parameter_object)
+
+        i_info = None
+
         new_feas_list = list()
 
         # If prompted, stack features without processing.
-        parameter_object = sputilities.stack_features(parameter_object, new_feas_list)
+        parameter_object = sputilities.stack_features(parameter_object,
+                                                      new_feas_list)
 
     else:
 

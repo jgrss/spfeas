@@ -237,11 +237,11 @@ def _get_out_dims(section_rows, section_cols, parameter_object):
     
     out_rows, out_cols = [], []
     
-    for i in xrange(0, section_rows, parameter_object.chunk_size-(parameter_object.scales[-1]-parameter_object.block)):
+    for i in range(0, section_rows, parameter_object.chunk_size-(parameter_object.scales[-1]-parameter_object.block)):
     
         out_rows.append(oR[iR])
         
-        for j in xrange(0, section_cols, parameter_object.chunk_size-(parameter_object.scales[-1]-parameter_object.block)):
+        for j in range(0, section_cols, parameter_object.chunk_size-(parameter_object.scales[-1]-parameter_object.block)):
         
             if colsR:
                 out_cols.append(oC[jR])
@@ -273,7 +273,7 @@ def sfs_orfeo(parameter_object):
     with raster_tools.ropen(parameter_object.out_img) as i_info:
 
         # 6 layers
-        for bd in xrange(1, i_info.bands+1):
+        for bd in range(1, i_info.bands+1):
 
             raster_tools.translate(parameter_object.out_img,
                                    parameter_object.out_img.replace('.tif', '.vrt'),
