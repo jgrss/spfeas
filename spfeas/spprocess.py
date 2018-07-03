@@ -599,22 +599,23 @@ def run(parameter_object):
                                                 parameter_object.n_sects+parameter_object.n_jobs,
                                                 parameter_object.n_jobs):
 
-                        # pool = multi.Pool(processes=parameter_object.n_jobs)
-
                         if parallel_chunk + parameter_object.n_jobs < parameter_object.n_sects:
                             parallel_chunk_end = parallel_chunk + parameter_object.n_jobs
                         else:
                             parallel_chunk_end = parallel_chunk + (parameter_object.n_sects - parallel_chunk) + 1
 
-                        results = list(map(_section_read_write, range(parallel_chunk, parallel_chunk_end)))
+                        # Testing
+                        # results = list(map(_section_read_write, range(parallel_chunk, parallel_chunk_end)))
 
-                        # results = pool.map(_section_read_write,
-                        #                    range(parallel_chunk,
-                        #                          parallel_chunk_end))
-                        #
-                        # pool.close()
-                        # pool.join()
-                        # del pool
+                        pool = multi.Pool(processes=parameter_object.n_jobs)
+
+                        results = pool.map(_section_read_write,
+                                           range(parallel_chunk,
+                                                 parallel_chunk_end))
+
+                        pool.close()
+                        pool.join()
+                        pool = None
 
                         logger.info('  Updating status ...')
 
