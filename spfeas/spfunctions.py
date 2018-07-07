@@ -8,6 +8,8 @@ from .sphelpers.gabor_filter_bank import prep_gabor
 from .sphelpers import lsr
 from .sphelpers._stats import fill_labels, fill_key_points
 
+from mpglue.stats._rolling_stats import rolling_stats
+
 try:
     from skimage.exposure import rescale_intensity
     from skimage.feature import hog as HOG
@@ -469,7 +471,7 @@ def get_dmp(bd, image_min, image_max, ses=None):
     """
 
     if not ses:
-        ses = [3, 5, 7, 9, 11]
+        ses = [3, 5, 7, 9, 11, 13, 15]
 
     if bd.dtype != 'uint8':
 
@@ -525,19 +527,28 @@ def get_dmp(bd, image_min, image_max, ses=None):
 
         dmp_counter += 1
 
+    return np.uint8(np.gradient(dmp_array, axis=0).mean(axis=0))
+
+    # Reshape to [dims x samples].
+    # X_min, X_max = rolling_stats(dmp_array.transpose(1, 2, 0).reshape(section_rows*section_cols, dims).T,
+    #                              stat='slope',
+    #                              window_size=dims)
+
+    # return np.uint8(X_max.reshape(section_rows, section_cols))
+
     # Reshape to [samples X dimensions].
-    dmp_array = dmp_array.reshape(dims,
-                                  section_rows,
-                                  section_cols).transpose(1, 2, 0).reshape(section_rows*section_cols,
-                                                                           dims)
+    # dmp_array = dmp_array.reshape(dims,
+    #                               section_rows,
+    #                               section_cols).transpose(1, 2, 0).reshape(section_rows*section_cols,
+    #                                                                        dims)
 
     # Get the derivative of the
     #   morphological openings
     #   and closings.
-    return np.uint8(np.gradient(dmp_array,
-                                axis=1).T.reshape(dims,
-                                                  section_rows,
-                                                  section_cols))
+    # return np.uint8(np.gradient(dmp_array,
+    #                             axis=1).T.reshape(dims,
+    #                                               section_rows,
+    #                                               section_cols))
 
     # Reshape to [samples X dimensions] and
     #   get the slope for each sample.

@@ -14,7 +14,7 @@ except:
 import numpy as np
 
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 spfeas_name = 'SpFeas'
 maintainer = 'Jordan Graesser'

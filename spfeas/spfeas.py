@@ -86,9 +86,9 @@ class SPParameters(object):
 
         # Set the features dictionary.
         self.features_dict = dict(ctr=1,
-                                  dmp=5,
+                                  dmp=2,
                                   fourier=2,
-                                  gabor=8 * 2,
+                                  gabor=8*2,
                                   grad=2,
                                   hough=4,
                                   hog=5,
@@ -347,7 +347,7 @@ def main():
     parser.add_argument('--scales', dest='scales', help='The scales', default=[8], type=int, nargs='+')
     parser.add_argument('-tr', '--triggers', dest='triggers', help='The feature triggers', default=['mean'],
                         nargs='+', choices=['dmp', 'fourier', 'gabor', 'grad', 'hog', 'lac',
-                                            'lbp', 'lbpm', 'lsr', 'mean', 'orb',
+                                            'lbpm', 'lsr', 'mean', 'orb',
                                             'pantex', 'saliency', 'seg', 'sfs'] +
                                            [vi.lower() for vi in utils.SUPPORTED_VIS])
     parser.add_argument('-lth', '--hline-threshold', dest='hline_threshold', help='The Hough line threshold',

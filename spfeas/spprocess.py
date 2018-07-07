@@ -364,7 +364,7 @@ def _section_read_write(section_counter):
         this_parameter_object_.update_info(i_sect_blk_ctr=1,
                                            j_sect_blk_ctr=1)
 
-        if this_parameter_object_.trigger in ['dmp', 'gabor']:
+        if this_parameter_object_.trigger == 'gabor':
             l_rows, l_cols = sect_in[0].shape
         else:
             l_rows, l_cols = sect_in.shape

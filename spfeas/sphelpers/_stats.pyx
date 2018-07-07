@@ -975,7 +975,7 @@ def feature_hog(DTYPE_float32_t[:, ::1] chbd, int blk, list scs, int end_scale):
 
     cdef:
         Py_ssize_t i, j, ki
-        int scales_half = <int>(end_scale / 2.)
+        int scales_half = <int>(end_scale / 2.0)
         int scales_block = end_scale - blk
         int rows = chbd.shape[0]
         int cols = chbd.shape[1]
@@ -999,29 +999,26 @@ def feature_hog(DTYPE_float32_t[:, ::1] chbd, int blk, list scs, int end_scale):
     return np.float32(out_list)
 
 
-cdef void _add_dmps(DTYPE_float32_t[:, :, ::1] ch_bd_array,
-                    int dims,
+cdef void _add_dmps(DTYPE_float32_t[:, ::1] ch_bd_array,
                     int block_rows,
                     int block_cols,
                     DTYPE_float32_t[::1] dmp_vector_array) nogil:
 
     cdef:
-        Py_ssize_t d, ri, cj
+        Py_ssize_t ri, cj
 
-    for d in range(0, dims):
-        for ri in range(0, block_rows):
-            for cj in range(0, block_cols):
-                dmp_vector_array[d] += ch_bd_array[d, ri, cj]
+    for ri in range(0, block_rows):
+        for cj in range(0, block_cols):
+            dmp_vector_array[0] += ch_bd_array[ri, cj]
 
 
-cdef void _feature_dmp(DTYPE_float32_t[:, :, ::1] chbd,
+cdef void _feature_dmp(DTYPE_float32_t[:, ::1] chbd,
                        int blk,
                        DTYPE_uint16_t[::1] scs,
                        int end_scale,
                        int scales_half,
                        int scales_block,
                        int out_len,
-                       int dims,
                        int rows,
                        int cols,
                        int scale_length,
@@ -1030,12 +1027,30 @@ cdef void _feature_dmp(DTYPE_float32_t[:, :, ::1] chbd,
     cdef:
         Py_ssize_t i, j, ki, sti, block_rows, block_cols
         DTYPE_uint16_t k, k_half
-        DTYPE_float32_t[:, :, ::1] ch_bd
+        unsigned int rc_start, rc_end, rc
+        DTYPE_float32_t[:, ::1] ch_bd
         int pix_ctr = 0
-        DTYPE_float32_t[::1] sts = np.zeros(5, dtype='float32')
-        DTYPE_float32_t[::1] sts_ = sts.copy()
-        DTYPE_float32_t[::1] dmp_vector = np.zeros(dims, dtype='float32')
-        DTYPE_float32_t[::1] dmp_vector_ = dmp_vector.copy()
+        #DTYPE_float32_t[::1] sts = np.zeros(5, dtype='float32')
+        #DTYPE_float32_t[::1] sts_ = sts.copy()
+        #DTYPE_float32_t[::1] dmp_vector = np.zeros(1, dtype='float32')
+        #DTYPE_float32_t[::1] dmp_vector_ = dmp_vector.copy()
+        DTYPE_float32_t[:, ::1] dist_weights, dw
+        DTYPE_float32_t[:, :, ::1] dist_weights_stack = np.zeros((scale_length, end_scale*2, end_scale*2), dtype='float32')
+        DTYPE_float32_t[::1] in_zs = np.zeros(2, dtype='float32')
+
+    for ki in range(0, scale_length):
+
+        k = scs[ki]
+        k_half = <int>(k / 2.0)
+
+        rc_start = scales_half - k_half
+        rc_end = scales_half - k_half + k
+
+        rc = rc_end - rc_start
+
+        dist_weights = np.zeros((rc, rc), dtype='float32')
+
+        dist_weights_stack[ki, :rc, :rc] = _create_weights(dist_weights, rc, rc)
 
     with nogil:
 
@@ -1047,46 +1062,46 @@ cdef void _feature_dmp(DTYPE_float32_t[:, :, ::1] chbd,
 
                     k = scs[ki]
 
-                    k_half = <int>(k / 2.)
+                    k_half = <int>(k / 2.0)
 
                     # Get the DMPS.
-                    ch_bd = chbd[:,
-                                 i+scales_half-k_half:i+scales_half-k_half+k,
+                    ch_bd = chbd[i+scales_half-k_half:i+scales_half-k_half+k,
                                  j+scales_half-k_half:j+scales_half-k_half+k]
 
-                    block_rows = ch_bd.shape[1]
-                    block_cols = ch_bd.shape[2]
+                    block_rows = ch_bd.shape[0]
+                    block_cols = ch_bd.shape[1]
 
                     # Add the DMPs for the local scale.
-                    dmp_vector_[...] = dmp_vector
+                    #dmp_vector_[...] = dmp_vector
+                    #_add_dmps(ch_bd, block_rows, block_cols, dmp_vector_)
 
-                    _add_dmps(ch_bd, dims, block_rows, block_cols, dmp_vector_)
+                    dw = dist_weights_stack[ki, :block_rows, :block_cols]
+                    _get_weighted_mean_var(ch_bd, dw, block_rows, block_cols, in_zs)
 
-                    sts_[...] = sts
+                    #sts_[...] = sts
 
                     # Get the DMP vector
                     #   central moments.
-                    _get_moments(dmp_vector_, sts_)
+                    #_get_moments(dmp_vector_, sts_)
 
                     # Fill the output.
-                    for sti in range(0, 5):
+                    for sti in range(0, 2):
 
-                        out_list_[pix_ctr] = sts_[sti]
+                        out_list_[pix_ctr] = in_zs[sti]
 
                         pix_ctr += 1
 
 
-def feature_dmp(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_scale):
+def feature_dmp(DTYPE_float32_t[:, ::1] chbd, int blk, list scs, int end_scale):
 
     cdef:
-        int scales_half = <int>(end_scale / 2.)
+        int scales_half = <int>(end_scale / 2.0)
         int scales_block = end_scale - blk
-        int dims = chbd.shape[0]    # number of Structuring Elements
-        int rows = chbd.shape[1]
-        int cols = chbd.shape[2]
+        int rows = chbd.shape[0]
+        int cols = chbd.shape[1]
         DTYPE_uint16_t[::1] scales_array = np.array(scs, dtype='uint16')
         int scale_length = scales_array.shape[0]
-        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 5)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 2)
         DTYPE_float32_t[::1] out_list = np.zeros(out_len, dtype='float32')
 
     _feature_dmp(chbd,
@@ -1096,7 +1111,6 @@ def feature_dmp(DTYPE_float32_t[:, :, ::1] chbd, int blk, list scs, int end_scal
                  scales_half,
                  scales_block,
                  out_len,
-                 dims,
                  rows,
                  cols,
                  scale_length,
@@ -1704,15 +1718,15 @@ cdef DTYPE_uint8_t[:, :, :] _set_lbp(DTYPE_uint8_t[:, ::1] chbd,
 
         lbp_array = np.uint8(LBP(np.uint8(chbd),
                                  int(p_range[scsc]),
-                                 float(rdict[int(p_range[scsc])]),
+                                 int(rdict[int(p_range[scsc])]),
                                  method='uniform'))
 
-        lbp_bd[scsc, :, :] = lbp_array
+        lbp_bd[scsc, :, :] = lbp_array[...]
 
     return lbp_bd
 
 
-cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd,
+cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chbd,
                                                       int blk,
                                                       list scs,
                                                       int end_scale):
@@ -1720,9 +1734,9 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
     cdef:
         Py_ssize_t i, j, ki, sti
         unsigned int pc, pr_bin_count, k_half
-        int rows = chBd.shape[0]
-        int cols = chBd.shape[1]
-        DTYPE_uint8_t[:, :, ::1] lbpBd
+        int rows = chbd.shape[0]
+        int cols = chbd.shape[1]
+        DTYPE_uint8_t[:, :, ::1] lbp_bd
         DTYPE_uint8_t[:, :, ::1] ch_bd
         unsigned int scales_half = <int>(end_scale / 2.)
         unsigned int scales_block = end_scale - blk
@@ -1737,7 +1751,7 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
         dict rdict	= {4: 1, 8: 1, 16: 2, 32: 4, 64: 8, 128: 16}
 
     # get the LBP images
-    lbpBd = np.ascontiguousarray(_set_lbp(chBd, rows, cols, p_range, rdict))
+    lbp_bd = np.ascontiguousarray(_set_lbp(chbd, rows, cols, p_range, rdict))
 
     # count of bins for all p,r LBP pairs
     pr_bin_count = np.sum([pr+2 for pr in p_range])
@@ -1755,14 +1769,14 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
 
                 k = scales_array[ki]
 
-                k_half = <int>(k / 2.)
+                k_half = <int>(k / 2.0)
 
-                ch_bd = np.ascontiguousarray(np.uint8(lbpBd[:,
-                                                      i+scales_half-k_half:i+scales_half-k_half+k,
-                                                      j+scales_half-k_half:j+scales_half-k_half+k]))
+                ch_bd = np.ascontiguousarray(np.uint8(lbp_bd[:,
+                                                             i+scales_half-k_half:i+scales_half-k_half+k,
+                                                             j+scales_half-k_half:j+scales_half-k_half+k]))
 
                 # get histograms and concatenate
-                sts = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(np.uint8(ch_bd[p_range[pc]]).flat,
+                sts = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(np.uint8(ch_bd[pc]).flat,
                                                                                   minlength=pc+2) for pc in range(0, 3)])))
 
                 for sti in range(0, 4):
@@ -1778,8 +1792,8 @@ cdef np.ndarray[DTYPE_float32_t, ndim=1] _feature_lbp(DTYPE_uint8_t[:, ::1] chBd
     return out_list_a
 
 
-def feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chBd, int blk, list scs, int end_scale):
-    return _feature_lbp(chBd, blk, scs, end_scale)
+def feature_lbp(np.ndarray[DTYPE_uint8_t, ndim=2] chbd, int blk, list scs, int end_scale):
+    return _feature_lbp(chbd, blk, scs, end_scale)
 
 
 cdef void _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd,
@@ -1825,14 +1839,14 @@ cdef void _feature_lbpm(DTYPE_uint8_t[:, ::1] chBd,
 
                 k = scs[ki]
 
-                k_half = <int>(k / 2.)
+                k_half = <int>(k / 2.0)
 
                 ch_bd = np.ascontiguousarray(np.uint8(lbp_bd[:,
-                                                      i+scales_half-k_half:i+scales_half-k_half+k,
-                                                      j+scales_half-k_half:j+scales_half-k_half+k]))
+                                                             i+scales_half-k_half:i+scales_half-k_half+k,
+                                                             j+scales_half-k_half:j+scales_half-k_half+k]))
 
                 # get histograms and concatenate
-                lbp_results = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(np.uint8(ch_bd[p_range[pc]]).flat,
+                lbp_results = np.float32(np.ascontiguousarray(np.concatenate([np.bincount(np.uint8(ch_bd[pc]).flat,
                                                                                           minlength=pc+2)
                                                                               for pc in range(0, 3)])))
 
