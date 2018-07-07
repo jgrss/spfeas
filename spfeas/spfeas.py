@@ -76,8 +76,8 @@ class SPParameters(object):
                               neighbors=False,
                               n_jobs=-1,
                               reset=False,
-                              image_min=-999,
-                              image_max=-999,
+                              image_min=-999.0,
+                              image_max=-999.0,
                               lac_r=2,
                               section_size=1000,
                               gdal_cache=256,
@@ -365,8 +365,8 @@ def main():
                         default=0., type=float)
     parser.add_argument('--lac-r', dest='lac_r', help='The lacunarity box r parameter', default=2, type=int)
     parser.add_argument('--smooth', dest='smooth', help='The smoothing kernel size', default=0, type=int)
-    parser.add_argument('--image-min', dest='image_min', help='A user-defined image minimum', default=-999, type=int)
-    parser.add_argument('--image-max', dest='image_max', help='A user-defined image maximum', default=-999, type=int)
+    parser.add_argument('--image-min', dest='image_min', help='A user-defined image minimum', default=-999.0, type=float)
+    parser.add_argument('--image-max', dest='image_max', help='A user-defined image maximum', default=-999.0, type=float)
     parser.add_argument('--equalize', dest='equalize', help='Whether to do histogram equalization', action='store_true')
     parser.add_argument('--equalize-adapt', dest='equalize_adapt',
                         help='Whether to do adaptive histogram equalization', action='store_true')

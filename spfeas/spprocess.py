@@ -35,6 +35,12 @@ except:
     logger.error('NumPy must be installed')
     raise ImportError
 
+# Scikit-image
+try:
+    from skimage.exposure import rescale_intensity
+except ImportError:
+    raise ImportError('Scikit-learn must be installed')
+
 
 def _write_section2file(this_parameter_object__,
                         meta_info,
@@ -307,10 +313,12 @@ def _section_read_write(section_counter):
                                                rows=n_rows,
                                                cols=n_cols)
 
-            sect_in = get_mag_avg(sect_in)
+            sect_in = np.uint8(rescale_intensity(sect_in,
+                                                 in_range=(this_parameter_object_.image_min,
+                                                           this_parameter_object_.image_max),
+                                                 out_range=(0, 255)))
 
-            this_parameter_object_.update_info(image_min=0,
-                                               image_max=30)
+            sect_in = get_mag_avg(sect_in)
 
         elif this_parameter_object_.use_rgb and this_parameter_object_.trigger \
                 not in this_parameter_object_.spectral_indices + ['grad', 'saliency', 'seg']:

@@ -85,7 +85,7 @@ def get_mag_avg(img):
 
     mag /= len(kernels)
 
-    return mag
+    return np.uint8(mag)
 
 
 def get_mag_ang(img):
@@ -185,7 +185,7 @@ def fourier_transform(ch_bd):
 def feature_fourier(chBd, blk, scs, end_scale):
 
     rows, cols = chBd.shape
-    scales_half = int(end_scale / 2)
+    scales_half = int(end_scale / 2.0)
     scales_blk = end_scale - blk
     out_len = 0
     pix_ctr = 0
@@ -196,20 +196,25 @@ def feature_fourier(chBd, blk, scs, end_scale):
                 out_len += 2
 
     # set the output list
-    out_list = np.zeros(out_len).astype(np.float32)
+    out_list = np.zeros(out_len, dtype='float32')
 
     for i in range(0, rows-scales_blk, blk):
+
         for j in range(0, cols-scales_blk, blk):
+
             for k in scs:
 
-                ch_bd = chBd[i+scales_half-(k/2):i+scales_half-(k/2)+k, j+scales_half-(k/2):j+scales_half-(k/2)+k]
+                k_half = int(k / 2.0)
+
+                ch_bd = chBd[i+scales_half-k_half:i+scales_half-k_half+k,
+                             j+scales_half-k_half:j+scales_half-k_half+k]
 
                 # get the Fourier Transform
                 dft = cv2.dft(np.float32(ch_bd), flags=cv2.DFT_COMPLEX_OUTPUT)
                 dft_shift = np.fft.fftshift(dft)
 
                 # get the Power Spectrum
-                magnitude_spectrum = 20. * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))
+                magnitude_spectrum = 20.0 * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))
 
                 psd1D = azimuthal_avg(magnitude_spectrum)
 
@@ -226,13 +231,13 @@ def feature_fourier(chBd, blk, scs, end_scale):
                 for st in sts:
 
                     if np.isnan(st[0][0]):
-                        out_list[pix_ctr] = 0.
+                        out_list[pix_ctr] = 0.0
                     else:
                         out_list[pix_ctr] = st[0][0]
 
                     pix_ctr += 1
 
-    out_list[np.isnan(out_list) | np.isinf(out_list)] = 0.
+    out_list[np.isnan(out_list) | np.isinf(out_list)] = 0.0
 
     return out_list
 
@@ -485,7 +490,7 @@ def get_dmp(bd, image_min, image_max, ses=None):
     # openings --> last len(ses) bands
     dims = len(ses) * 2
 
-    dmp_array = np.uint8(np.empty((dims, section_rows, section_cols)))
+    dmp_array = np.empty((dims, section_rows, section_cols), dtype='uint8')
 
     # Morphological opening
     for se_size in ses:
@@ -529,12 +534,10 @@ def get_dmp(bd, image_min, image_max, ses=None):
     # Get the derivative of the
     #   morphological openings
     #   and closings.
-    return np.uint8(rescale_intensity(np.gradient(dmp_array,
-                                                  axis=1).T.reshape(dims,
-                                                                    section_rows,
-                                                                    section_cols),
-                                      in_range=(0, 200),
-                                      out_range=(0, 255)))
+    return np.uint8(np.gradient(dmp_array,
+                                axis=1).T.reshape(dims,
+                                                  section_rows,
+                                                  section_cols))
 
     # Reshape to [samples X dimensions] and
     #   get the slope for each sample.
@@ -614,7 +617,7 @@ def convolve_gabor(bd, image_min, image_max, scales):
     #   has 8 orientations.
     out_block = np.empty((8*len(scales),
                           bd.shape[0],
-                          bd.shape[1]), dtype='float32')
+                          bd.shape[1]), dtype='uint8')
 
     ki = 0
 
@@ -631,8 +634,7 @@ def convolve_gabor(bd, image_min, image_max, scales):
 
         for kernel in gabor_kernels:
 
-            # TODO: pad array?
-            out_block[ki] = cv2.filter2D(bd, cv2.CV_32F, kernel)
+            out_block[ki] = cv2.filter2D(bd, cv2.CV_8U, kernel)
 
             ki += 1
 

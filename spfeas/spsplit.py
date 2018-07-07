@@ -432,12 +432,12 @@ def get_section_stats(bd, section_rows, section_cols, parameter_object, section_
         if parameter_object.equalize or parameter_object.equalize_adapt:
 
             bd = np.uint8(rescale_intensity(bd,
-                                            in_range=(0., 1.),
+                                            in_range=(0., 1.0),
                                             out_range=(0, 255)))
 
         # Remove image noise.
         if parameter_object.smooth > 0:
-            bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, .1, .1))
+            bd = np.uint8(cv2.bilateralFilter(bd, parameter_object.smooth, 0.1, 0.1))
 
     # elif parameter_object.trigger == 'lbp':
     #
