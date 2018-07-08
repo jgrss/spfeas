@@ -1,5 +1,5 @@
 SpFeas
------
+---
 
 **SpFeas** is a Python library for processing spatial (contextual) image features from satellite imagery.
 
@@ -7,7 +7,7 @@ SpFeas has been tested on Python `2.7` and `3.x`. It is dependent on [**MpGlue**
 which is used for image I/O and land cover classification. 
 
 Current version
------
+---
 
 `0.3.3`
 
@@ -16,7 +16,7 @@ Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for cha
 All comments and suggestions for improvement are welcome. Please post to the [**issues page**](https://github.com/jgrss/spfeas/issues).
 
 Installation
------
+---
 
 Use _either_ **Option A** (_Recommended_) or **Option B** below to install Spfeas.
 
@@ -54,7 +54,7 @@ SpFeas should now be installed in the Python `/site-packages` directory.
 2) Follow the instructions to install SpFeas for your operating system.
 
 Checking the installation
------
+---
 
 On OSX or Linux, the following line should print something like **/usr/local/bin/spfeas**:
 
@@ -69,7 +69,7 @@ where spfeas
 ```
 
 Testing the installation
------
+---
 
 In a Python interpreter:
 
@@ -93,7 +93,7 @@ python3 -c "import spfeas;spfeas.test_features()"
 You should see `SpFeas tests were OK.` if SpFeas ran as expected.
 
 Updating
------
+---
 
 Navigate to the cloned SpFeas git repository and pull the latest version.
 
@@ -104,7 +104,7 @@ python setup.py build && python setup.py install
 ```
 
 Uninstall
------
+---
 
 ##### To uninstall SpFeas, type the following line in the terminal:
 
@@ -113,13 +113,15 @@ pip uninstall spfeas
 ```
 
 Usage examples
------
+---
 
 ### Python usage:
 
 ```python
 >>> import spfeas
 >>>
+>>> # Extract the local mean at scales 16x16 and 32x32, and
+>>> #   save the results to 8x8 pixel blocks.
 >>> spfeas.spatial_features('/input_image.tif',
 >>>                         '/output_dir',
 >>>                         block=8,
@@ -143,11 +145,15 @@ spfeas -e
 
 ##### Traditional single pixel moving window
 
+The block size must equal 1 and the scales must be odd and > the block size.
+
 ```commandline
 spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 1 --scales 5 7 --sect-size 1000 --n-jobs -1 --overviews
 ```
 
 ##### Pixel block moving window
+
+The block size must be even and the scales must be even _and_ >= the block size.
 
 ```commandline
 spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 4 8 --sect-size 1000 --n-jobs -1 --overviews
@@ -157,8 +163,37 @@ spfeas -i /input_image.tif -o /output_directory -tr mean hog --block 4 --scales 
 
 Please refer to [**/notebooks/examples.ipynb**](https://github.com/jgrss/spfeas/tree/master/notebooks/examples.ipynb).
 
+SpFeas parameters
+---
+
+* `-i` or `--input` = The input image to extract spatial features from
+* `-o` or `--output` = The output directory to store spatial features
+* `-bp` or `--band-positions` = The input bands to process
+* `--rgb` = A boolean flag to trigger the use of image RGB average in place of individual bands
+*  `--vis-order` = The band order of the visible spectrum (only applies to the saliency trigger)
+* `--sensor` = The input image satellite sensor to determine band order (only applies to spectral indices)
+* `--format` = The output raster format
+* `--block` = The block size at which to store output features (output resolution = block size x image resolution)
+* `--scales` = The window scales at which to calculate local features
+* `-tr` = The feature "triggers" to calculate from the image
+* `--weight` = A boolean flag -- if True,the PanTex trigger is weigthed by the image values
+* `--sfs-th` = The SFS trigger stopping threshold
+* `--sfs-skip` = The SFS trigger angle skip factor
+* `--sfs-rs` = The SFS trigger post-processing cell resample size
+* `--lac-r` = The Lacunariy trigger box size
+* `--smooth` = A pre-processing window smooth size (in pixels)
+* `--image-min` = A user-defined input image minimum that overrides the image minimum 
+* `--image-max` = A user-defined input image maximum that overrides the image maximum
+* `--equalize` = A boolean flag to apply histogram equalization
+* `--equalize-adapt` = A boolean flag to apply adaptive histogram equalization
+* `--n-jobs` = The number of image sections to process in parallel
+* `--sect-size` = The section size (in pixels) to divide the image by
+* `--options` = Prints feature trigger options to screen
+* `--raster-options` = Prints output raster format options to screen
+* `--version` = Prints the current `SpFeas` version
+
 Naming conventions
------
+---
 
 After running SpFeas, the output files will consist of tiled `GeoTiffs` and a `YAML` information file. The image 
 processing is performed on a tile by tile basis. Therefore, the input image will be divided into multiple, smaller 
