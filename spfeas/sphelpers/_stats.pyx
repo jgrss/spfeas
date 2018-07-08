@@ -88,15 +88,15 @@ ctypedef DTYPE_float32_t[:, :, :, ::1] (*metric_ptr)(DTYPE_float32_t[:, :, :, ::
 
 
 cdef inline DTYPE_float32_t roundd(DTYPE_float32_t val) nogil:
-     return floor(val + .5)
+     return floor(val + 0.5)
 
 
 cdef inline DTYPE_float32_t sqrt_f(DTYPE_float32_t sx) nogil:
-    return sx * .5
+    return sx * 0.5
 
 
 cdef inline DTYPE_float32_t abs_f(DTYPE_float32_t sx) nogil:
-    return sx * -1. if sx < 0 else sx
+    return sx * -1.0 if sx < 0 else sx
 
 
 cdef inline DTYPE_uint8_t abs_ui(DTYPE_uint8_t sx) nogil:
@@ -144,11 +144,11 @@ cdef inline DTYPE_uint8_t _get_max_sample_int(DTYPE_uint8_t s1, DTYPE_uint8_t s2
 
 
 cdef inline DTYPE_float32_t _euclidean_distance(DTYPE_float32_t x1, DTYPE_float32_t y1, DTYPE_float32_t x2, DTYPE_float32_t y2) nogil:
-    return (((x1 - x2)**2.) + ((y1 - y2)**2.))**.5
+    return (((x1 - x2)**2.) + ((y1 - y2)**2.))**0.5
 
 
 cdef inline DTYPE_float32_t _get_line_length(DTYPE_float32_t y1, DTYPE_float32_t x1, DTYPE_float32_t y2, DTYPE_float32_t x2) nogil:
-    return ((y1 - x1)**2 + (y2 - x2)**2)**.5
+    return ((y1 - x1)**2 + (y2 - x2)**2)**0.5
 
 
 cdef unsigned int _get_output_length(int rows,
@@ -1326,9 +1326,9 @@ cdef void _get_directions(DTYPE_uint8_t[:, ::1] chunk,
 
 
 cdef void _sfs_feas(DTYPE_uint8_t[:, ::1] chunk,
-                    int blk_size,
+                    unsigned int block_size,
                     DTYPE_float32_t thresh_hom,
-                    int skip_factor,
+                    unsigned int skip_factor,
                     DTYPE_uint16_t[:, ::1] rcc_,
                     DTYPE_float32_t[::1] hist_,
                     DTYPE_float32_t[::1] sfs_values) nogil:
@@ -1347,7 +1347,7 @@ cdef void _sfs_feas(DTYPE_uint8_t[:, ::1] chunk,
     """
 
     cdef:
-        int chunk_rws, chunk_cls, rows_half, cols_half, blk_half
+        unsigned int chunk_rws, chunk_cls, rows_half, cols_half, block_half
         DTYPE_float32_t ctr_blk_mean, sfs_value
         DTYPE_uint8_t[:, ::1] chunk_block
         Py_ssize_t cbr, cbc
@@ -1356,19 +1356,25 @@ cdef void _sfs_feas(DTYPE_uint8_t[:, ::1] chunk,
     chunk_rws = chunk.shape[0]
     chunk_cls = chunk.shape[1]
 
-    rows_half = <int>(chunk_rws / 2.)
-    cols_half = <int>(chunk_cls / 2.)
+    rows_half = <int>(chunk_rws / 2.0)
+    cols_half = <int>(chunk_cls / 2.0)
 
-    blk_half = <int>(blk_size / 2.)
+    block_half = <int>(block_size / 2.0)
 
-    # get the center block average
-    chunk_block = chunk[rows_half-blk_half:rows_half+blk_half,
-                        cols_half-blk_half:cols_half+blk_half]
+    # Get the current window chunk
+    chunk_block = chunk[rows_half-block_half:rows_half+block_half,
+                        cols_half-block_half:cols_half+block_half]
 
-    cbr = chunk_block.shape[0]
-    cbc = chunk_block.shape[1]
+    # Get the center block average
+    if block_size > 1:
 
-    ctr_blk_mean = _get_mean_uint8(chunk_block, cbr, cbc)
+        cbr = chunk_block.shape[0]
+        cbc = chunk_block.shape[1]
+
+        ctr_blk_mean = _get_mean_uint8(chunk_block, cbr, cbc)
+
+    else:
+        ctr_blk_mean = chunk_block[rows_half, cols_half]
 
     _get_directions(chunk,
                     chunk_rws,
@@ -1384,7 +1390,7 @@ cdef void _sfs_feas(DTYPE_uint8_t[:, ::1] chunk,
 
 
 cdef void _feature_sfs(DTYPE_uint8_t[:, ::1] ch_bd,
-                       int blk,
+                       unsigned int block_size,
                        DTYPE_uint16_t[::1] scales_array,
                        int n_scales,
                        DTYPE_float32_t thresh_hom,
@@ -1408,54 +1414,81 @@ cdef void _feature_sfs(DTYPE_uint8_t[:, ::1] ch_bd,
 
     with nogil:
 
-        for i from 0 <= i < rows-scales_block by blk:
+        if block_size > 1:
 
-            for j from 0 <= j < cols-scales_block by blk:
+            for i from 0 <= i < rows-scales_block by block_size:
 
-                for ki in range(0, n_scales):
+                for j from 0 <= j < cols-scales_block by block_size:
 
-                    k = scales_array[ki]
+                    for ki in range(0, n_scales):
 
-                    k_half = <int>(k / 2.)
+                        k = scales_array[ki]
 
-                    ch_bd_ = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
-                                   j+scales_half-k_half:j+scales_half-k_half+k]
+                        k_half = <int>(k / 2.0)
 
-                    sts_[...] = sts
+                        ch_bd_ = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                       j+scales_half-k_half:j+scales_half-k_half+k]
 
-                    _sfs_feas(ch_bd_, blk, thresh_hom, skip_factor, rcc_, hist_, sts_)
+                        sts_[...] = sts
 
-                    for st_ in range(0, 6):
+                        _sfs_feas(ch_bd_, block_size, thresh_hom, skip_factor, rcc_, hist_, sts_)
 
-                        out_list_[pix_ctr] = sts_[st_]
+                        for st_ in range(0, 6):
 
-                        pix_ctr += 1
+                            out_list_[pix_ctr] = sts_[st_]
+
+                            pix_ctr += 1
+
+        else:
+
+            for i in range(0, rows-scales_block):
+
+                for j in range(0, cols-scales_block):
+
+                    for ki in range(0, n_scales):
+
+                        k = scales_array[ki]
+
+                        k_half = <int>(k / 2.0)
+
+                        ch_bd_ = ch_bd[i+scales_half-k_half:i+scales_half-k_half+k,
+                                       j+scales_half-k_half:j+scales_half-k_half+k]
+
+                        sts_[...] = sts
+
+                        _sfs_feas(ch_bd_, block_size, thresh_hom, skip_factor, rcc_, hist_, sts_)
+
+                        for st_ in range(0, 6):
+
+                            out_list_[pix_ctr] = sts_[st_]
+
+                            pix_ctr += 1
 
 
 def feature_sfs(DTYPE_uint8_t[:, ::1] chbd,
-                int blk,
-                list scs,
-                int end_scale,
+                unsigned int block_size,
+                list scales,
+                unsigned int end_scale,
                 DTYPE_float32_t thresh_hom,
-                int skip_factor=4):
+                unsigned int skip_factor=4):
 
     cdef:
         Py_ssize_t i, j, ki, k
-        int scales_half = <int>(end_scale / 2.)
-        int scales_block = end_scale - blk
+        int scales_half = <int>(end_scale / 2.0)
+        int scales_block = end_scale - block_size
         int rows = chbd.shape[0]
         int cols = chbd.shape[1]
-        DTYPE_uint16_t[::1] scales_array = np.array(scs, dtype='uint16')
+        DTYPE_uint16_t[::1] scales_array = np.array(scales, dtype='uint16')
         int scale_length = scales_array.shape[0]
         DTYPE_uint16_t[:, ::1] rcc = np.zeros((4, end_scale), dtype='uint16')
         DTYPE_float32_t[::1] histogram = np.zeros(end_scale, dtype='float32')
         DTYPE_float32_t[::1] out_list
-        unsigned int out_len = _get_output_length(rows, cols, scales_block, blk, scale_length, 6)
+        unsigned int out_len = _get_output_length(rows, cols, scales_block, block_size, scale_length, 6)
 
     out_list = np.zeros(out_len, dtype='float32')
 
     _feature_sfs(chbd,
-                 blk,
+                 block_size,
                  scales_array,
                  scale_length,
                  thresh_hom,
