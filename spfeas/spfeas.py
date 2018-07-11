@@ -138,6 +138,11 @@ class SPParameters(object):
 
             if trigger.upper() in utils.SUPPORTED_VIS:
 
+                if self.sat_sensor not in utils.SENSOR_BAND_DICT:
+
+                    logger.error('  The satellite sensor, {}, is not supported'.format(self.sat_sensor))
+                    raise NameError
+
                 vi_wvs = utils.VI_WAVELENGTHS[trigger.upper()]
                 sensor_wvs = list(utils.SENSOR_BAND_DICT[self.sat_sensor])
 
@@ -156,11 +161,6 @@ class SPParameters(object):
 
         for k, v in viewitems(kwargs):
             setattr(self, k, v)
-
-        if self.sat_sensor not in utils.SENSOR_BAND_DICT:
-
-            logger.error('  The satellite sensor, {}, is not supported'.format(self.sat_sensor))
-            raise NameError
 
         # Check spectral indices
         #   against the sensor.
@@ -254,17 +254,17 @@ def _examples():
     sys.exit("""\
 
     # Compute PanTex on band 3 with 2x2 pixel block, at scale 8.
-    spfeas -i /image.tif -o /out_dir -bp 3 --block 2 --scales 8 -tr pantex
+    spfeas -i image.tif -o out_dir -bp 3 --block 2 --scales 8 -tr pantex
 
     # Compute HoG and LBP on band 1 with 4x4 pixel block, at scales 16 and 32.
-    spfeas -i /image.tif -o /out_dir -bp 1 --block 4 --scales 16 32 -tr hog lbp
+    spfeas -i image.tif -o out_dir -bp 1 --block 4 --scales 16 32 -tr hog lbp
 
     # Compute the mean NDVI, with a 16-bit image that is scaled to 0-10,000. The `image_max`
     #   parameter ensures scaling across images.
-    spfeas -i /image.tif -o /out_dir --equalize_adapt --image_max 10000 -tr ndvi
+    spfeas -i image.tif -o out_dir --equalize_adapt --image_max 10000 -tr ndvi
 
     # Compute Structural Feature Sets on band 4, with pre-smoothing
-    spfeas -i /image.tif -o /out_dir -bp 4 -sfs_th 10 -tr sfs --smooth 5
+    spfeas -i image.tif -o out_dir -bp 4 -sfs_th 10 -tr sfs --smooth 5
 
     """)
 

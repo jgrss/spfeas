@@ -9,7 +9,7 @@ which is used for image I/O and land cover classification.
 Current version
 ---
 
-`0.3.3`
+`0.3.4`
 
 Refer to the [Wiki](https://github.com/jgrss/spfeas/wiki/SpFeas-updates) for changes.
 
