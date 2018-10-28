@@ -176,7 +176,7 @@ SpFeas parameters
 * `--block` = The block size at which to store output features (output resolution = block size x image resolution)
 * `--scales` = The window scales at which to calculate local features
 * `-tr` = The feature "triggers" to calculate from the image
-* `--weight` = A boolean flag -- if True,the PanTex trigger is weigthed by the image values
+* `--weight` = A boolean flag -- if True,the PanTex trigger is weighted by the image values
 * `--sfs-th` = The SFS trigger stopping threshold
 * `--sfs-skip` = The SFS trigger angle skip factor
 * `--sfs-rs` = The SFS trigger post-processing cell resample size
